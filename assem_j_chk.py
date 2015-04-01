@@ -10,16 +10,16 @@ bases = ['A', 'C', 'G', 'T']
 def get_kmers(r,k):
 	return [r[i:i+k] for i in range(len(r)-k+1)]
 
-def get_level_j_buff(source,bf,depth):
+def get_j_forward_buff(source,bf,depth):
 	"""initialize traversal buffer
-		store nodes up to depth accepted by bf
+		stores source + nodes up to depth accepted by bf
 		in list of sets
 	"""
 	buff = []
 	roots = [source]
 	buff.append(set(roots))
 	next = []
-	for level in range(depth):
+	for level in range(depth+1):
 		for root in roots:
 			for b in bases:
 				test_kmer = root[1:]+b
@@ -28,6 +28,7 @@ def get_level_j_buff(source,bf,depth):
 		roots = next[:]
 		buff.append(set(roots))
 		next = []
+	del buff[0]
 	return buff
 
 
@@ -47,17 +48,18 @@ def advance_buffer(buff, bf):
 
 
 def get_back_suffixes(buff, j):
+	# actually off by one base from being real suffixes
 	backs = list(buff[0])
 	suffs = set([])
 	for b in backs:
-		suffs.add(b[-(k-j):])
+		suffs.add(b[j:-1])
 	return suffs
 
 def get_front_prefixes(buff, j):
 	fronts = list(buff[-1])
 	prefs = set([])
 	for f in fronts:
-		prefs.add(f[:k-j])
+		prefs.add(f[:-j-1])
 	return prefs
 
 def pretty_print_buffer(buff):
@@ -91,6 +93,7 @@ def get_candidate_false_joins(filename,bf):
 		needed to check against reals later, to know which are false joins, which are
 		true branch points
 	"""
+	cands = []
 	line_no = 0
 	with open(filename) as f:
 		for line in f:
@@ -98,17 +101,25 @@ def get_candidate_false_joins(filename,bf):
 				print line_no
 			read = line.rstrip()
 			kmers = get_kmers(read,k)
-			buff = get_level_j_buff(kmers[0],B,j)
+			buff = get_j_forward_buff(kmers[0],B,j)
 			
-			for kmer in kmers:
+			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
 					print line_no
 					backs = get_back_suffixes(buff,j)
 					fronts = get_front_prefixes(buff,j)
 					comms = backs.intersection(fronts)
+					if ind == read_len-k:
+						break
+					next_real = kmers[ind+1][-(k-j-1):] 						
+					alts = comms - set([next_real]) # k-j suffix from next real k-mer
 					print "back suffixes: ", list(backs)
 					print "front prefixes: ", list(fronts)
 					print "commons: ", list(comms)
+					print "len: ", len(buff)
+					print "next: ", next_real
+					print "kmer: ", kmer
+					print "alts: ", list(alts)
 					# pretty_print_buffer(buff)
 				advance_buffer(buff,B)
 				
