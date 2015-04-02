@@ -101,18 +101,20 @@ def load_bf_sources_sinks(filename,j):
 	return (B,sources,j_sinks)
 
 def clean_alt_paths_from_buff(alts, backs, fronts, buff):
-	""" given (k-j)-mers of alt paths, joins with j at start
-		and end to create paths to check (returned), removes k-mers including
-		them from buffer ends (modified)
+	""" given (k-j)-mers of alt paths, gets their start and end
+		k-mers to create paths to check (returned), removes k-mers including
+		them from buffer front (modified)
 	"""
 	paths = []
+	# front = buff[-1]
 	for a in alts:
 		pref = backs[a][0]
 		ends = fronts[a]
 		for end in ends:
 			path = pref + end[-j:]
 			paths.append(path)
-		return paths
+			buff[-1].discard(end)
+	return paths
 
 
 def get_candidate_false_joins(filename,bf):
@@ -133,7 +135,7 @@ def get_candidate_false_joins(filename,bf):
 			
 			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
-					print line_no
+					print "read no: %d, position: %d" % (line_no, ind)
 					backs = get_back_suffixes(buff,j)
 					fronts = get_front_prefixes(buff,j)
 					comms = (set(backs.keys())).intersection(set(fronts.keys()))
@@ -144,7 +146,7 @@ def get_candidate_false_joins(filename,bf):
 					print "back suffixes, back-mers: ", list(backs), backs.values()
 					print "front prefixes, front-mers: ", list(fronts), fronts.values()
 					print "commons: ", list(comms)
-					print "next: ", next_real
+					print "real next: ", next_real
 					print "kmer: ", kmer
 					print "alts: ", list(alts)
 					alt_paths = clean_alt_paths_from_buff(alts, backs, fronts, buff)
