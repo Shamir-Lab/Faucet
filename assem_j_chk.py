@@ -48,18 +48,17 @@ def advance_buffer(buff, bf):
 
 
 def get_back_suffixes(buff, j):
-	# actually off by one base from being real suffixes
 	backs = list(buff[0])
 	suffs = set([])
 	for b in backs:
-		suffs.add(b[j:-1])
+		suffs.add(b[j:])
 	return suffs
 
 def get_front_prefixes(buff, j):
 	fronts = list(buff[-1])
 	prefs = set([])
 	for f in fronts:
-		prefs.add(f[:-j-1])
+		prefs.add(f[:-j])
 	return prefs
 
 def pretty_print_buffer(buff):
@@ -88,9 +87,9 @@ def load_bf_sources_sinks(filename,j):
 	return (B,sources,j_sinks)
 
 def get_candidate_false_joins(filename,bf):
-	""" scan reads to find candidate false joins
-		find nodes having descendents at level j that differ from read sequence
-		needed to check against reals later, to know which are false joins, which are
+	""" scan reads to find candidate false joins. 
+		finds nodes having descendents at level j that differ from read sequence
+		used to check against reals later, to know which are false joins, vs. 
 		true branch points
 	"""
 	cands = []
@@ -111,7 +110,7 @@ def get_candidate_false_joins(filename,bf):
 					comms = backs.intersection(fronts)
 					if ind == read_len-k:
 						break
-					next_real = kmers[ind+1][-(k-j-1):] 						
+					next_real = kmers[ind+1][j:] 						
 					alts = comms - set([next_real]) # k-j suffix from next real k-mer
 					print "back suffixes: ", list(backs)
 					print "front prefixes: ", list(fronts)
