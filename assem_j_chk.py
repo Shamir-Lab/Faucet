@@ -48,17 +48,31 @@ def advance_buffer(buff, bf):
 
 
 def get_back_suffixes(buff, j):
+	""" fetches dictionary including all k-j suffixes
+		from first level (back) of buffer as keys and the 
+		k-mers including them as values
+	"""
 	backs = list(buff[0])
-	suffs = set([])
+	suffs = {}
 	for b in backs:
-		suffs.add(b[j:])
+		if b[j:] in suffs:
+			suffs[b[j:]].append(b)
+		else:
+			suffs[b[j:]]=[b]
 	return suffs
 
 def get_front_prefixes(buff, j):
+	""" fetches dictionary including all k-j prefixes
+		from last level (front) of buffer as keys and the 
+		k-mers including them as values
+	"""
 	fronts = list(buff[-1])
-	prefs = set([])
+	prefs = {}
 	for f in fronts:
-		prefs.add(f[:-j])
+		if f[j:] in prefs:
+			prefs[f[:-j]].append(f)
+		else:
+			prefs[f[:-j]]=[f]
 	return prefs
 
 def pretty_print_buffer(buff):
@@ -86,6 +100,21 @@ def load_bf_sources_sinks(filename,j):
 			line_no +=1
 	return (B,sources,j_sinks)
 
+def clean_alt_paths_from_buff(alts, backs, fronts, buff):
+	""" given (k-j)-mers of alt paths, joins with j at start
+		and end to create paths to check (returned), removes k-mers including
+		them from buffer ends (modified)
+	"""
+	paths = []
+	for a in alts:
+		pref = backs[a][0]
+		ends = fronts[a]
+		for end in ends:
+			path = pref + end[-j:]
+			paths.append(path)
+		return paths
+
+
 def get_candidate_false_joins(filename,bf):
 	""" scan reads to find candidate false joins. 
 		finds nodes having descendents at level j that differ from read sequence
@@ -107,18 +136,19 @@ def get_candidate_false_joins(filename,bf):
 					print line_no
 					backs = get_back_suffixes(buff,j)
 					fronts = get_front_prefixes(buff,j)
-					comms = backs.intersection(fronts)
+					comms = (set(backs.keys())).intersection(set(fronts.keys()))
 					if ind == read_len-k:
 						break
-					next_real = kmers[ind+1][j:] 						
-					alts = comms - set([next_real]) # k-j suffix from next real k-mer
-					print "back suffixes: ", list(backs)
-					print "front prefixes: ", list(fronts)
+					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
+					alts = comms - set([next_real]) 
+					print "back suffixes, back-mers: ", list(backs), backs.values()
+					print "front prefixes, front-mers: ", list(fronts), fronts.values()
 					print "commons: ", list(comms)
-					print "len: ", len(buff)
 					print "next: ", next_real
 					print "kmer: ", kmer
 					print "alts: ", list(alts)
+					alt_paths = clean_alt_paths_from_buff(alts, backs, fronts, buff)
+					print "paths to check: ", alt_paths
 					# pretty_print_buffer(buff)
 				advance_buffer(buff,B)
 				
