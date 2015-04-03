@@ -3,7 +3,7 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 10
+j = 20
 bases = ['A', 'C', 'G', 'T']
 
 
@@ -90,6 +90,7 @@ def load_bf_sources_sinks(filename,j):
 	"""
 	sources = []
 	j_sinks = []
+	reals = []
 	B = BloomFilter(capacity = 500000000, error_rate=fp)
 	line_no = 0
 	with open(filename) as f:
@@ -99,13 +100,16 @@ def load_bf_sources_sinks(filename,j):
 			read = line.rstrip()
 			sources.append(read[:k])
 			j_sinks.append(read[-(k+j):-j])
-			B.update(get_kmers(read,k))
+			kmers = get_kmers(read,k)
+			B.update(kmers)
+			reals.extend(kmers)
 			line_no +=1
-	return (B,sources,j_sinks)
+	reals = set(reals)
+	return (B,sources,j_sinks,reals)
 
 def clean_alt_paths_from_buff(alts, backs, fronts, buff):
 	""" given (k-j)-mers of alt paths, gets their start and end
-		k-mers to create paths to check (returned), removes k-mers including
+		k-mers to create paths to check (list returned), removes k-mers including
 		them from buffer front (modified)
 	"""
 	paths = []
@@ -123,21 +127,21 @@ def get_candidate_false_joins(filename,bf):
 	""" scan reads to find candidate false joins. 
 		finds nodes having descendents at level j that differ from read sequence
 		used to check against reals later, to know which are false joins, vs. 
-		true branch points
+		true branch points; returns list of candidate lists corr. to each read
 	"""
 	cands = []
 	line_no = 0
 	with open(filename) as f:
 		for line in f:
-			if line_no%1000==0:
-				print line_no
+			if (line_no+1)%10000==0:
+				print line_no+1, len(cands)
 			read = line.rstrip()
 			kmers = get_kmers(read,k)
 			buff = get_j_forward_buff(kmers[0],B,j)
 			
 			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
-					print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
+					# print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
 					backs = get_back_suffixes(buff,j)
 					fronts = get_front_prefixes(buff,j)
 					comms = (set(backs.keys())).intersection(set(fronts.keys()))
@@ -145,30 +149,53 @@ def get_candidate_false_joins(filename,bf):
 						break
 					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
 					alts = comms - set([next_real]) 
-					print "back suffixes, back-mers: ", list(backs), backs.values()
-					print "front prefixes, front-mers: ", list(fronts), fronts.values()
-					print "commons: ", list(comms)
-					print "real next: ", next_real
-					print "kmer: ", kmer
-					print "alts: ", list(alts)
-					print "front len before cleaning: ", len(buff[-1])
+					# print "back suffixes, back-mers: ", list(backs), backs.values()
+					# print "front prefixes, front-mers: ", list(fronts), fronts.values()
+					# print "commons: ", list(comms)
+					# print "real next: ", next_real
+					# print "kmer: ", kmer
+					# print "alts: ", list(alts)
+					# print "front len before cleaning: ", len(buff[-1])
 					alt_paths = clean_alt_paths_from_buff(alts, backs, fronts, buff)
-					print "front len after cleaning: ", len(buff[-1])
-					print "paths to check: ", alt_paths
+					if alt_paths:
+						cands.append(alt_paths)
+					# print "front len after cleaning: ", len(buff[-1])
+					# print "paths to check: ", alt_paths
 					# pretty_print_buffer(buff)
-				advance_buffer(buff,B)
-				
+				advance_buffer(buff,B)	
 			line_no +=1
-			if line_no==10:
-				break
+	return cands
+			# if line_no==10:
+				# break
+
+def check_path_for_false_joins(path, bf, reals):
+	""" 
+	"""
+	kmers = get_kmers(path, k)
+	# print type(kmers)
+	# print type(kmers[0])
+	# print type(reals)
+	# print path, kmers
+	if all(kmer in reals for kmer in kmers):
+		return None
+	else: # some false positive in path
+		return True #TODO: change return type based on desired use
+
 
 
 ####### main ####### 
-fname1 = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
-(B,sources,sinks) = load_bf_sources_sinks(fname1,j)
-get_candidate_false_joins(fname1,B)
-
-
+fname1 = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+(B,sources,sinks,reals) = load_bf_sources_sinks(fname1,j)
+candidates = get_candidate_false_joins(fname1,B)
+fj_cnt = 0
+br_cnt = 0
+for cnd_lst in candidates:
+	for c in cnd_lst:
+		if check_path_for_false_joins(c,B,reals):
+			fj_cnt += 1
+		else:
+			br_cnt += 1
+print len(candidates), fj_cnt, br_cnt
 
 
 # need to also change sinks, sources from candidates to 
