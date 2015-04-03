@@ -55,10 +55,11 @@ def get_back_suffixes(buff, j):
 	backs = list(buff[0])
 	suffs = {}
 	for b in backs:
-		if b[j:] in suffs:
-			suffs[b[j:]].append(b)
+		suff = b[j:]
+		if suff in suffs:
+			suffs[suff].append(b)
 		else:
-			suffs[b[j:]]=[b]
+			suffs[suff]=[b]
 	return suffs
 
 def get_front_prefixes(buff, j):
@@ -69,10 +70,12 @@ def get_front_prefixes(buff, j):
 	fronts = list(buff[-1])
 	prefs = {}
 	for f in fronts:
-		if f[j:] in prefs:
-			prefs[f[:-j]].append(f)
+		pref = f[:-j]
+		if pref in prefs:
+			prefs[pref].append(f)
 		else:
-			prefs[f[:-j]]=[f]
+			prefs[pref]=[f]
+			# prefs[f[:-j]]=[f]
 	return prefs
 
 def pretty_print_buffer(buff):
@@ -106,7 +109,6 @@ def clean_alt_paths_from_buff(alts, backs, fronts, buff):
 		them from buffer front (modified)
 	"""
 	paths = []
-	# front = buff[-1]
 	for a in alts:
 		pref = backs[a][0]
 		ends = fronts[a]
@@ -135,7 +137,7 @@ def get_candidate_false_joins(filename,bf):
 			
 			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
-					print "read no: %d, position: %d" % (line_no, ind)
+					print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
 					backs = get_back_suffixes(buff,j)
 					fronts = get_front_prefixes(buff,j)
 					comms = (set(backs.keys())).intersection(set(fronts.keys()))
@@ -149,7 +151,9 @@ def get_candidate_false_joins(filename,bf):
 					print "real next: ", next_real
 					print "kmer: ", kmer
 					print "alts: ", list(alts)
+					print "front len before cleaning: ", len(buff[-1])
 					alt_paths = clean_alt_paths_from_buff(alts, backs, fronts, buff)
+					print "front len after cleaning: ", len(buff[-1])
 					print "paths to check: ", alt_paths
 					# pretty_print_buffer(buff)
 				advance_buffer(buff,B)
