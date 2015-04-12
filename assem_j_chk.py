@@ -3,12 +3,19 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 20
+j = 15
 bases = ['A', 'C', 'G', 'T']
-
+complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
 def get_kmers(r,k):
 	return [r[i:i+k] for i in range(len(r)-k+1)]
+
+def get_rc(dna):
+	rev = reversed(dna)
+	return "".join([complements[i] for i in rev])
+
+def get_canons(kmers):
+	return [min(x,get_rc(x)) for x in kmers]
 
 def get_j_forward_buff(source,bf,depth):
 	"""initialize traversal buffer
@@ -23,7 +30,8 @@ def get_j_forward_buff(source,bf,depth):
 		for root in roots:
 			for b in bases:
 				test_kmer = root[1:]+b
-				if test_kmer in bf:
+				canon = min(test_kmer, get_rc(test_kmer))
+				if canon in bf:
 					next.append(test_kmer)
 		roots = next[:]
 		buff.append(set(roots))
@@ -95,14 +103,18 @@ def load_bf_sources_sinks(filename,j):
 	line_no = 0
 	with open(filename) as f:
 		for line in f:
-			if line_no%1000000==0:
-				print line_no
+			# if line_no%1000000==0:
+			# 	print line_no
 			read = line.rstrip()
 			sources.append(read[:k])
+			sources.append(get_rc(read[-k:]))
 			j_sinks.append(read[-(k+j):-j])
+			j_sinks.append(get_rc(read[j:j+k]))
 			kmers = get_kmers(read,k)
-			B.update(kmers)
-			reals.extend(kmers)
+			# insert canonical (lex-min) kmers only
+			canons = get_canons(kmers) 
+			B.update(canons)
+			reals.extend(canons)
 			line_no +=1
 	reals = set(reals)
 	return (B,sources,j_sinks,reals)
@@ -127,7 +139,7 @@ def get_candidate_false_joins(filename,bf):
 	""" scan reads to find candidate false joins. 
 		finds nodes having descendents at level j that differ from read sequence
 		used to check against reals later, to know which are false joins, vs. 
-		true branch points; returns list of candidate lists corr. to each read
+		true branch points; returns list of candidate lists corr. to all candidate from a read
 	"""
 	cands = []
 	line_no = 0
@@ -137,7 +149,7 @@ def get_candidate_false_joins(filename,bf):
 				print line_no+1, len(cands)
 			read = line.rstrip()
 			kmers = get_kmers(read,k)
-			buff = get_j_forward_buff(kmers[0],B,j)
+			buff = get_j_forward_buff(kmers[0],bf,j)
 			
 			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
@@ -162,46 +174,98 @@ def get_candidate_false_joins(filename,bf):
 					# print "front len after cleaning: ", len(buff[-1])
 					# print "paths to check: ", alt_paths
 					# pretty_print_buffer(buff)
-				advance_buffer(buff,B)	
+				advance_buffer(buff,bf)	
 			line_no +=1
+	
+	print "got forward candidates"
+	with open(filename) as f:
+		for line in f:
+			if (line_no+1)%10000==0:
+				print line_no+1, len(cands)
+			read = line.rstrip()
+			kmers = get_kmers(get_rc(read),k)
+			buff = get_j_forward_buff(kmers[0],bf,j)
+			
+			for ind, kmer in enumerate(kmers):
+				if len(buff[-1])>1 and len(buff[0])>1:
+					# print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
+					backs = get_back_suffixes(buff,j)
+					fronts = get_front_prefixes(buff,j)
+					comms = (set(backs.keys())).intersection(set(fronts.keys()))
+					if ind == read_len-k:
+						break
+					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
+					alts = comms - set([next_real]) 
+					# print "back suffixes, back-mers: ", list(backs), backs.values()
+					# print "front prefixes, front-mers: ", list(fronts), fronts.values()
+					# print "commons: ", list(comms)
+					# print "real next: ", next_real
+					# print "kmer: ", kmer
+					# print "alts: ", list(alts)
+					# print "front len before cleaning: ", len(buff[-1])
+					alt_paths = clean_alt_paths_from_buff(alts, backs, fronts, buff)
+					if alt_paths:
+						cands.append(alt_paths)
+					# print "front len after cleaning: ", len(buff[-1])
+					# print "paths to check: ", alt_paths
+					# pretty_print_buffer(buff)
+				advance_buffer(buff,bf)	
+			line_no +=1
+
+	print "got rc candidates"
 	return cands
-			# if line_no==10:
-				# break
 
 def check_path_for_false_joins(path, bf, reals):
-	""" 
+	""" given a path in the form of a string (incl several k-mers)
+		check if any k-mers in path are false [TODO: return true only 
+		if F->T transition]
 	"""
 	kmers = get_kmers(path, k)
-	# print type(kmers)
-	# print type(kmers[0])
-	# print type(reals)
-	# print path, kmers
-	if all(kmer in reals for kmer in kmers):
-		return None
+	canons = get_canons(kmers)
+	if all(kmer in reals for kmer in canons):
+		return False
 	else: # some false positive in path
 		return True #TODO: change return type based on desired use
 
+def get_real_junctions(reals):
+	""" given reals as set, returns junction nodes - having out-degree
+		> 1 (sources/sinks collected separately; nodes with indegree > 1 
+		also need to be covered separately)
+	"""
+	reals_ls = list(reals)
+	juncs = []
+	for r in reals_ls:
+		ext_cnt = 0
+		for b in bases:
+			test_kmer = r[1:]+b
+			if test_kmer in reals:
+				ext_cnt += 1
+		if ext_cnt > 1:
+			juncs.append(r)
+	return juncs
 
 
 ####### main ####### 
-fname1 = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-(B,sources,sinks,reals) = load_bf_sources_sinks(fname1,j)
-candidates = get_candidate_false_joins(fname1,B)
+reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
+(B,sources,sinks,reals) = load_bf_sources_sinks(reads_f,j)
+rl_cands = get_candidate_false_joins(reads_f,reals) 
+# bf_cands = get_candidate_false_joins(fname1,B)
 fj_cnt = 0
 br_cnt = 0
-for cnd_lst in candidates:
+for cnd_lst in rl_cands:
 	for c in cnd_lst:
 		if check_path_for_false_joins(c,B,reals):
 			fj_cnt += 1
 		else:
 			br_cnt += 1
-print len(candidates), fj_cnt, br_cnt
+print "bf cands", len(rl_cands), fj_cnt, br_cnt
 
+# br_cnt = 0
+# for cnd_lst in rl_cands:
+# 	br_cnt += len(cnd_lst)
 
-# need to also change sinks, sources from candidates to 
-# real ends
+# print "rl cands", len(rl_cands), br_cnt
 
-# for s in sources:
-# buff = get_level_j_buff(sources[0],B,j)
-# # (next_step, j_step) = advance_with_buffer(s,j,B)
-# print buff
+# juncs = get_real_junctions(reals)
+# print len(juncs), "real junctions"
+
