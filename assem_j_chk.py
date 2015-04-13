@@ -3,7 +3,7 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 15
+j = 3
 bases = ['A', 'C', 'G', 'T']
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
@@ -91,7 +91,7 @@ def pretty_print_buffer(buff):
 		print list(level)
 	print "\n"
 
-def load_bf_sources_sinks(filename,j):
+def load_bf_sources_sinks(filename,j,numreads):
 	""" loads k-mers into bloom filter
 		loads to lists ends of reads as potential
 		sources and sinks (or nodes j away from sinks)
@@ -99,7 +99,7 @@ def load_bf_sources_sinks(filename,j):
 	sources = []
 	j_sinks = []
 	reals = []
-	B = BloomFilter(capacity = 500000000, error_rate=fp)
+	B = BloomFilter(capacity = numreads * (read_len-k), error_rate=fp)
 	line_no = 0
 	with open(filename) as f:
 		for line in f:
@@ -178,6 +178,7 @@ def get_candidate_false_joins(filename,bf):
 			line_no +=1
 	
 	print "got forward candidates"
+	line_no = 0
 	with open(filename) as f:
 		for line in f:
 			if (line_no+1)%10000==0:
@@ -222,9 +223,11 @@ def check_path_for_false_joins(path, bf, reals):
 	"""
 	kmers = get_kmers(path, k)
 	canons = get_canons(kmers)
-	if all(kmer in reals for kmer in canons):
+	bools = [kmer in reals for kmer in canons]
+	if all(bools): #TODO: checking paths should be cached - k-mer subpaths often repeated
 		return False
 	else: # some false positive in path
+		# print bools
 		return True #TODO: change return type based on desired use
 
 def get_real_junctions(reals):
@@ -246,25 +249,25 @@ def get_real_junctions(reals):
 
 
 ####### main ####### 
-reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
-(B,sources,sinks,reals) = load_bf_sources_sinks(reads_f,j)
+reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+(B,sources,sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
 rl_cands = get_candidate_false_joins(reads_f,reals) 
-# bf_cands = get_candidate_false_joins(fname1,B)
+bf_cands = get_candidate_false_joins(reads_f,B)
 fj_cnt = 0
 br_cnt = 0
-for cnd_lst in rl_cands:
+for cnd_lst in bf_cands:
 	for c in cnd_lst:
 		if check_path_for_false_joins(c,B,reals):
 			fj_cnt += 1
 		else:
 			br_cnt += 1
-print "bf cands", len(rl_cands), fj_cnt, br_cnt
+print "bf cands", len(bf_cands), fj_cnt, br_cnt
 
-# br_cnt = 0
-# for cnd_lst in rl_cands:
-# 	br_cnt += len(cnd_lst)
+br_cnt = 0
+for cnd_lst in rl_cands:
+	br_cnt += len(cnd_lst)
 
-# print "rl cands", len(rl_cands), br_cnt
+print "rl cands", len(rl_cands), br_cnt
 
 # juncs = get_real_junctions(reals)
 # print len(juncs), "real junctions"
