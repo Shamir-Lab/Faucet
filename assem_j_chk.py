@@ -3,7 +3,7 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 3
+j = 10
 bases = ['A', 'C', 'G', 'T']
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
@@ -226,9 +226,10 @@ def check_path_for_false_joins(path, bf, reals):
 	bools = [kmer in reals for kmer in canons]
 	if all(bools): #TODO: checking paths should be cached - k-mer subpaths often repeated
 		return False
-	else: # some false positive in path
+	else:
 		# print bools
-		return True #TODO: change return type based on desired use
+		if bools[-1]==True: # path contains some F and ends in T
+			return True 
 
 def get_real_junctions(reals):
 	""" given reals as set, returns junction nodes - having out-degree
