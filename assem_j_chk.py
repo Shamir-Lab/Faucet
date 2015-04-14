@@ -117,6 +117,8 @@ def load_bf_sources_sinks(filename,j,numreads):
 			reals.extend(canons)
 			line_no +=1
 	reals = set(reals)
+	sources = set(get_canons(sources))
+	j_sinks = set(get_canons(j_sinks))
 	return (B,sources,j_sinks,reals)
 
 def clean_alt_paths_from_buff(alts, backs, fronts, buff):
@@ -231,28 +233,50 @@ def check_path_for_false_joins(path, bf, reals):
 		if bools[-1]==True: # path contains some F and ends in T
 			return True 
 
-def get_real_junctions(reals):
-	""" given reals as set, returns junction nodes - having out-degree
-		> 1 (sources/sinks collected separately; nodes with indegree > 1 
-		also need to be covered separately)
+def find_real_ends(cands, bf):
+	""" given candidate sources, query bf on all
+		those that have no extension on 5' end are sources
+		those that have no extension on 3' are sinks
+		rest are checked against reals to make sure no real ends
+		are missed due to FPs
 	"""
-	reals_ls = list(reals)
-	juncs = []
-	for r in reals_ls:
-		ext_cnt = 0
+	sources = []
+	sinks = []
+	to_chk = []
+	for c in cands:
+		num_ext_r = 0
+		num_ext_l = 0
+		pref = c[1:]
+		suff = c[:-1]
+		r_ext = []
+		l_ext = []
 		for b in bases:
-			test_kmer = r[1:]+b
-			if test_kmer in reals:
-				ext_cnt += 1
-		if ext_cnt > 1:
-			juncs.append(r)
-	return juncs
+			test_kmer_r = pref+b
+			canon = min(test_kmer_r, get_rc(test_kmer_r))
+			if canon in bf:
+				num_ext_r += 1
+				r_ext.append(b)
+			test_kmer_l = b+suff
+			canon = min(test_kmer_l, get_rc(test_kmer_l))
+			if canon in bf:
+				num_ext_l += 1
+				l_ext.append(b)
+		if num_ext_l == 0:
+			sources.append(c)
+		elif num_ext_r == 0:
+			sinks.append(c)
+		else:
+			to_chk.append([c,r_ext,l_ext])
+
+	return (sources,sinks,to_chk)
+
 
 
 ####### main ####### 
 reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-(B,sources,sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
-rl_cands = get_candidate_false_joins(reads_f,reals) 
+(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
+
+# rl_cands = get_candidate_false_joins(reads_f,reals) 
 bf_cands = get_candidate_false_joins(reads_f,B)
 fj_cnt = 0
 br_cnt = 0
@@ -264,12 +288,18 @@ for cnd_lst in bf_cands:
 			br_cnt += 1
 print "bf cands", len(bf_cands), fj_cnt, br_cnt
 
-br_cnt = 0
-for cnd_lst in rl_cands:
-	br_cnt += len(cnd_lst)
+# br_cnt = 0
+# for cnd_lst in rl_cands:
+# 	br_cnt += len(cnd_lst)
 
-print "rl cands", len(rl_cands), br_cnt
+# print "rl cands", len(rl_cands), br_cnt
 
-# juncs = get_real_junctions(reals)
-# print len(juncs), "real junctions"
 
+# find real sources
+sources,sinks,to_chk = find_real_ends(list(src_cnd), B)
+print "sources, sinks, to_chk"
+print len(sources), len(sinks), len(to_chk)
+
+
+# traverse from all sources, mark junctions visited, 
+# output contigs
