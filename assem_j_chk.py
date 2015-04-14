@@ -233,12 +233,12 @@ def check_path_for_false_joins(path, bf, reals):
 		if bools[-1]==True: # path contains some F and ends in T
 			return True 
 
-def find_real_ends(cands, bf):
-	""" given candidate sources, query bf on all
+def find_real_ends(cands, hsh):
+	""" given candidate sources, query hash (bf or reals) on all
 		those that have no extension on 5' end are sources
 		those that have no extension on 3' are sinks
-		rest are checked against reals to make sure no real ends
-		are missed due to FPs
+		if using bf, to_chk are for check against reals to make sure no real ends
+		are missed due to FPs.  If using reals, to_chk are non-ends
 	"""
 	sources = []
 	sinks = []
@@ -248,28 +248,28 @@ def find_real_ends(cands, bf):
 		num_ext_l = 0
 		pref = c[1:]
 		suff = c[:-1]
-		r_ext = []
-		l_ext = []
+		# r_ext = []
+		# l_ext = []
 		for b in bases:
 			test_kmer_r = pref+b
 			canon = min(test_kmer_r, get_rc(test_kmer_r))
-			if canon in bf:
+			if canon in hsh:
 				num_ext_r += 1
-				r_ext.append(b)
+				# r_ext.append(b)
 			test_kmer_l = b+suff
 			canon = min(test_kmer_l, get_rc(test_kmer_l))
-			if canon in bf:
+			if canon in hsh:
 				num_ext_l += 1
-				l_ext.append(b)
+				# l_ext.append(b)
 		if num_ext_l == 0:
 			sources.append(c)
 		elif num_ext_r == 0:
 			sinks.append(c)
 		else:
-			to_chk.append([c,r_ext,l_ext])
-
+			to_chk.append(c)#[c,r_ext,l_ext])
+	sources = set(sources)
+	sinks = set(sinks)
 	return (sources,sinks,to_chk)
-
 
 
 ####### main ####### 
@@ -295,10 +295,17 @@ print "bf cands", len(bf_cands), fj_cnt, br_cnt
 # print "rl cands", len(rl_cands), br_cnt
 
 
-# find real sources
-sources,sinks,to_chk = find_real_ends(list(src_cnd), B)
+# find real ends, get candidates for cheking
+sources, sinks, to_chk = find_real_ends(list(src_cnd), B)
 print "sources, sinks, to_chk"
 print len(sources), len(sinks), len(to_chk)
+
+# check remaining end candidates, join with first stage ends
+sources2, sinks2, to_discard = find_real_ends(to_chk, reals)
+print len(sources2), len(sinks2), len(to_discard)
+sinks |= sinks2
+sources |= sources2
+print len(sources), len(sinks)
 
 
 # traverse from all sources, mark junctions visited, 
