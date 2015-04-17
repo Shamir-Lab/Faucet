@@ -76,10 +76,6 @@ def get_buffer_level(buff, j, level):
 			invars[inv]=[kmer]
 	return invars
 
-def pretty_print_buffer(buff):
-	for level in buff:
-		print list(level)
-	print "\n"
 
 def load_bf_sources_sinks(filename,j,numreads):
 	""" loads k-mers into bloom filter
@@ -138,7 +134,7 @@ def clean_seen_alts_from_buff(alts,buff):
 					buff[lev].discard(kmer)
 				
 
-def get_candidate_false_joins(filename,bf):
+def get_candidate_false_joins(filename,bf,rc=False):
 	""" scan reads to find candidate false joins. 
 		finds nodes having descendents at level j that differ from read sequence
 		used to check against reals later, to know which are false joins, vs. 
@@ -151,13 +147,16 @@ def get_candidate_false_joins(filename,bf):
 			if (line_no+1)%10000==0:
 				print line_no+1, len(cands)
 			read = line.rstrip()
-			kmers = get_kmers(read,k)
+			if rc:
+				kmers = get_kmers(get_rc(read),k)
+			else:
+				kmers = get_kmers(read,k)
 			buff = get_j_forward_buff(kmers[0],bf,j)
 			
 			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
-					backs = get_buffer_level(buff,j,0) #get_back_suffixes(buff,j)
-					fronts = get_buffer_level(buff,j,j) #get_front_prefixes(buff,j)
+					backs = get_buffer_level(buff,j,0) 
+					fronts = get_buffer_level(buff,j,j) 
 					comms = (set(backs.keys())).intersection(set(fronts.keys()))
 					if ind == read_len-k:
 						break
@@ -174,65 +173,11 @@ def get_candidate_false_joins(filename,bf):
 						buff = get_j_forward_buff(kmer,bf,j)
 				advance_buffer(buff,bf)	
 			line_no +=1
-	
-	print "got forward candidates"
-	line_no = 0
-	with open(filename) as f:
-		for line in f:
-			if (line_no+1)%10000==0:
-				print line_no+1, len(cands)
-			read = line.rstrip()
-			kmers = get_kmers(get_rc(read),k)
-			buff = get_j_forward_buff(kmers[0],bf,j)
-			
-			for ind, kmer in enumerate(kmers):
-				if len(buff[-1])>1 and len(buff[0])>1:
-					
-					backs = get_buffer_level(buff,j,0)
-					fronts = get_buffer_level(buff,j,j)
-					comms = (set(backs.keys())).intersection(set(fronts.keys()))
-					if ind == read_len-k:
-						break
-					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
-					alts = comms - set([next_real]) 
-					
-					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
-					if alt_paths:
-						for alt in alt_paths:
-							alt = kmer[0] + alt 
-						cands.append(alt_paths)
-						buff = get_j_forward_buff(kmer,bf,j) # to clear buffer of old branches
-						clean_seen_alts_from_buff(alts, buff)
-					else:
-						buff = get_j_forward_buff(kmer,bf,j)
-				advance_buffer(buff,bf)	
-			line_no +=1
-
-	print "got rc candidates"
+	if rc:
+		print "got rc candidates"
+	else:
+		print "got forward candidates"
 	return cands
-
-	# print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
-					# backs = get_back_suffixes(buff,j)
-# print "back suffixes, back-mers: ", list(backs), backs.values()
-					# print "back suffixes, back-mers: ", list(backs2), backs2.values()
-					# print "front prefixes, front-mers: ", list(fronts), fronts.values()
-					# print "front prefixes, front-mers: ", list(fronts2), fronts2.values()
-					
-					# print "commons: ", list(comms)
-					# print "real next: ", next_real
-					# print "kmer: ", kmer
-					# print "alts: ", list(alts)
-					# print "front len before cleaning: ", len(buff[-1])
-					#### to debug junctions
-					# backs = get_back_suffixes(buff,j)
-					# fronts = get_front_prefixes(buff,j)
-					# print "back suffixes, back-mers: ", list(backs), backs.values()
-					# print "front prefixes, front-mers: ", list(fronts), fronts.values()
-					####
-
-					# print "front len after cleaning: ", len(buff[-1])
-					# print "paths to check: ", alt_paths
-					# pretty_print_buffer(buff)
 
 def check_path_for_false_joins(path, bf, reals):
 	""" given a path in the form of a string (incl several k-mers)
@@ -300,6 +245,7 @@ reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
 
 # get and count junctions, false joins
 bf_cands = get_candidate_false_joins(reads_f,B)
+bf_cands.extend(get_candidate_false_joins(reads_f,B,rc=True))
 fj_cnt = 0
 br_cnt = 0
 junc_nodes = []
@@ -317,7 +263,8 @@ print "junc_nodes", len(junc_nodes)
 # sanity check - for debugging counts
 # count junctions using reals set
 # there should be no false joins
-rl_cands = get_candidate_false_joins(reads_f,reals) 
+rl_cands = get_candidate_false_joins(reads_f,reals)
+rl_cands.extend(get_candidate_false_joins(reads_f,reals,rc=True))
 fj_cnt = 0
 br_cnt = 0
 real_junc_nodes = []
