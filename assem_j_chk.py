@@ -3,7 +3,7 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 10
+j = 1
 bases = ['A', 'C', 'G', 'T']
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
@@ -69,43 +69,12 @@ def get_buffer_level(buff, j, level):
 			inv = kmer[j - level : -level]
 		else:
 			inv = kmer[j - level :]
-			 
+
 		if inv in invars:
 			invars[inv].append(kmer)
 		else:
 			invars[inv]=[kmer]
 	return invars
-
-def get_back_suffixes(buff, j):
-	""" fetches dictionary including all k-j suffixes
-		from first level (back) of buffer as keys and the 
-		k-mers including them as values
-	"""
-	backs = list(buff[0])
-	suffs = {}
-	for b in backs:
-		suff = b[j:]
-		if suff in suffs:
-			suffs[suff].append(b)
-		else:
-			suffs[suff]=[b]
-	return suffs
-
-def get_front_prefixes(buff, j):
-	""" fetches dictionary including all k-j prefixes
-		from last level (front) of buffer as keys and the 
-		k-mers including them as values
-	"""
-	fronts = list(buff[-1])
-	prefs = {}
-	for f in fronts:
-		pref = f[:-j]
-		if pref in prefs:
-			prefs[pref].append(f)
-		else:
-			prefs[pref]=[f]
-			# prefs[f[:-j]]=[f]
-	return prefs
 
 def pretty_print_buffer(buff):
 	for level in buff:
@@ -142,21 +111,32 @@ def load_bf_sources_sinks(filename,j,numreads):
 	j_sinks = set(get_canons(j_sinks))
 	return (B,sources,j_sinks,reals)
 
-def clean_alt_paths_from_buff(alts, backs, fronts, buff):
+def get_alt_paths_from_buff(alts, backs, fronts, buff):
 	""" given (k-j)-mers of alt paths, gets their start and end
-		k-mers to create paths to check (list returned), removes k-mers including
-		them from buffer front (modified) and one level ahead of buffer back
+		k-mers to create paths to check (list returned)
 	"""
 	paths = []
 	for a in alts:
-		pref = backs[a][0]
+		pref = backs[a][0] # backs always corr. to only one kmer
 		ends = fronts[a]
 		for end in ends:
 			path = pref + end[-j:]
 			paths.append(path)
-			buff[-1].discard(end)
 	return paths
 
+def clean_seen_alts_from_buff(alts,buff):
+	""" removes k-mers including previously observed alt (k-j)-mers 
+		from buffer 
+	"""
+	for lev in range(j+1):
+		level_dict = get_buffer_level(buff,j,lev)
+
+		for a in alts:
+			if a in level_dict:
+				level_mers = level_dict[a]
+				for kmer in level_mers:	
+					buff[lev].discard(kmer)
+				
 
 def get_candidate_false_joins(filename,bf):
 	""" scan reads to find candidate false joins. 
@@ -176,27 +156,22 @@ def get_candidate_false_joins(filename,bf):
 			
 			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
-					# print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
-					backs = get_back_suffixes(buff,j)
-					fronts = get_front_prefixes(buff,j)
+					backs = get_buffer_level(buff,j,0) #get_back_suffixes(buff,j)
+					fronts = get_buffer_level(buff,j,j) #get_front_prefixes(buff,j)
 					comms = (set(backs.keys())).intersection(set(fronts.keys()))
 					if ind == read_len-k:
 						break
 					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
 					alts = comms - set([next_real]) 
-					# print "back suffixes, back-mers: ", list(backs), backs.values()
-					# print "front prefixes, front-mers: ", list(fronts), fronts.values()
-					# print "commons: ", list(comms)
-					# print "real next: ", next_real
-					# print "kmer: ", kmer
-					# print "alts: ", list(alts)
-					# print "front len before cleaning: ", len(buff[-1])
-					alt_paths = clean_alt_paths_from_buff(alts, backs, fronts, buff)
+					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
 					if alt_paths:
+						for alt in alt_paths:
+							alt = kmer[0] + alt
 						cands.append(alt_paths)
-					# print "front len after cleaning: ", len(buff[-1])
-					# print "paths to check: ", alt_paths
-					# pretty_print_buffer(buff)
+						buff = get_j_forward_buff(kmer,bf,j) # to clear buffer of old branches
+						clean_seen_alts_from_buff(alts,buff)					
+					else:
+						buff = get_j_forward_buff(kmer,bf,j)
 				advance_buffer(buff,bf)	
 			line_no +=1
 	
@@ -212,29 +187,42 @@ def get_candidate_false_joins(filename,bf):
 			
 			for ind, kmer in enumerate(kmers):
 				if len(buff[-1])>1 and len(buff[0])>1:
-					# print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
-					backs = get_back_suffixes(buff,j)
-					backs2 = get_buffer_level(buff,j,0)
-					fronts = get_front_prefixes(buff,j)
-					fronts2 = get_buffer_level(buff,j,j)
+					
+					backs = get_buffer_level(buff,j,0)
+					fronts = get_buffer_level(buff,j,j)
 					comms = (set(backs.keys())).intersection(set(fronts.keys()))
 					if ind == read_len-k:
 						break
 					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
 					alts = comms - set([next_real]) 
-					print "back suffixes, back-mers: ", list(backs), backs.values()
-					print "back suffixes, back-mers: ", list(backs2), backs2.values()
-					print "front prefixes, front-mers: ", list(fronts), fronts.values()
-					print "front prefixes, front-mers: ", list(fronts2), fronts2.values()
+					
+					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
+					if alt_paths:
+						for alt in alt_paths:
+							alt = kmer[0] + alt 
+						cands.append(alt_paths)
+						buff = get_j_forward_buff(kmer,bf,j) # to clear buffer of old branches
+						clean_seen_alts_from_buff(alts, buff)
+					else:
+						buff = get_j_forward_buff(kmer,bf,j)
+				advance_buffer(buff,bf)	
+			line_no +=1
+
+	print "got rc candidates"
+	return cands
+
+	# print "read no: %d, position: %d, front len %d, back len %d" % (line_no, ind, len(buff[-1]), len(buff[0]))
+					# backs = get_back_suffixes(buff,j)
+# print "back suffixes, back-mers: ", list(backs), backs.values()
+					# print "back suffixes, back-mers: ", list(backs2), backs2.values()
+					# print "front prefixes, front-mers: ", list(fronts), fronts.values()
+					# print "front prefixes, front-mers: ", list(fronts2), fronts2.values()
 					
 					# print "commons: ", list(comms)
 					# print "real next: ", next_real
 					# print "kmer: ", kmer
 					# print "alts: ", list(alts)
 					# print "front len before cleaning: ", len(buff[-1])
-					alt_paths = clean_alt_paths_from_buff(alts, backs, fronts, buff)
-					if alt_paths:
-						cands.append(alt_paths)
 					#### to debug junctions
 					# backs = get_back_suffixes(buff,j)
 					# fronts = get_front_prefixes(buff,j)
@@ -245,11 +233,6 @@ def get_candidate_false_joins(filename,bf):
 					# print "front len after cleaning: ", len(buff[-1])
 					# print "paths to check: ", alt_paths
 					# pretty_print_buffer(buff)
-				advance_buffer(buff,bf)	
-			line_no +=1
-
-	print "got rc candidates"
-	return cands
 
 def check_path_for_false_joins(path, bf, reals):
 	""" given a path in the form of a string (incl several k-mers)
@@ -312,8 +295,8 @@ def find_real_ends(cands, hsh, fetch_juncs = False):
 
 
 ####### main ####### 
-reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
-(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,10000)
+reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
 
 # get and count junctions, false joins
 bf_cands = get_candidate_false_joins(reads_f,B)
@@ -367,6 +350,10 @@ print len(sources), len(sinks)
 # sources, sinks, juncs = find_real_ends(list(reals), reals, fetch_juncs=True)
 # print "real sources, sinks, juncs"
 # print len(sources), len(sinks), len(juncs)
+
+# TODO: currently missing - add start of each real junction identified
+# to sources, mark as visited corresponding extension of junction node
+# e.g., break graph there and add new start point
 
 
 # traverse from all sources, mark junctions visited, 
