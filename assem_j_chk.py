@@ -193,6 +193,7 @@ def check_path_for_false_joins(path, bf, reals):
 		# print bools
 		if bools[-1]==True: # path contains some F and ends in T
 			return True 
+	return False
 
 def find_real_ends(cands, hsh, fetch_juncs = False):
 	""" given candidate sources, query hash (bf or reals) on all
@@ -245,7 +246,7 @@ reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
 
 # get and count junctions, false joins
 bf_cands = get_candidate_false_joins(reads_f,B)
-bf_cands.extend(get_candidate_false_joins(reads_f,B,rc=True))
+# bf_cands.extend(get_candidate_false_joins(reads_f,B,rc=True))
 fj_cnt = 0
 br_cnt = 0
 junc_nodes = []
@@ -264,7 +265,7 @@ print "junc_nodes", len(junc_nodes)
 # count junctions using reals set
 # there should be no false joins
 rl_cands = get_candidate_false_joins(reads_f,reals)
-rl_cands.extend(get_candidate_false_joins(reads_f,reals,rc=True))
+# rl_cands.extend(get_candidate_false_joins(reads_f,reals,rc=True))
 fj_cnt = 0
 br_cnt = 0
 real_junc_nodes = []
@@ -276,7 +277,7 @@ for cnd_lst in rl_cands:
 			br_cnt += 1
 			real_junc_nodes.append(min(c[:k],get_rc(c[:k])))
 real_junc_nodes = set(real_junc_nodes)
-print "real cands", len(bf_cands), fj_cnt, br_cnt
+print "real cands", len(rl_cands), fj_cnt, br_cnt
 print "real junc_nodes", len(real_junc_nodes)
 print len(junc_nodes.intersection(real_junc_nodes))
 
