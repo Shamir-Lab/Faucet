@@ -154,23 +154,23 @@ def get_candidate_false_joins(filename,bf,rc=False):
 			buff = get_j_forward_buff(kmers[0],bf,j)
 			
 			for ind, kmer in enumerate(kmers):
-				if len(buff[-1])>1 and len(buff[0])>1:
-					backs = get_buffer_level(buff,j,0) 
-					fronts = get_buffer_level(buff,j,j) 
-					comms = (set(backs.keys())).intersection(set(fronts.keys()))
-					if ind == read_len-k:
-						break
-					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
-					alts = comms - set([next_real]) 
-					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
-					if alt_paths:
-						for alt in alt_paths:
-							alt = kmer[0] + alt
-						cands.append(alt_paths)
-						buff = get_j_forward_buff(kmer,bf,j) # to clear buffer of old branches
-						clean_seen_alts_from_buff(alts,buff)					
-					else:
-						buff = get_j_forward_buff(kmer,bf,j)
+				# if len(buff[-1])>1 and len(buff[0])>1:
+				backs = get_buffer_level(buff,j,0) 
+				fronts = get_buffer_level(buff,j,j) 
+				comms = (set(backs.keys())).intersection(set(fronts.keys()))
+				if ind == read_len-k:
+					break
+				next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
+				alts = comms - set([next_real]) 
+				alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
+				if alt_paths:
+					for alt in alt_paths:
+						alt = kmer[0] + alt
+					cands.append(alt_paths)
+					buff = get_j_forward_buff(kmer,bf,j) # to clear buffer of old branches
+					clean_seen_alts_from_buff(alts,buff)					
+				else:
+					buff = get_j_forward_buff(kmer,bf,j)
 				advance_buffer(buff,bf)	
 			line_no +=1
 	if rc:
@@ -189,11 +189,9 @@ def check_path_for_false_joins(path, bf, reals):
 	bools = [kmer in reals for kmer in canons]
 	if all(bools): #TODO: checking paths should be cached - k-mer subpaths often repeated
 		return False
-	else:
+	else: # path contains some false and reaches j-th level
 		# print bools
-		if bools[-1]==True: # path contains some F and ends in T
-			return True 
-	return False
+		return True 
 
 def find_real_ends(cands, hsh, fetch_juncs = False):
 	""" given candidate sources, query hash (bf or reals) on all
