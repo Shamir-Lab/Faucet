@@ -111,6 +111,8 @@ def get_alt_paths_from_buff(alts, backs, fronts, buff):
 	""" given (k-j)-mers of alt paths, gets their start and end
 		k-mers to create paths to check (list returned)
 	"""
+	if len(alts)==0:
+		return None
 	paths = []
 	for a in alts:
 		pref = backs[a][0] # backs always corr. to only one kmer
@@ -124,6 +126,8 @@ def clean_seen_alts_from_buff(alts,buff):
 	""" removes k-mers including previously observed alt (k-j)-mers 
 		from buffer 
 	"""
+	if len(alts)==0:
+		return None
 	for lev in range(j+1):
 		level_dict = get_buffer_level(buff,j,lev)
 
@@ -154,23 +158,26 @@ def get_candidate_false_joins(filename,bf,rc=False):
 			buff = get_j_forward_buff(kmers[0],bf,j)
 			
 			for ind, kmer in enumerate(kmers):
-				# if len(buff[-1])>1 and len(buff[0])>1:
-				backs = get_buffer_level(buff,j,0) 
-				fronts = get_buffer_level(buff,j,j) 
-				comms = (set(backs.keys())).intersection(set(fronts.keys()))
-				if ind == read_len-k:
-					break
-				next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
-				alts = comms - set([next_real]) 
-				alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
-				if alt_paths:
-					for alt in alt_paths:
-						alt = kmer[0] + alt
-					cands.append(alt_paths)
+				if len(buff[-1])>1 and len(buff[0])>1:
 					buff = get_j_forward_buff(kmer,bf,j) # to clear buffer of old branches
-					clean_seen_alts_from_buff(alts,buff)					
-				else:
-					buff = get_j_forward_buff(kmer,bf,j)
+					backs = get_buffer_level(buff,j,0) 
+					fronts = get_buffer_level(buff,j,j) 
+					if len(backs.keys())<2 or len(fronts.keys())<2:
+						continue
+					comms = (set(backs.keys())).intersection(set(fronts.keys()))
+					if ind == read_len-k:
+						break
+					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
+					alts = comms - set([next_real]) 
+					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
+					if alt_paths:
+						for alt in alt_paths:
+							alt = kmer[0] + alt
+						cands.append(alt_paths)
+					
+					# clean_seen_alts_from_buff(alts,buff)					
+				# else:
+				# 	buff = get_j_forward_buff(kmer,bf,j)
 				advance_buffer(buff,bf)	
 			line_no +=1
 	if rc:
