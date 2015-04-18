@@ -3,7 +3,7 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 1
+j = 10
 bases = ['A', 'C', 'G', 'T']
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
@@ -137,6 +137,17 @@ def clean_seen_alts_from_buff(alts,buff):
 				for kmer in level_mers:	
 					buff[lev].discard(kmer)
 				
+def clean_back(buff,kmer):
+	""" remove all k-mers that artifacts from previous branching
+		- have different (k-1)-mer prefix from junction node suffix
+	""" 
+	backs = buff[-1]
+	to_remove = []
+	for b in backs:
+		if b[:-1]!=kmer[1:]:
+			to_remove.append(b)
+	for rm in to_remove:
+		buff[-1].discard(rm)
 
 def get_candidate_false_joins(filename,bf,rc=False):
 	""" scan reads to find candidate false joins. 
@@ -178,7 +189,8 @@ def get_candidate_false_joins(filename,bf,rc=False):
 					# clean_seen_alts_from_buff(alts,buff)					
 				# else:
 				# 	buff = get_j_forward_buff(kmer,bf,j)
-				advance_buffer(buff,bf)	
+				advance_buffer(buff,bf)
+				clean_back(buff,kmer)	
 			line_no +=1
 	if rc:
 		print "got rc candidates"
@@ -251,7 +263,7 @@ reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
 
 # get and count junctions, false joins
 bf_cands = get_candidate_false_joins(reads_f,B)
-# bf_cands.extend(get_candidate_false_joins(reads_f,B,rc=True))
+bf_cands.extend(get_candidate_false_joins(reads_f,B,rc=True))
 fj_cnt = 0
 br_cnt = 0
 junc_nodes = []
@@ -270,7 +282,7 @@ print "junc_nodes", len(junc_nodes)
 # count junctions using reals set
 # there should be no false joins
 rl_cands = get_candidate_false_joins(reads_f,reals)
-# rl_cands.extend(get_candidate_false_joins(reads_f,reals,rc=True))
+rl_cands.extend(get_candidate_false_joins(reads_f,reals,rc=True))
 fj_cnt = 0
 br_cnt = 0
 real_junc_nodes = []
