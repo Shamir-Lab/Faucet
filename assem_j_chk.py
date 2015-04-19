@@ -138,7 +138,7 @@ def clean_seen_alts_from_buff(alts,buff):
 					buff[lev].discard(kmer)
 				
 def clean_back(buff,kmer):
-	""" remove all k-mers that artifacts from previous branching
+	""" remove all k-mers that are artifacts from previous branching
 		- have different (k-1)-mer prefix from junction node suffix
 	""" 
 	backs = buff[-1]
@@ -149,11 +149,19 @@ def clean_back(buff,kmer):
 	for rm in to_remove:
 		buff[-1].discard(rm)
 
-def get_candidate_false_joins(filename,bf,rc=False):
-	""" scan reads to find candidate false joins. 
-		finds nodes having descendents at level j that differ from read sequence
-		used to check against reals later, to know which are false joins, vs. 
-		true branch points; returns list of candidate lists corr. to all candidate from a read
+def clean_front(buff,fronts,alts):
+	""" removes all nodes starting with alt. (k-j)-mers
+		from buffer front
+	"""
+	for alt in alts:
+		for kmer in fronts[alt]:
+			buff[-1].discard(kmer)
+
+def get_candidate_paths(filename,bf,rc=False):
+	""" scan reads to find candidate j+1 length paths. 
+		finds nodes having descendents at level j+1 that differ from read sequence
+		used to check against reals later, to know which are false joins, vs. true
+		alternate paths; returns list of candidate lists corr. to all candidate per read
 	"""
 	cands = []
 	line_no = 0
@@ -185,12 +193,14 @@ def get_candidate_false_joins(filename,bf,rc=False):
 						for alt in alt_paths:
 							alt = kmer[0] + alt
 						cands.append(alt_paths)
-					
+						clean_front(buff,fronts,alts)
+
 					# clean_seen_alts_from_buff(alts,buff)					
 				# else:
 				# 	buff = get_j_forward_buff(kmer,bf,j)
 				advance_buffer(buff,bf)
-				clean_back(buff,kmer)	
+				if ind < read_len-k: # need to think more about read ends
+					clean_back(buff,kmers[ind+1])	
 			line_no +=1
 	if rc:
 		print "got rc candidates"
@@ -262,8 +272,8 @@ reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
 (B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
 
 # get and count junctions, false joins
-bf_cands = get_candidate_false_joins(reads_f,B)
-bf_cands.extend(get_candidate_false_joins(reads_f,B,rc=True))
+bf_cands = get_candidate_paths(reads_f,B)
+bf_cands.extend(get_candidate_paths(reads_f,B,rc=True))
 fj_cnt = 0
 br_cnt = 0
 junc_nodes = []
@@ -281,8 +291,8 @@ print "junc_nodes", len(junc_nodes)
 # sanity check - for debugging counts
 # count junctions using reals set
 # there should be no false joins
-rl_cands = get_candidate_false_joins(reads_f,reals)
-rl_cands.extend(get_candidate_false_joins(reads_f,reals,rc=True))
+rl_cands = get_candidate_paths(reads_f,reals)
+rl_cands.extend(get_candidate_paths(reads_f,reals,rc=True))
 fj_cnt = 0
 br_cnt = 0
 real_junc_nodes = []
