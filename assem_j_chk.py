@@ -181,14 +181,11 @@ def get_candidate_paths(filename,bf,rc=False):
 				fronts = get_buffer_level(buff,j,j)
 				comms = (set(backs.keys())).intersection(set(fronts.keys()))
 
-				if len(comms) > 2: #len(buff[-1])>1 and len(buff[0])>1:
-					# buff = get_j_forward_buff(kmer,bf,j) # to clear buffer of old branches
-					
-					# if len(backs.keys())<2 or len(fronts.keys())<2:
-					# 	continue
-					if ind == read_len-k:
-						break
-					next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer						
+				if len(comms) > 2: 
+					if ind < read_len-k:
+						next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer	
+					else: # if read's end reached, don't know what next real is
+						next_real = set()					
 					alts = comms - set([next_real]) 
 					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
 					if alt_paths:
@@ -197,9 +194,6 @@ def get_candidate_paths(filename,bf,rc=False):
 						cands.append(alt_paths)
 						clean_front(buff,fronts,alts)
 
-					# clean_seen_alts_from_buff(alts,buff)					
-				# else:
-				# 	buff = get_j_forward_buff(kmer,bf,j)
 				advance_buffer(buff,bf)
 				if ind < read_len-k: # need to think more about read ends
 					clean_back(buff,kmers[ind+1])	
