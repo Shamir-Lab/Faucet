@@ -261,6 +261,11 @@ def find_real_ends(cands, hsh, fetch_juncs = False):
 	else:
 		return (sources,sinks,to_chk)
 
+def write_seq_set_to_fasta(seqs,fname):
+	fout = open(fname+".fa", 'w')
+	for s in list(seqs):
+		fout.write("> \n"+ s + "\n")
+	fout.close()
 
 
 ####### main ####### 
@@ -273,10 +278,12 @@ bf_cands.extend(get_candidate_paths(reads_f,B,rc=True))
 fj_cnt = 0
 br_cnt = 0
 junc_nodes = []
+fj_nodes = []
 for cnd_lst in bf_cands:
 	for c in cnd_lst:
 		if check_path_for_false_joins(c,B,reals):
 			fj_cnt += 1
+			fj_nodes.append(min(c[:k],get_rc(c[:k])))
 		else:
 			br_cnt += 1
 			junc_nodes.append(min(c[:k],get_rc(c[:k])))
@@ -284,27 +291,31 @@ junc_nodes = set(junc_nodes)
 print "bf cands", len(bf_cands), fj_cnt, br_cnt
 print "junc_nodes", len(junc_nodes)
 
+write_seq_set_to_fasta(set(fj_nodes),"false_joins")
+write_seq_set_to_fasta(set(junc_nodes),"junctions")
+
+
 # sanity check - for debugging counts
 # count junctions using reals set
 # there should be no false joins
-rl_cands = get_candidate_paths(reads_f,reals)
-rl_cands.extend(get_candidate_paths(reads_f,reals,rc=True))
-fj_cnt = 0
-br_cnt = 0
-real_junc_nodes = []
-for cnd_lst in rl_cands:
-	for c in cnd_lst:
-		if check_path_for_false_joins(c,B,reals):
-			fj_cnt += 1
-		else:
-			br_cnt += 1
-			real_junc_nodes.append(min(c[:k],get_rc(c[:k])))
-real_junc_nodes = set(real_junc_nodes)
-print "real cands", len(rl_cands), fj_cnt, br_cnt
-print "real junc_nodes", len(real_junc_nodes)
-print len(junc_nodes.intersection(real_junc_nodes))
+# rl_cands = get_candidate_paths(reads_f,reals)
+# rl_cands.extend(get_candidate_paths(reads_f,reals,rc=True))
+# fj_cnt = 0
+# br_cnt = 0
+# real_junc_nodes = []
+# for cnd_lst in rl_cands:
+# 	for c in cnd_lst:
+# 		if check_path_for_false_joins(c,B,reals):
+# 			fj_cnt += 1
+# 		else:
+# 			br_cnt += 1
+# 			real_junc_nodes.append(min(c[:k],get_rc(c[:k])))
+# real_junc_nodes = set(real_junc_nodes)
+# print "real cands", len(rl_cands), fj_cnt, br_cnt
+# print "real junc_nodes", len(real_junc_nodes)
+# print len(junc_nodes.intersection(real_junc_nodes))
 
-# find real ends, get candidates for cheking
+# find real ends, get candidates for checking
 sources, sinks, to_chk = find_real_ends(list(src_cnd), B)
 print "sources, sinks, to_chk"
 print len(sources), len(sinks), len(to_chk)
