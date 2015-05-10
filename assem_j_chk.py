@@ -13,7 +13,7 @@ def get_kmers(r,k):
 def get_rc(dna):
 	rev = reversed(dna)
 	return "".join([complements[i] for i in rev])
-
+	
 def get_canons(kmers):
 	return [min(x,get_rc(x)) for x in kmers]
 
@@ -89,8 +89,8 @@ def load_bf_sources_sinks(filename,j,numreads):
 	line_no = 0
 	with open(filename) as f:
 		for line in f:
-			# if line_no%1000000==0:
-			# 	print line_no
+			if line_no+1%100000==0:
+				print str(line_no+1) + " read k-mers processed"
 			read = line.rstrip()
 			sources.append(read[:k])
 			sources.append(get_rc(read[-k:]))
@@ -181,7 +181,7 @@ def get_candidate_paths(filename,bf,rc=False):
 				fronts = get_buffer_level(buff,j,j)
 				comms = (set(backs.keys())).intersection(set(fronts.keys()))
 
-				if len(comms) > 2: 
+				if len(comms) >= 2: 
 					if ind < read_len-k:
 						next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer	
 					else: # if read's end reached, don't know what next real is
@@ -269,8 +269,8 @@ def write_seq_set_to_fasta(seqs,fname):
 
 
 ####### main ####### 
-reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
+reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.1M"
+(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,1000000)
 
 # get and count junctions, false joins
 bf_cands = get_candidate_paths(reads_f,B)
@@ -279,8 +279,12 @@ fj_cnt = 0
 br_cnt = 0
 junc_nodes = []
 fj_nodes = []
+pos_nodes = []
 for cnd_lst in bf_cands:
 	for c in cnd_lst:
+		kmers = get_kmers(c, k)
+		canons = get_canons(kmers)
+		pos_nodes.append(canons)
 		if check_path_for_false_joins(c,B,reals):
 			fj_cnt += 1
 			fj_nodes.append(min(c[:k],get_rc(c[:k])))
@@ -291,8 +295,9 @@ junc_nodes = set(junc_nodes)
 print "bf cands", len(bf_cands), fj_cnt, br_cnt
 print "junc_nodes", len(junc_nodes)
 
-write_seq_set_to_fasta(set(fj_nodes),"false_joins")
-write_seq_set_to_fasta(set(junc_nodes),"junctions")
+write_seq_set_to_fasta(set(fj_nodes),"/home/nasheran/rozovr/minia-1M-j-check/j-checked_accepts.fa")
+write_seq_set_to_fasta(set(fj_nodes),"/home/nasheran/rozovr/minia-1M-j-check/false_joins")
+write_seq_set_to_fasta(set(junc_nodes),"/home/nasheran/rozovr/minia-1M-j-check/junctions")
 
 
 # sanity check - for debugging counts
