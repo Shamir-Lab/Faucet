@@ -284,20 +284,19 @@ for cnd_lst in bf_cands:
 	for c in cnd_lst:
 		kmers = get_kmers(c, k)
 		canons = get_canons(kmers)
-		pos_nodes.append(canons)
-		if check_path_for_false_joins(c,B,reals):
-			fj_cnt += 1
-			fj_nodes.append(min(c[:k],get_rc(c[:k])))
-		else:
-			br_cnt += 1
-			junc_nodes.append(min(c[:k],get_rc(c[:k])))
-junc_nodes = set(junc_nodes)
-print "bf cands", len(bf_cands), fj_cnt, br_cnt
-print "junc_nodes", len(junc_nodes)
-
-write_seq_set_to_fasta(set(fj_nodes),"/home/nasheran/rozovr/minia-1M-j-check/j-checked_accepts.fa")
-write_seq_set_to_fasta(set(fj_nodes),"/home/nasheran/rozovr/minia-1M-j-check/false_joins")
-write_seq_set_to_fasta(set(junc_nodes),"/home/nasheran/rozovr/minia-1M-j-check/junctions")
+		pos_nodes.extend(canons)
+# 		# if check_path_for_false_joins(c,B,reals):
+# 		# 	fj_cnt += 1
+# 		# 	fj_nodes.append(min(c[:k],get_rc(c[:k])))
+# 		# else:
+# 		# 	br_cnt += 1
+# 		# 	junc_nodes.append(min(c[:k],get_rc(c[:k])))
+# junc_nodes = set(junc_nodes)
+# print "bf cands", len(bf_cands), fj_cnt, br_cnt
+# print "junc_nodes", len(junc_nodes)
+write_seq_set_to_fasta(set(pos_nodes),"/home/nasheran/rozovr/minia-1M-j-check/j-checked_accepts")
+# write_seq_set_to_fasta(set(fj_nodes),"/home/nasheran/rozovr/minia-1M-j-check/false_joins2")
+# write_seq_set_to_fasta(set(junc_nodes),"/home/nasheran/rozovr/minia-1M-j-check/junctions2")
 
 
 # sanity check - for debugging counts
@@ -321,16 +320,16 @@ write_seq_set_to_fasta(set(junc_nodes),"/home/nasheran/rozovr/minia-1M-j-check/j
 # print len(junc_nodes.intersection(real_junc_nodes))
 
 # find real ends, get candidates for checking
-sources, sinks, to_chk = find_real_ends(list(src_cnd), B)
-print "sources, sinks, to_chk"
-print len(sources), len(sinks), len(to_chk)
+# sources, sinks, to_chk = find_real_ends(list(src_cnd), B)
+# print "sources, sinks, to_chk"
+# print len(sources), len(sinks), len(to_chk)
 
-# check remaining end candidates, join with first stage ends
-sources2, sinks2, to_discard = find_real_ends(to_chk, reals)
-print len(sources2), len(sinks2), len(to_discard)
-sinks |= sinks2
-sources |= sources2
-print len(sources), len(sinks)
+# # check remaining end candidates, join with first stage ends
+# sources2, sinks2, to_discard = find_real_ends(to_chk, reals)
+# print len(sources2), len(sinks2), len(to_discard)
+# sinks |= sinks2
+# sources |= sources2
+# print len(sources), len(sinks)
 
 
 # sanity check - for debugging counts
