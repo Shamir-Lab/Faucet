@@ -3,7 +3,7 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 10
+j = 16
 bases = ['A', 'C', 'G', 'T']
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
@@ -190,7 +190,7 @@ def get_candidate_paths(filename,bf,rc=False):
 					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
 					if alt_paths:
 						for alt in alt_paths:
-							alt = kmer[0] + alt
+							alt = kmer[0] + alt # add first letter of previous k-mer
 						cands.append(alt_paths)
 						clean_front(buff,fronts,alts)
 
@@ -269,37 +269,46 @@ def write_seq_set_to_fasta(seqs,fname):
 
 
 ####### main ####### 
-reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.1M"
-(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,1000000)
+reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
 
 # get and count junctions, false joins
 bf_cands = get_candidate_paths(reads_f,B)
 bf_cands.extend(get_candidate_paths(reads_f,B,rc=True))
 fj_cnt = 0
 br_cnt = 0
+cnd_cnt = 0
 junc_nodes = []
 fj_nodes = []
 pos_nodes = []
 for cnd_lst in bf_cands:
 	for c in cnd_lst:
-		kmers = get_kmers(c, k)
-		canons = get_canons(kmers)
-		pos_nodes.extend(canons)
-# 		# if check_path_for_false_joins(c,B,reals):
-# 		# 	fj_cnt += 1
-# 		# 	fj_nodes.append(min(c[:k],get_rc(c[:k])))
-# 		# else:
-# 		# 	br_cnt += 1
-# 		# 	junc_nodes.append(min(c[:k],get_rc(c[:k])))
-# junc_nodes = set(junc_nodes)
-# print "bf cands", len(bf_cands), fj_cnt, br_cnt
-# print "junc_nodes", len(junc_nodes)
-write_seq_set_to_fasta(set(pos_nodes),"/home/nasheran/rozovr/minia-1M-j-check/j-checked_accepts")
-# write_seq_set_to_fasta(set(fj_nodes),"/home/nasheran/rozovr/minia-1M-j-check/false_joins2")
-# write_seq_set_to_fasta(set(junc_nodes),"/home/nasheran/rozovr/minia-1M-j-check/junctions2")
+		# kmers = get_kmers(c, k)
+		# canons = get_canons(kmers)
+		# pos_nodes.extend(canons)
+		if check_path_for_false_joins(c,B,reals):
+			# when false join, want first k-mer on path
+			interesting_node = c[1:k+1]
+			fj_nodes.append(min(interesting_node,get_rc(interesting_node)))
+		else:
+			# when real junction, want node preceding buffer/junc
+			interesting_node = c[:k]
+			junc_nodes.append(min(interesting_node,get_rc(interesting_node)))
+		cnd_cnt += 1
+print "bf cands"
+print "cnds list, FJ list, juncs list"
+print cnd_cnt, len(fj_nodes), len(junc_nodes)
+pos_nodes = set(pos_nodes)
+junc_nodes = set(junc_nodes)
+fj_nodes = set(fj_nodes)
+print "cnds list, FJ set, juncs set"
+print cnd_cnt, len(fj_nodes), len(junc_nodes)
+# write_seq_set_to_fasta(pos_nodes,"/home/nasheran/rozovr/minia-1M-j-check/j-checked_accepts")
+# write_seq_set_to_fasta(fj_nodes,"/home/nasheran/rozovr/minia-1M-j-check/false_joins")
+# write_seq_set_to_fasta(junc_nodes,"/home/nasheran/rozovr/minia-1M-j-check/junctions")
 
-
-# sanity check - for debugging counts
+#####################
+# sanity check - for debugging counts -- warning: deprecated --
 # count junctions using reals set
 # there should be no false joins
 # rl_cands = get_candidate_paths(reads_f,reals)
@@ -318,18 +327,19 @@ write_seq_set_to_fasta(set(pos_nodes),"/home/nasheran/rozovr/minia-1M-j-check/j-
 # print "real cands", len(rl_cands), fj_cnt, br_cnt
 # print "real junc_nodes", len(real_junc_nodes)
 # print len(junc_nodes.intersection(real_junc_nodes))
+#####################
 
 # find real ends, get candidates for checking
-# sources, sinks, to_chk = find_real_ends(list(src_cnd), B)
-# print "sources, sinks, to_chk"
-# print len(sources), len(sinks), len(to_chk)
+sources, sinks, to_chk = find_real_ends(list(src_cnd), B)
+print "sources, sinks, to_chk"
+print len(sources), len(sinks), len(to_chk)
 
-# # check remaining end candidates, join with first stage ends
-# sources2, sinks2, to_discard = find_real_ends(to_chk, reals)
-# print len(sources2), len(sinks2), len(to_discard)
-# sinks |= sinks2
-# sources |= sources2
-# print len(sources), len(sinks)
+# check remaining end candidates, join with first stage ends
+sources2, sinks2, to_discard = find_real_ends(to_chk, reals)
+print len(sources2), len(sinks2), len(to_discard)
+sinks |= sinks2
+sources |= sources2
+print len(sources), len(sinks)
 
 
 # sanity check - for debugging counts
