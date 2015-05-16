@@ -88,19 +88,12 @@ proc get_empty_buff(j: int): Buff =
     return Buff(front:0,back:0,levels:levels)
 
 proc init_read_buff(source: string, buff: var Buff, bf: object) = 
-    # clear out past buffer state
-    for i in 0 .. len(buff.levels):
-        if buff.levels[i] != nil:
-            buff.levels[i].clear(modeCaseSensitive)
     var 
         roots, next : StringTableRef
         test_kmer, canon : string
-        # root: string
-        # b: char
 
     buff.levels[0][source]=nil
-    for level in 0..j+1:
-        echo($level)
+    for level in 0..j:
         roots = buff.levels[level]
         next = buff.levels[level+1]
         if next == nil:
@@ -113,14 +106,16 @@ proc init_read_buff(source: string, buff: var Buff, bf: object) =
                     next[test_kmer]=nil
 
 proc print_buff_info(buff: Buff) =
-    for i in 0..buff.levels.high:
+    for i in 0..len(buff.levels)-1:
         if buff.levels[i] == nil:
             echo "oh shit"
         else:
             # echo($i & ": " & $len(buff.levels[i]))
+            var x = 0
             echo($i & ": ")
             for key in buff.levels[i].keys:
-                echo(key & " ")
+                echo($(x+1) & " " & key)
+                inc(x)
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
@@ -146,7 +141,14 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
             read = get_rc(read)
         get_kmers(read, k, kmers)
         init_read_buff(kmers[0], buff, bf)
-        print_buff_info(buff)
+        # print_buff_info(buff)
+
+        # clear out buffer state before re-use
+        for i in 0 .. len(buff.levels)-1:
+            buff.levels[i] = newStringTable() 
+            #### thought would be faster, but doesn't work:
+            #### clear(buff.levels[i], modeCaseSensitive)
+
     f_hand.close()
     return cands
 
