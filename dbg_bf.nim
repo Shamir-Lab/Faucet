@@ -5,8 +5,7 @@
 import tables
 import bloom
 import strtabs # used as string sets - keys are usually nil
-import strutils
-import times
+import strutils, sequtils
 
 const
     bases = ['A', 'C', 'G', 'T']
@@ -20,26 +19,6 @@ type
     Buff = ref object
         front, back : int
         levels : seq[StringTableRef]
-
-proc get_empty_buff(j: int): Buff = 
-    var levels : seq[StringTableRef]
-    for i in 0 .. j+1:
-        levels[i] = newStringTable()
-    return Buff(front:0,back:0,levels:levels)
-
-# type
-#   Item = ref object
-#     dti: TimeInfo
-#     dmonth: int
-  
-#   Items = ref object
-#     recs: seq[Item]
-
-# proc getItem(): Item =
-#   ## We remove compiler warning, and set dti.
-#   var dti:TimeInfo= getGMTime(fromSeconds(0))
-#   return Item(dti:dti)
-
 
 proc get_kmers(r: string, k: int, kmers: var openarray[string] ) =
     # chose openarray for kmers because may want k-mers of contigs
@@ -78,12 +57,13 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
         sources = newStringTable()
         sinks = newStringTable()
         reals = newStringTable()
-        bf = initialize_bloom_filter(capacity = numreads, error_rate = fp)    
+        bf = initialize_bloom_filter(capacity = (read_len-k+1)*numreads, error_rate = fp)   
         kmers: array[0..read_len-k+1, string]
         canons: array[0..read_len-k+1, string]
         f_hand = open(fname)
         line_no = 0
-    
+    echo(bf) 
+
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
             echo ($(line_no+1) & " read k-mers processed " & 
@@ -101,41 +81,46 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
     f_hand.close()
     (bf,sources,sinks,reals)
 
-proc get_j_forward_buff(source: string, bf: object, j: int) =
-    discard """initialize traversal buffer
-        stores source + nodes up to depth accepted by bf
-        in list of sets
-    """
-    var
-        buff: seq[object](j+1)
-        roots: string
 
-    return buff
+proc get_empty_buff(j: int): Buff = 
+    # newSeqWith seen at http://forum.nim-lang.org/t/1161
+    var levels : seq[StringTableRef] = newSeqWith(j+1, newStringTable())
+    return Buff(front:0,back:0,levels:levels)
 
+proc init_read_buff(source: string, buff: var Buff, bf: object) = 
+    # clear out past buffer state
+    for i in 0 .. len(buff.levels):
+        if buff.levels[i] != nil:
+            buff.levels[i].clear(modeCaseSensitive)
+    var 
+        roots, next : StringTableRef
+        test_kmer, canon : string
+        # root: string
+        # b: char
 
-# def get_j_forward_buff(source,bf,depth):
-#     """initialize traversal buffer
-#         stores source + nodes up to depth accepted by bf
-#         in list of sets
-#     """
-#     buff = []
-#     roots = [source]
-#     buff.append(set(roots))
-#     next = []
-#     for level in range(depth+1):
-#         for root in roots:
-#             for b in bases:
-#                 test_kmer = root[1:]+b
-#                 canon = min(test_kmer, get_rc(test_kmer))
-#                 if canon in bf:
-#                     next.append(test_kmer)
-#         roots = next[:]
-#         buff.append(set(roots))
-#         next = []
-#     del buff[0]
-#     return buff
+    buff.levels[0][source]=nil
+    for level in 0..j+1:
+        echo($level)
+        roots = buff.levels[level]
+        next = buff.levels[level+1]
+        if next == nil:
+            break
+        for root in roots.keys:
+            for b in bases: 
+                test_kmer = root[1..root.len] & b
+                canon = min(test_kmer, get_rc(test_kmer))
+                if bf.lookup(canon)==true:
+                    next[test_kmer]=nil
 
-
+proc print_buff_info(buff: Buff) =
+    for i in 0..buff.levels.high:
+        if buff.levels[i] == nil:
+            echo "oh shit"
+        else:
+            # echo($i & ": " & $len(buff.levels[i]))
+            echo($i & ": ")
+            for key in buff.levels[i].keys:
+                echo(key & " ")
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
@@ -150,6 +135,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         line_no = 0
         read: string
         kmers: array[0..read_len-k+1, string]
+        buff = get_empty_buff(j)
 
 
     for line in f_hand.lines:
@@ -159,7 +145,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         if rc:
             read = get_rc(read)
         get_kmers(read, k, kmers)
-
+        init_read_buff(kmers[0], buff, bf)
+        print_buff_info(buff)
     f_hand.close()
     return cands
 
@@ -213,8 +200,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 10_000)
         bf_cands = get_candidate_paths(reads_file, bf)
     # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
     # echo reverse(read)
