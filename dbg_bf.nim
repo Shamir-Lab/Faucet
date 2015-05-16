@@ -4,7 +4,9 @@
 
 import tables
 import bloom
-import strtabs
+import strtabs # used as string sets - keys are usually nil
+import strutils
+import times
 
 const
     bases = ['A', 'C', 'G', 'T']
@@ -14,115 +16,208 @@ const
     j = 10
     read_len = 100
 
+type
+    Buff = ref object
+        front, back : int
+        levels : seq[StringTableRef]
+
+proc get_empty_buff(j: int): Buff = 
+    var levels : seq[StringTableRef]
+    for i in 0 .. j+1:
+        levels[i] = newStringTable()
+    return Buff(front:0,back:0,levels:levels)
+
+# type
+#   Item = ref object
+#     dti: TimeInfo
+#     dmonth: int
+  
+#   Items = ref object
+#     recs: seq[Item]
+
+# proc getItem(): Item =
+#   ## We remove compiler warning, and set dti.
+#   var dti:TimeInfo= getGMTime(fromSeconds(0))
+#   return Item(dti:dti)
+
+
 proc get_kmers(r: string, k: int, kmers: var openarray[string] ) =
+    # chose openarray for kmers because may want k-mers of contigs
     var i = 0
     while i < len(r)-k+1:
         kmers[i] = r[i .. i+k-1]
         i = i+1
 
-proc reverse(s: var string): string =
-    result = newString(len(s))
-    for i in 0 .. s.high:
-        result[i] = s[s.high - i]
+proc reverse(s: string): string =
+    # from http://goran.krampe.se/2014/10/29/nim-and-oo/
+    result = s
+    var x = 0
+    var y = s.high
+    while x < y:
+        swap(result[x], result[y])
+        dec(y)
+        inc(x)
 
-proc get_rc(dna: var string): string = 
+proc get_rc(dna: string): string = 
     result = reverse(dna) 
     for i in 0 .. dna.high:
         result[i] = complements[result[i]]
 
-# proc get_canons()
-   
-proc load_bf_sources_sinks(fname: string, numreads: int) =
-    discard """ loads k-mers into bloom filter
-        loads to lists ends of reads as potential
-        sources and sinks (or nodes j away from sinks)
-    """
-    var sources = newStringTable() #newSeq[string]()
-    var sinks = newStringTable() #newSeq[string]()
-    var reals = newStringTable() #newSeq[string]()
-    var kmers: array[0..read_len-k+1, string]
+proc get_canons(kmers: openarray[string], canons: var openarray[string]) =
+    for i,value in @kmers:
+        canons[i]=min(value,get_rc(value))
 
-    var bf = initialize_bloom_filter(capacity = numreads, error_rate = fp)
-    var f_hand = open(fname)
-    var line_no = 0
+
+#### note use of auto to determine types inside tuple returned
+proc load_bf_sources_sinks(fname: string, numreads: int): auto =
+    discard """ loads k-mers into bloom filter
+        loads to sets ends of reads as potential
+        sources and sinks
+    """
+    var
+        sources = newStringTable()
+        sinks = newStringTable()
+        reals = newStringTable()
+        bf = initialize_bloom_filter(capacity = numreads, error_rate = fp)    
+        kmers: array[0..read_len-k+1, string]
+        canons: array[0..read_len-k+1, string]
+        f_hand = open(fname)
+        line_no = 0
+    
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
             echo ($(line_no+1) & " read k-mers processed " & 
                 $(len(sources)) & " " & $len(sinks) & " " & $len(reals))
         get_kmers(line,k,kmers)
-        sources[kmers[0]] = nil
-        sinks[kmers[read_len-k]] = nil
-        for i,value in @kmers:
+        get_canons(kmers,canons)
+        sources[canons[0]] = nil
+        sinks[canons[read_len-k]] = nil
+        for i,value in @canons:
             if value!=nil:
-                # echo i, " ", value
                 bf.insert(value)
                 # reals only for debugging:
                 reals[value]=nil
         inc(line_no)
-
-        # continue
-        # process(line)
     f_hand.close()
+    (bf,sources,sinks,reals)
+
+proc get_j_forward_buff(source: string, bf: object, j: int) =
+    discard """initialize traversal buffer
+        stores source + nodes up to depth accepted by bf
+        in list of sets
+    """
+    var
+        buff: seq[object](j+1)
+        roots: string
+
+    return buff
 
 
-# def load_bf_sources_sinks(filename,j,numreads):
-#     """ loads k-mers into bloom filter
-#         loads to lists ends of reads as potential
-#         sources and sinks (or nodes j away from sinks)
+# def get_j_forward_buff(source,bf,depth):
+#     """initialize traversal buffer
+#         stores source + nodes up to depth accepted by bf
+#         in list of sets
 #     """
-#     sources = []
-#     j_sinks = []
-#     reals = []
-#     B = BloomFilter(capacity = numreads * (read_len-k), error_rate=fp)
+#     buff = []
+#     roots = [source]
+#     buff.append(set(roots))
+#     next = []
+#     for level in range(depth+1):
+#         for root in roots:
+#             for b in bases:
+#                 test_kmer = root[1:]+b
+#                 canon = min(test_kmer, get_rc(test_kmer))
+#                 if canon in bf:
+#                     next.append(test_kmer)
+#         roots = next[:]
+#         buff.append(set(roots))
+#         next = []
+#     del buff[0]
+#     return buff
+
+
+
+proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
+
+    discard """ scan reads to find candidate j+1 length paths. 
+        finds nodes having descendents at level j+1 that differ from read sequence
+        used to check against reals later, to know which are false joins, vs. true
+        alternate paths; returns list of candidate lists corr. to all candidate per read
+    """
+    var
+        f_hand = open(filename)
+        cands = newStringTable()
+        line_no = 0
+        read: string
+        kmers: array[0..read_len-k+1, string]
+
+
+    for line in f_hand.lines:
+        if (line_no + 1) mod 10_000==0:
+            echo($(line_no+1) & " " & $len(cands))
+        read = strip(line)
+        if rc:
+            read = get_rc(read)
+        get_kmers(read, k, kmers)
+
+    f_hand.close()
+    return cands
+
+# def get_candidate_paths(filename,bf,rc=False):
+#     """ scan reads to find candidate j+1 length paths. 
+#         finds nodes having descendents at level j+1 that differ from read sequence
+#         used to check against reals later, to know which are false joins, vs. true
+#         alternate paths; returns list of candidate lists corr. to all candidate per read
+#     """
+#     cands = []
 #     line_no = 0
 #     with open(filename) as f:
 #         for line in f:
-#             if line_no+1%100000==0:
-#                 print str(line_no+1) + " read k-mers processed"
+#             if (line_no+1)%10000==0:
+#                 print line_no+1, len(cands)
 #             read = line.rstrip()
-#             sources.append(read[:k])
-#             sources.append(get_rc(read[-k:]))
-#             j_sinks.append(read[-(k+j):-j])
-#             j_sinks.append(get_rc(read[j:j+k]))
-#             kmers = get_kmers(read,k)
-#             # insert canonical (lex-min) kmers only
-#             canons = get_canons(kmers) 
-#             B.update(canons)
-#             reals.extend(canons)
+#             if rc:
+#                 kmers = get_kmers(get_rc(read),k)
+#             else:
+#                 kmers = get_kmers(read,k)
+#             buff = get_j_forward_buff(kmers[0],bf,j)
+            
+#             for ind, kmer in enumerate(kmers):
+#                 backs = get_buffer_level(buff,j,0) 
+#                 fronts = get_buffer_level(buff,j,j)
+#                 comms = (set(backs.keys())).intersection(set(fronts.keys()))
+
+#                 if len(comms) >= 2: 
+#                     if ind < read_len-k:
+#                         next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer  
+#                     else: # if read's end reached, don't know what next real is
+#                         next_real = set()                   
+#                     alts = comms - set([next_real]) 
+#                     alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
+#                     if alt_paths:
+#                         for alt in alt_paths:
+#                             alt = kmer[0] + alt # add first letter of previous k-mer
+#                         cands.append(alt_paths)
+#                         clean_front(buff,fronts,alts)
+
+#                 advance_buffer(buff,bf)
+#                 if ind < read_len-k: # need to think more about read ends
+#                     clean_back(buff,kmers[ind+1])   
 #             line_no +=1
-#     reals = set(reals)
-#     sources = set(get_canons(sources))
-#     j_sinks = set(get_canons(j_sinks))
-#     return (B,sources,j_sinks,reals)
+#     if rc:
+#         print "got rc candidates"
+#     else:
+#         print "got forward candidates"
+#     return cands
 
 
 when isMainModule:
-    var reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-    load_bf_sources_sinks(reads_file, 100_000)
+    var 
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
+        bf_cands = get_candidate_paths(reads_file, bf)
     # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
     # echo reverse(read)
     # echo get_rc(read)
     # echo read # original isn't changed
         
-
-    
-
-# # if ACGT line get k-mers as list
-# # store first, last, last - 10 k-mers 
-# # put all in BF
-# # import bloom
-# echo(bf)                                               # Get characteristics of the Bloom filter
-# echo(bf.lookup("An element not in the Bloom filter"))  # Prints 'false'
-# bf.insert("Here we go...")
-# assert(bf.lookup("Here we go..."))
-
-
-# def get_kmers(r,k):
-#     return [r[i:i+k] for i in range(len(r)-k+1)]
-
-# def get_rc(dna):
-#     rev = reversed(dna)
-#     return "".join([complements[i] for i in rev])
-    
-# def get_canons(kmers):
-#     return [min(x,get_rc(x)) for x in kmers]
