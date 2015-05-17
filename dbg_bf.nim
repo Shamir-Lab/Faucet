@@ -1,4 +1,4 @@
-import tables
+import tables, sets
 import bloom
 import strtabs # used often as string sets - keys are usually nil
 import strutils, sequtils
@@ -50,9 +50,9 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
         sources and sinks
     """
     var
-        sources = newStringTable()
-        sinks = newStringTable()
-        reals = newStringTable()
+        sources = initSet[string]()# newStringTable()
+        sinks = initSet[string]() # newStringTable()
+        reals = initSet[string]() # newStringTable()
         bf = initialize_bloom_filter(capacity = (read_len-k+1)*numreads, error_rate = fp)   
         kmers: array[0..read_len-k+1, string]
         canons: array[0..read_len-k+1, string]
@@ -66,13 +66,13 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
                 $(len(sources)) & " " & $len(sinks) & " " & $len(reals))
         get_kmers(line,k,kmers)
         get_canons(kmers,canons)
-        sources[canons[0]] = nil
-        sinks[canons[read_len-k]] = nil
+        incl(sources, canons[0])
+        incl(sinks, canons[read_len-k])
         for i,value in @canons:
             if value!=nil:
                 bf.insert(value)
                 # reals only for debugging:
-                reals[value]=nil
+                incl(reals,value)
         inc(line_no)
     f_hand.close()
     (bf,sources,sinks,reals)
@@ -135,27 +135,6 @@ proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
             result.mget(inv).add(kmer)
         else:
             result[inv] = @[kmer]
-    
-# def get_buffer_level(buff, j, level):
-    # """ gets buffer contents from chosen level (in [0,j])
-    #     returns dictionary containing invariant k-j as keys
-    #     and k-mers including them as values - e.g., level = 0
-    #     contains (k-j)-mers as suffixes, level = j+1 contains 
-    #     them as prefixes  
-    # """
-#     kmers = list(buff[level])
-#     invars = {}
-#     for kmer in kmers:
-#         if level != 0:
-#             inv = kmer[j - level : -level]
-#         else:
-#             inv = kmer[j - level :]
-
-#         if inv in invars:
-#             invars[inv].append(kmer)
-#         else:
-#             invars[inv]=[kmer]
-#     return invars
 
 proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
  backs, fronts: TableRef[string,seq[string]], buff: Buff): auto =
@@ -165,29 +144,38 @@ proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
     var
         pref, path : string
         ends = newSeq[string]()
-    result = newStringTable()
+    result = newSeq[string]() # newStringTable()
     for comm in comms.keys:
         if comm != next_real:
             pref = backs[comm][0]
             ends = fronts[comm]
             for fr in ends:
                 path = pref & fr[k-(1+j) .. k-1]
-                result[path]=nil
+                result.add(path) # [path]=nil
 
-# def get_alt_paths_from_buff(alts, backs, fronts, buff):
-#     """ given (k-j)-mers of alt paths, gets their start and end
-#         k-mers to create paths to check (list returned)
+
+# proc clean_front(buff: var Buff, fronts:TableRef[string,seq[string]], 
+#     comms:StringTableRef) =
+#     discard """ removes all nodes starting with alt. (k-j)-mers
+#         from buffer front
 #     """
-#     if len(alts)==0:
-#         return None
-#     paths = []
-#     for a in alts:
-#         pref = backs[a][0] # backs always corr. to only one kmer
-#         ends = fronts[a]
-#         for end in ends:
-#             path = pref + end[-j:]
-#             paths.append(path)
-#     return paths
+#     var new_front = newStringTable()
+#     for fr in fronts.keys:
+#         # instead of discarding, only insert non-alts
+#         # then replace buffer front
+#         if (not hasKey(comms, fr)):
+#             new_front[fr]=fronts[fr]
+#     buff[j]=new_front
+
+
+
+# def clean_front(buff,fronts,alts):
+#     """ removes all nodes starting with alt. (k-j)-mers
+#         from buffer front
+#     """
+#     for alt in alts:
+#         for kmer in fronts[alt]:
+#             buff[-1].discard(kmer)
 
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
@@ -209,7 +197,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         comms = newStringTable()
         # alts : newStringTable()
         next_real: string
-        alt_paths = newStringTable()
+        alt_paths = newSeq[string]()
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -242,6 +230,11 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                 # note next_real not removed from string table
                 # comms because I don't know how...
                 alt_paths = get_alt_paths_from_buff(comms, next_real, backs, fronts, buff)
+                if len(alt_paths) > 0:
+                    for alt in alt_paths:
+                        cands[value[0] & alt] = nil
+                    # clean_front(buff,fronts,comms)
+
 
 
         comms = newStringTable()
@@ -308,7 +301,7 @@ when isMainModule:
     var 
         reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
         (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 10_000)
-        bf_cands = get_candidate_paths(reads_file, bf)
+        # bf_cands = get_candidate_paths(reads_file, bf)
     # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
     # echo reverse(read)
     # echo get_rc(read)
