@@ -121,7 +121,8 @@ proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
         them as prefixes  
     """
     var inv: string
-    result[] = initTable[string,seq[string]]()
+    result = newTable[string,seq[string]]()
+
     for kmer in buff.levels[level].keys:
         # if level != 0:
         inv = kmer[j+level .. k-level-1]
@@ -166,8 +167,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         read: string
         kmers: array[0..read_len-k+1, string]
         buff = get_empty_buff(j)
-        backs = newTable[string,seq[string]]()
-        fronts = newTable[string,seq[string]]()
+        backs : ref Table[string,seq[string]]
+        fronts : ref Table[string,seq[string]]
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -180,6 +181,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         # print_buff_info(buff)
         for ind, value in @kmers:
             backs = get_buffer_level(buff,j,0)
+            # for key in backs.keys:
+            #     echo(key & ": " & repr(backs[key]))
             fronts = get_buffer_level(buff,j,j)
 
         # clear out buffer state before re-use
