@@ -1,10 +1,6 @@
-# not explained well in docs:
-# 1 - how to return array of strings (e.g., get k-mers)
-# 2 - access global table/array in function (used in get_rc)
-
 import tables
 import bloom
-import strtabs # used as string sets - keys are usually nil
+import strtabs # used often as string sets - keys are usually nil
 import strutils, sequtils
 
 const
@@ -108,7 +104,7 @@ proc init_read_buff(source: string, buff: var Buff, bf: object) =
 proc print_buff_info(buff: Buff) =
     for i in 0..len(buff.levels)-1:
         if buff.levels[i] == nil:
-            echo "oh shit"
+            echo "empty buffer level"
         else:
             # echo($i & ": " & $len(buff.levels[i]))
             var x = 0
@@ -116,6 +112,45 @@ proc print_buff_info(buff: Buff) =
             for key in buff.levels[i].keys:
                 echo($(x+1) & " " & key)
                 inc(x)
+
+proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
+    discard """ gets buffer contents from chosen level (in [0,j])
+        returns dictionary containing invariant k-j as keys
+        and k-mers including them as values - e.g., level = 0
+        contains (k-j)-mers as suffixes, level = j+1 contains 
+        them as prefixes  
+    """
+    var inv: string
+    result[] = initTable[string,seq[string]]()
+    for kmer in buff.levels[level].keys:
+        # if level != 0:
+        inv = kmer[j+level .. k-level-1]
+
+        if hasKey(result, inv):
+            result.mget(inv).add(kmer)
+        else:
+            result[inv] = @[kmer]
+    
+# def get_buffer_level(buff, j, level):
+    # """ gets buffer contents from chosen level (in [0,j])
+    #     returns dictionary containing invariant k-j as keys
+    #     and k-mers including them as values - e.g., level = 0
+    #     contains (k-j)-mers as suffixes, level = j+1 contains 
+    #     them as prefixes  
+    # """
+#     kmers = list(buff[level])
+#     invars = {}
+#     for kmer in kmers:
+#         if level != 0:
+#             inv = kmer[j - level : -level]
+#         else:
+#             inv = kmer[j - level :]
+
+#         if inv in invars:
+#             invars[inv].append(kmer)
+#         else:
+#             invars[inv]=[kmer]
+#     return invars
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
@@ -131,7 +166,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         read: string
         kmers: array[0..read_len-k+1, string]
         buff = get_empty_buff(j)
-
+        backs = newTable[string,seq[string]]()
+        fronts = newTable[string,seq[string]]()
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -142,6 +178,9 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         get_kmers(read, k, kmers)
         init_read_buff(kmers[0], buff, bf)
         # print_buff_info(buff)
+        for ind, value in @kmers:
+            backs = get_buffer_level(buff,j,0)
+            fronts = get_buffer_level(buff,j,j)
 
         # clear out buffer state before re-use
         for i in 0 .. len(buff.levels)-1:
