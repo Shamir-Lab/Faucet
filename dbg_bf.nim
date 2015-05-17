@@ -124,9 +124,13 @@ proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
     result = newTable[string,seq[string]]()
 
     for kmer in buff.levels[level].keys:
-        # if level != 0:
-        inv = kmer[j+level .. k-level-1]
+        if level != 0:
+            inv = kmer[j - level .. ^(level+1)]
+            # inv = kmer[j+level .. k-level-1]
+        else:
+            inv = kmer[j .. k-1]
 
+        # echo("inv in get_level " & inv)
         if hasKey(result, inv):
             result.mget(inv).add(kmer)
         else:
@@ -153,6 +157,39 @@ proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
 #             invars[inv]=[kmer]
 #     return invars
 
+proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
+ backs, fronts: TableRef[string,seq[string]], buff: Buff): auto =
+    discard """ given (k-j)-mers of alt paths, gets their start and end
+        k-mers to create paths to check (list returned)
+    """
+    var
+        pref, path : string
+        ends = newSeq[string]()
+    result = newStringTable()
+    for comm in comms.keys:
+        if comm != next_real:
+            pref = backs[comm][0]
+            ends = fronts[comm]
+            for fr in ends:
+                path = pref & fr[k-(1+j) .. k-1]
+                result[path]=nil
+
+# def get_alt_paths_from_buff(alts, backs, fronts, buff):
+#     """ given (k-j)-mers of alt paths, gets their start and end
+#         k-mers to create paths to check (list returned)
+#     """
+#     if len(alts)==0:
+#         return None
+#     paths = []
+#     for a in alts:
+#         pref = backs[a][0] # backs always corr. to only one kmer
+#         ends = fronts[a]
+#         for end in ends:
+#             path = pref + end[-j:]
+#             paths.append(path)
+#     return paths
+
+
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
     discard """ scan reads to find candidate j+1 length paths. 
@@ -169,6 +206,10 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         buff = get_empty_buff(j)
         backs : ref Table[string,seq[string]]
         fronts : ref Table[string,seq[string]]
+        comms = newStringTable()
+        # alts : newStringTable()
+        next_real: string
+        alt_paths = newStringTable()
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -178,12 +219,33 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
             read = get_rc(read)
         get_kmers(read, k, kmers)
         init_read_buff(kmers[0], buff, bf)
+        # echo(read)
         # print_buff_info(buff)
         for ind, value in @kmers:
             backs = get_buffer_level(buff,j,0)
             # for key in backs.keys:
-            #     echo(key & ": " & repr(backs[key]))
+            #         echo(key & ": " & backs[key])
             fronts = get_buffer_level(buff,j,j)
+            # for key in fronts.keys:
+            #     echo(key & ": " & fronts[key])
+            for key in backs.keys:
+                if haskey(fronts, key):
+                    # echo(key & ": " & backs[key])
+                    # echo(key & ": " & fronts[key])
+                    comms[key]=nil
+                    # echo(comms)
+            if len(comms) >= 2:
+                if ind < read_len-k:
+                    next_real = kmers[ind+1][j..k-1]
+                else:
+                    next_real = ""
+                # note next_real not removed from string table
+                # comms because I don't know how...
+                alt_paths = get_alt_paths_from_buff(comms, next_real, backs, fronts, buff)
+
+
+        comms = newStringTable()
+
 
         # clear out buffer state before re-use
         for i in 0 .. len(buff.levels)-1:
