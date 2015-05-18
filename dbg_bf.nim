@@ -50,9 +50,9 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
         sources and sinks
     """
     var
-        sources = initSet[string]()# newStringTable()
-        sinks = initSet[string]() # newStringTable()
-        reals = initSet[string]() # newStringTable()
+        sources = newStringTable()
+        sinks = newStringTable()
+        reals = newStringTable()
         bf = initialize_bloom_filter(capacity = (read_len-k+1)*numreads, error_rate = fp)   
         kmers: array[0..read_len-k+1, string]
         canons: array[0..read_len-k+1, string]
@@ -66,13 +66,13 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
                 $(len(sources)) & " " & $len(sinks) & " " & $len(reals))
         get_kmers(line,k,kmers)
         get_canons(kmers,canons)
-        incl(sources, canons[0])
-        incl(sinks, canons[read_len-k])
+        sources[canons[0]] = nil
+        sinks[canons[read_len-k]] = nil
         for i,value in @canons:
             if value!=nil:
                 bf.insert(value)
                 # reals only for debugging:
-                incl(reals,value)
+                reals[value]=nil
         inc(line_no)
     f_hand.close()
     (bf,sources,sinks,reals)
@@ -96,7 +96,7 @@ proc init_read_buff(source: string, buff: var Buff, bf: object) =
             break
         for root in roots.keys:
             for b in bases: 
-                test_kmer = root[1..root.len] & b
+                test_kmer = root[1..k-1] & b
                 canon = min(test_kmer, get_rc(test_kmer))
                 if bf.lookup(canon)==true:
                     next[test_kmer]=nil
@@ -154,28 +154,51 @@ proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
                 result.add(path) # [path]=nil
 
 
-# proc clean_front(buff: var Buff, fronts:TableRef[string,seq[string]], 
-#     comms:StringTableRef) =
-#     discard """ removes all nodes starting with alt. (k-j)-mers
-#         from buffer front
+proc clean_front(buff: var Buff, fronts:TableRef[string,seq[string]], 
+    comms:StringTableRef) =
+    discard """ removes all nodes starting with alt. (k-j)-mers
+        from buffer front
+    """
+    var new_front = newStringTable()
+    for fr in fronts.keys:
+        # instead of discarding, only insert non-alts
+        # then replace buffer front
+        if (not hasKey(comms, fr)):
+            for key in fronts[fr]:
+                new_front[key]=nil
+    buff.levels[j]=new_front
+
+proc advance_buffer(buff: var Buff, bf: object) = 
+    discard """ does BFS using Bloom filter bf from loaded buffer
+        extends each front node one step, removes first level
+    """
+    var 
+        fronts = newStringTable()
+        next = newStringTable()
+        test_kmer, canon: string
+    fronts = buff.levels[j]
+    for node in fronts.keys:
+        for b in bases:
+            test_kmer = node[1 .. k-1] & b
+            # note: python code was missing next line
+            canon = min(test_kmer, get_rc(test_kmer))
+            if bf.lookup(canon)==true:
+                next[test_kmer]=nil
+                
+
+# def advance_buffer(buff, bf):
+#     """ does BFS using Bloom filter bf from loaded buffer
+#         extends each front node one step, removes first level
 #     """
-#     var new_front = newStringTable()
-#     for fr in fronts.keys:
-#         # instead of discarding, only insert non-alts
-#         # then replace buffer front
-#         if (not hasKey(comms, fr)):
-#             new_front[fr]=fronts[fr]
-#     buff[j]=new_front
-
-
-
-# def clean_front(buff,fronts,alts):
-#     """ removes all nodes starting with alt. (k-j)-mers
-#         from buffer front
-#     """
-#     for alt in alts:
-#         for kmer in fronts[alt]:
-#             buff[-1].discard(kmer)
+#     fronts = buff[-1]
+#     next = []
+#     for node in list(fronts):
+#         for b in bases:
+#             test_kmer = node[1:]+b
+#             if test_kmer in bf:
+#                 next.append(test_kmer)
+#     buff.append(set(next))
+#     del buff[0] # modify original instead of copying
 
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
@@ -233,11 +256,9 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                 if len(alt_paths) > 0:
                     for alt in alt_paths:
                         cands[value[0] & alt] = nil
-                    # clean_front(buff,fronts,comms)
-
-
-
-        comms = newStringTable()
+                    clean_front(buff,fronts,comms)
+            advance_buffer(buff,bf)
+            comms = newStringTable()
 
 
         # clear out buffer state before re-use
