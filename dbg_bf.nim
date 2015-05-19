@@ -19,7 +19,7 @@ type
 proc get_kmers(r: string, k: int, kmers: var openarray[string] ) =
     # chose openarray for kmers because may want k-mers of contigs
     var i = 0
-    while i < len(r)-k+1:
+    while i < len(r)-k:
         kmers[i] = r[i .. i+k-1]
         i = i+1
 
@@ -99,8 +99,9 @@ proc init_read_buff(source: string, buff: var Buff, bf: object) =
         test_kmer, canon : string
     buff.front = j
     buff.back = 0
+    # buff.levels[0] = newStringTable()
     buff.levels[0][source]=nil
-    buff.levels[1] = newStringTable()
+    # buff.levels[1] = newStringTable()
     for level in 0..j:
         roots = buff.levels[level]
         next = buff.levels[level+1]
@@ -113,30 +114,7 @@ proc init_read_buff(source: string, buff: var Buff, bf: object) =
                 if bf.lookup(canon)==true:
                     next[test_kmer]=nil
         buff.levels[level+1] = next
-        print_buff_info(buff)
-
-# def get_j_forward_buff(source,bf,depth):
-#     """initialize traversal buffer
-#         stores source + nodes up to depth accepted by bf
-#         in list of sets
-#     """
-#     buff = []
-#     roots = [source]
-#     buff.append(set(roots))
-#     next = []
-#     for level in range(depth+1):
-#         for root in roots:
-#             for b in bases:
-#                 test_kmer = root[1:]+b
-#                 canon = min(test_kmer, get_rc(test_kmer))
-#                 if canon in bf:
-#                     next.append(test_kmer)
-#         roots = next[:]
-#         buff.append(set(roots))
-#         next = []
-#     del buff[0]
-#     return buff
-
+        # print_buff_info(buff)
 
 proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
     discard """ gets buffer contents from chosen level (in [0,j])
@@ -170,8 +148,14 @@ proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
         pref, path : string
         ends = newSeq[string]()
     result = newSeq[string]() # newStringTable()
+    echo($len(comms) & " " & next_real)
     for comm in comms.keys:
         if comm != next_real:
+            echo(comm)
+            echo("\n" & $backs[comm])
+            echo("\n" & $backs)
+            echo("\n" & $fronts[comm])
+            echo("\n" & $fronts)
             pref = backs[comm][0]
             ends = fronts[comm]
             for fr in ends:
@@ -210,8 +194,10 @@ proc advance_buffer(buff: var Buff, bf: object) =
             if bf.lookup(canon)==true:
                 next[test_kmer]=nil
     buff.front = (buff.front+1) mod (j+2)
+    # echo("new front is " & $buff.front)
     buff.levels[buff.front] = next
     buff.back = (buff.back+1) mod (j+2)
+    # echo("new back is " & $buff.back)
 
 
 # def advance_buffer(buff, bf):
@@ -241,7 +227,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         cands = newStringTable()
         line_no = 0
         read: string
-        kmers: array[0..read_len-k+1, string]
+        kmers: array[0..read_len-k, string] # remember both ends included in ranges
         buff = get_empty_buff(j)
         backs : ref Table[string,seq[string]]
         fronts : ref Table[string,seq[string]]
@@ -259,40 +245,40 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         get_kmers(read, k, kmers)
         echo(read)
         init_read_buff(kmers[0], buff, bf)
-        # print_buff_info(buff)
-        # for ind, value in @kmers:
-        #     backs = get_buffer_level(buff,j,buff.front)
-        #     echo("backs " & $len(backs))
-        #     for key in backs.keys:
-        #             echo(key & ": " & backs[key])
+        print_buff_info(buff)
+        for ind, value in @kmers:
+            backs = get_buffer_level(buff,j,buff.front)
+            # echo("backs " & $len(backs))
+            # for key in backs.keys:
+            #         echo(key & ": " & backs[key])
             
-        #     fronts = get_buffer_level(buff,j,buff.back)
-        #     echo("fronts" & $len(fronts))
-        #     for key in fronts.keys:
-        #         echo(key & ": " & fronts[key])
+            fronts = get_buffer_level(buff,j,buff.back)
+            # echo("fronts" & $len(fronts))
+            # for key in fronts.keys:
+            #     echo(key & ": " & fronts[key])
             
-            # for key in backs.keys: # get intersection
-            #     if haskey(fronts, key):
-            #         # echo(key & ": " & backs[key])
-            #         # echo(key & ": " & fronts[key])
-            #         comms[key]=nil
-            #         # echo(comms)
-            # if len(comms) >= 2:
-            #     if ind < read_len-k:
-            #         next_real = kmers[ind+1][j..k-1]
-            #     else:
-            #         next_real = ""
-            #     # note next_real not removed from string table
-            #     # comms because I don't know how...
+            for key in backs.keys: # get intersection
+                if haskey(fronts, key):
+                    # echo(key & ": " & backs[key])
+                    # echo(key & ": " & fronts[key])
+                    comms[key]=nil
+                    # echo(comms)
+            if len(comms) >= 2:
+                if ind < read_len-k:
+                    next_real = kmers[ind+1][j..k-1]
+                else:
+                    next_real = ""
+                # note next_real not removed from string table
+                # comms because I don't know how...
            
-            #     alt_paths = get_alt_paths_from_buff(comms, next_real, backs, fronts, buff)
-            #     if len(alt_paths) > 0:
-            #         # echo(alt_paths)
-            #         for alt in alt_paths:
-            #             cands[value[0] & alt] = nil
-            #         clean_front(buff,fronts,comms)
-            # advance_buffer(buff,bf)
-            # comms = newStringTable()
+                alt_paths = get_alt_paths_from_buff(comms, next_real, backs, fronts, buff)
+                if len(alt_paths) > 0:
+                    echo(alt_paths)
+                    for alt in alt_paths:
+                        cands[value[0] & alt] = nil
+                    clean_front(buff,fronts,comms)
+            advance_buffer(buff,bf)
+            comms = newStringTable()
 
         inc(line_no)
         # clear out buffer state before re-use
