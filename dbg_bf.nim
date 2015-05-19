@@ -148,14 +148,16 @@ proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
         pref, path : string
         ends = newSeq[string]()
     result = newSeq[string]() # newStringTable()
-    echo($len(comms) & " " & next_real)
+    # echo($len(comms) & " " & next_real)
     for comm in comms.keys:
         if comm != next_real:
-            echo(comm)
-            echo("\n" & $backs[comm])
-            echo("\n" & $backs)
-            echo("\n" & $fronts[comm])
-            echo("\n" & $fronts)
+            # echo("\n" & comm)
+            # echo("backs")
+            # echo(backs[comm])
+            # echo("\n" & $backs)
+            # echo("fronts")
+            # echo(fronts[comm])
+            # echo("\n" & $fronts)
             pref = backs[comm][0]
             ends = fronts[comm]
             for fr in ends:
@@ -243,16 +245,16 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         if rc:
             read = get_rc(read)
         get_kmers(read, k, kmers)
-        echo(read)
+        # echo(read)
         init_read_buff(kmers[0], buff, bf)
-        print_buff_info(buff)
+        # print_buff_info(buff)
         for ind, value in @kmers:
-            backs = get_buffer_level(buff,j,buff.front)
+            backs = get_buffer_level(buff,j,buff.back)
             # echo("backs " & $len(backs))
             # for key in backs.keys:
             #         echo(key & ": " & backs[key])
             
-            fronts = get_buffer_level(buff,j,buff.back)
+            fronts = get_buffer_level(buff,j,buff.front)
             # echo("fronts" & $len(fronts))
             # for key in fronts.keys:
             #     echo(key & ": " & fronts[key])
@@ -273,7 +275,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
            
                 alt_paths = get_alt_paths_from_buff(comms, next_real, backs, fronts, buff)
                 if len(alt_paths) > 0:
-                    echo(alt_paths)
+                    # echo(alt_paths)
                     for alt in alt_paths:
                         cands[value[0] & alt] = nil
                     clean_front(buff,fronts,comms)
