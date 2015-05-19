@@ -54,8 +54,8 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
         sinks = newStringTable()
         reals = newStringTable()
         bf = initialize_bloom_filter(capacity = (read_len-k+1)*numreads, error_rate = fp)   
-        kmers: array[0..read_len-k+1, string]
-        canons: array[0..read_len-k+1, string]
+        kmers: array[0..read_len-k, string]
+        canons: array[0..read_len-k, string]
         f_hand = open(fname)
         line_no = 0
     echo(bf) 
@@ -202,21 +202,6 @@ proc advance_buffer(buff: var Buff, bf: object) =
     # echo("new back is " & $buff.back)
 
 
-# def advance_buffer(buff, bf):
-#     """ does BFS using Bloom filter bf from loaded buffer
-#         extends each front node one step, removes first level
-#     """
-#     fronts = buff[-1]
-#     next = []
-#     for node in list(fronts):
-#         for b in bases:
-#             test_kmer = node[1:]+b
-#             if test_kmer in bf:
-#                 next.append(test_kmer)
-#     buff.append(set(next))
-#     del buff[0] # modify original instead of copying
-
-
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
     discard """ scan reads to find candidate j+1 length paths. 
@@ -238,6 +223,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         next_real: string
         alt_paths = newSeq[string]()
 
+    echo("in cand paths")
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
             echo($(line_no+1) & " " & $len(cands))
@@ -266,7 +252,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                     comms[key]=nil
                     # echo(comms)
             if len(comms) >= 2:
-                if ind < read_len-k:
+                if ind < read_len-k-1:
                     next_real = kmers[ind+1][j..k-1]
                 else:
                     next_real = ""
@@ -345,8 +331,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 10_000)
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
         bf_cands = get_candidate_paths(reads_file, bf)
     # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
     # echo reverse(read)

@@ -3,7 +3,7 @@ from pybloomfilter import BloomFilter
 read_len = 100
 k = 27
 fp  = 0.01
-j = 16
+j = 10
 bases = ['A', 'C', 'G', 'T']
 complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}
 
@@ -50,8 +50,8 @@ def advance_buffer(buff, bf):
 		for b in bases:
 			test_kmer = node[1:]+b
 			canon = min(test_kmer, get_rc(test_kmer))
-				if canon in bf:
-					next.append(test_kmer)
+			if canon in bf:
+				next.append(test_kmer)
 			# if test_kmer in bf:
 			# 	next.append(test_kmer)
 	buff.append(set(next))
