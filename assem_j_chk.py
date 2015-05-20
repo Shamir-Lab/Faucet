@@ -92,7 +92,7 @@ def load_bf_sources_sinks(filename,j,numreads):
 	line_no = 0
 	with open(filename) as f:
 		for line in f:
-			if line_no+1%100000==0:
+			if line_no+1%10000==0:
 				print str(line_no+1) + " read k-mers processed"
 			read = line.rstrip()
 			sources.append(read[:k])
@@ -106,6 +106,7 @@ def load_bf_sources_sinks(filename,j,numreads):
 			reals.extend(canons)
 			line_no +=1
 	reals = set(reals)
+	print str(len(reals)) + " real k-mers loaded"
 	sources = set(get_canons(sources))
 	j_sinks = set(get_canons(j_sinks))
 	return (B,sources,j_sinks,reals)
@@ -188,7 +189,7 @@ def get_candidate_paths(filename,bf,rc=False):
 					if ind < read_len-k:
 						next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer	
 					else: # if read's end reached, don't know what next real is
-						next_real = set()					
+						next_real = ""					
 					alts = comms - set([next_real]) 
 					alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
 					if alt_paths:
@@ -198,8 +199,8 @@ def get_candidate_paths(filename,bf,rc=False):
 						clean_front(buff,fronts,alts)
 
 				advance_buffer(buff,bf)
-				if ind < read_len-k: # need to think more about read ends
-					clean_back(buff,kmers[ind+1])	
+				# if ind < read_len-k: # need to think more about read ends
+				# 	clean_back(buff,kmers[ind+1])	
 			line_no +=1
 	if rc:
 		print "got rc candidates"

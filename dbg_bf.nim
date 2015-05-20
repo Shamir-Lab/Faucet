@@ -2,6 +2,7 @@ import tables, sets
 import bloom
 import strtabs # used often as string sets - keys are usually nil
 import strutils, sequtils
+import nimprof
 
 const
     bases = ['A', 'C', 'G', 'T']
@@ -19,7 +20,7 @@ type
 proc get_kmers(r: string, k: int, kmers: var openarray[string] ) =
     # chose openarray for kmers because may want k-mers of contigs
     var i = 0
-    while i < len(r)-k:
+    while i < len(r)-k+1:
         kmers[i] = r[i .. i+k-1]
         i = i+1
 
@@ -63,7 +64,7 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
             echo ($(line_no+1) & " read k-mers processed " & 
-                $(len(sources)) & " " & $len(sinks) & " " & $len(reals))
+                $(len(sources)) & ' ' & $len(sinks) & ' ' & $len(reals))
         get_kmers(line,k,kmers)
         get_canons(kmers,canons)
         sources[canons[0]] = nil
@@ -75,6 +76,7 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
                 reals[value]=nil
         inc(line_no)
     f_hand.close()
+    echo($len(reals) & " reals k-mers loaded")
     (bf,sources,sinks,reals)
 
 
@@ -90,7 +92,7 @@ proc print_buff_info(buff: Buff) =
         var x = 0
         echo("buff level " & $i & ": ")
         for key in buff.levels[i].keys:
-            echo($(x+1) & " " & key)
+            echo($(x+1) & ' ' & key)
             inc(x)
 
 proc init_read_buff(source: string, buff: var Buff, bf: object) = 
@@ -148,7 +150,7 @@ proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
         pref, path : string
         ends = newSeq[string]()
     result = newSeq[string]() # newStringTable()
-    # echo($len(comms) & " " & next_real)
+    # echo($len(comms) & ' ' & next_real)
     for comm in comms.keys:
         if comm != next_real:
             # echo("\n" & comm)
@@ -226,7 +228,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     echo("in cand paths")
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
-            echo($(line_no+1) & " " & $len(cands))
+            echo($(line_no+1) & ' ' & $len(cands))
         read = strip(line)
         if rc:
             read = get_rc(read)
