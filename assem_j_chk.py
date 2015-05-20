@@ -39,6 +39,13 @@ def get_j_forward_buff(source,bf,depth):
 	del buff[0]
 	return buff
 
+def print_buff_info(buff):
+	for i in range(len(buff)):
+		print "buff level " + str(i) + ": "
+		x = 0
+		for key in buff[i]:
+			print str(x+1) + " " + key
+			x+=1
 
 def advance_buffer(buff, bf):
 	""" does BFS using Bloom filter bf from loaded buffer
@@ -175,11 +182,11 @@ def get_candidate_paths(filename,bf,rc=False):
 				print line_no+1, len(cands)
 			read = line.rstrip()
 			if rc:
-				kmers = get_kmers(get_rc(read),k)
-			else:
-				kmers = get_kmers(read,k)
+				read = get_rc(read)
+			kmers = get_kmers(read,k)
 			buff = get_j_forward_buff(kmers[0],bf,j)
-			
+			# print_buff_info(buff)
+			# break
 			for ind, kmer in enumerate(kmers):
 				backs = get_buffer_level(buff,j,0) 
 				fronts = get_buffer_level(buff,j,j)
@@ -278,7 +285,7 @@ reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
 
 # get and count junctions, false joins
 bf_cands = get_candidate_paths(reads_f,B)
-bf_cands.extend(get_candidate_paths(reads_f,B,rc=True))
+# bf_cands.extend(get_candidate_paths(reads_f,B,rc=True))
 fj_cnt = 0
 br_cnt = 0
 cnd_cnt = 0

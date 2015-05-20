@@ -85,37 +85,42 @@ proc get_empty_buff(j: int): Buff =
     var levels : seq[StringTableRef] = newSeqWith(j+2, newStringTable())
     # init with one extra empty level, that's rotated from front to back
     # to avoid allocations
-    return Buff(front:j,back:0,levels:levels)
+    return Buff(front:0,back:0,levels:levels)
 
 proc print_buff_info(buff: Buff) =
+    echo("back: " & $buff.back & " front: " & $buff.front)
     for i in 0..len(buff.levels)-1:
         var x = 0
-        echo("buff level " & $i & ": ")
-        for key in buff.levels[i].keys:
+        var lev  = (buff.back + i) mod (j+2)
+        echo("buff level " & $lev & ": ")
+        for key in buff.levels[lev].keys:
             echo($(x+1) & ' ' & key)
             inc(x)
 
 proc init_read_buff(source: string, buff: var Buff, bf: object) = 
     var 
-        roots, next : StringTableRef
+        currs, next : StringTableRef
         test_kmer, canon : string
-    buff.front = j
-    buff.back = 0
-    # buff.levels[0] = newStringTable()
     buff.levels[0][source]=nil
-    # buff.levels[1] = newStringTable()
     for level in 0..j:
-        roots = buff.levels[level]
+        currs = buff.levels[level]
         next = buff.levels[level+1]
-        if next == nil:
-            break
-        for root in roots.keys:
-            for b in bases: 
-                test_kmer = root[1..k-1] & b
+        for curr in currs.keys:
+            test_kmer = curr[1..k-1]
+            # echo(test_kmer)
+            for b in bases:
+                if b == 'A': 
+                    test_kmer.add(b)
+                else:
+                    test_kmer[k-1]=b
                 canon = min(test_kmer, get_rc(test_kmer))
                 if bf.lookup(canon)==true:
                     next[test_kmer]=nil
         buff.levels[level+1] = next
+    buff.levels[0] = newStringTable()
+    buff.front = j+1 #(buff.front+1) mod (j+2)
+    buff.back = 1 #(buff.back+1) mod (j+2)
+
         # print_buff_info(buff)
 
 proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
@@ -191,9 +196,12 @@ proc advance_buffer(buff: var Buff, bf: object) =
         test_kmer, canon: string
     fronts = buff.levels[j]
     for node in fronts.keys:
+        test_kmer = node[1..k-1]
         for b in bases:
-            test_kmer = node[1 .. k-1] & b
-            # note: python code was missing next line
+            if b == 'A': 
+                test_kmer.add(b)
+            else:
+                test_kmer[k-1]=b        
             canon = min(test_kmer, get_rc(test_kmer))
             if bf.lookup(canon)==true:
                 next[test_kmer]=nil
@@ -225,7 +233,6 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         next_real: string
         alt_paths = newSeq[string]()
 
-    echo("in cand paths")
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
             echo($(line_no+1) & ' ' & $len(cands))
@@ -236,6 +243,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         # echo(read)
         init_read_buff(kmers[0], buff, bf)
         # print_buff_info(buff)
+        # if (line_no ==0): break
         for ind, value in @kmers:
             backs = get_buffer_level(buff,j,buff.back)
             # echo("backs " & $len(backs))
