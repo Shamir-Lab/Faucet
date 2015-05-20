@@ -130,15 +130,17 @@ proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
         contains (k-j)-mers as suffixes, level = j+1 contains 
         them as prefixes  
     """
+    ###### nim version assumes only get front or back level ####
+    
     var inv: string
     result = newTable[string,seq[string]]()
-
+    
     for kmer in buff.levels[level].keys:
-        if level != 0:
-            inv = kmer[j - level .. ^(level+1)]
-            # inv = kmer[j+level .. k-level-1]
+
+        if (level == buff.front):
+            inv = kmer[0 .. (k-j-1)]
         else:
-            inv = kmer[j .. k-1]
+            inv = kmer[j .. (k-1)]
 
         # echo("inv in get_level " & inv)
         if hasKey(result, inv):
@@ -194,7 +196,7 @@ proc advance_buffer(buff: var Buff, bf: object) =
         fronts = newStringTable()
         next = newStringTable()
         test_kmer, canon: string
-    fronts = buff.levels[j]
+    fronts = buff.levels[buff.front]
     for node in fronts.keys:
         test_kmer = node[1..k-1]
         for b in bases:
@@ -208,6 +210,8 @@ proc advance_buffer(buff: var Buff, bf: object) =
     buff.front = (buff.front+1) mod (j+2)
     # echo("new front is " & $buff.front)
     buff.levels[buff.front] = next
+    # echo(next)
+    # echo(buff.levels[buff.front])
     buff.back = (buff.back+1) mod (j+2)
     # echo("new back is " & $buff.back)
 
@@ -243,17 +247,16 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         # echo(read)
         init_read_buff(kmers[0], buff, bf)
         # print_buff_info(buff)
-        # if (line_no ==0): break
+        if (line_no+1 == 10): break
         for ind, value in @kmers:
+            # echo("back: " & $buff.back & " front: " & $buff.front)
             backs = get_buffer_level(buff,j,buff.back)
-            # echo("backs " & $len(backs))
-            # for key in backs.keys:
-            #         echo(key & ": " & backs[key])
+            for key in backs.keys:
+                    echo(key & ": " & backs[key])
             
             fronts = get_buffer_level(buff,j,buff.front)
-            # echo("fronts" & $len(fronts))
-            # for key in fronts.keys:
-            #     echo(key & ": " & fronts[key])
+            for key in fronts.keys:
+                echo(key & ": " & fronts[key])
             
             for key in backs.keys: # get intersection
                 if haskey(fronts, key):
@@ -341,8 +344,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 10_000)
         bf_cands = get_candidate_paths(reads_file, bf)
     # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
     # echo reverse(read)
