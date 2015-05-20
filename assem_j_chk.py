@@ -186,13 +186,13 @@ def get_candidate_paths(filename,bf,rc=False):
 			kmers = get_kmers(read,k)
 			buff = get_j_forward_buff(kmers[0],bf,j)
 			# print_buff_info(buff)
-			if line_no+1 ==10:
-				break
+			# if line_no+1 ==10:
+			# 	break
 			for ind, kmer in enumerate(kmers):
 				backs = get_buffer_level(buff,j,0) 
-				print "backs ", backs
+				# print "backs ", backs
 				fronts = get_buffer_level(buff,j,j)
-				print "fronts ", fronts
+				# print "fronts ", fronts
 				comms = (set(backs.keys())).intersection(set(fronts.keys()))
 
 				if len(comms) >= 2: 
@@ -283,8 +283,8 @@ def write_seq_set_to_fasta(seqs,fname):
 
 
 ####### main ####### 
-reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
-(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,10000)
+reads_f = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+(B,src_cnd,j_sinks,reals) = load_bf_sources_sinks(reads_f,j,100000)
 
 # get and count junctions, false joins
 bf_cands = get_candidate_paths(reads_f,B)

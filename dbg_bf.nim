@@ -247,16 +247,16 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         # echo(read)
         init_read_buff(kmers[0], buff, bf)
         # print_buff_info(buff)
-        if (line_no+1 == 10): break
+        # if (line_no+1 == 10): break
         for ind, value in @kmers:
             # echo("back: " & $buff.back & " front: " & $buff.front)
             backs = get_buffer_level(buff,j,buff.back)
-            for key in backs.keys:
-                    echo(key & ": " & backs[key])
+            # for key in backs.keys:
+            #         echo(key & ": " & backs[key])
             
             fronts = get_buffer_level(buff,j,buff.front)
-            for key in fronts.keys:
-                echo(key & ": " & fronts[key])
+            # for key in fronts.keys:
+            #     echo(key & ": " & fronts[key])
             
             for key in backs.keys: # get intersection
                 if haskey(fronts, key):
@@ -344,8 +344,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 10_000)
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.1M"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 1_000_000)
         bf_cands = get_candidate_paths(reads_file, bf)
     # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
     # echo reverse(read)
