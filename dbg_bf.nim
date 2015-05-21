@@ -216,6 +216,56 @@ proc advance_buffer(buff: var Buff, bf: object) =
     # echo("new back is " & $buff.back)
 
 
+proc load_alt_extensions(curr_real, next_real: string, 
+    bf: object, next_set: var HashSet[string]) = 
+    var 
+        test_kmer = curr_real[1..k-1]
+        canon : string
+    for b in bases:
+        if b == 'A': 
+            test_kmer.add(b)
+        else:
+            test_kmer[k-1]=b     
+
+        # only want to consider alternatives to read sequence
+        if test_kmer == next_real: continue
+
+        canon = min(test_kmer, get_rc(test_kmer))
+        if bf.lookup(canon)==true:
+            next_set.incl(test_kmer)
+
+proc advance_front(curr_kmer, next_real: string,
+ front, next: var HashSet[string], bf: object) = 
+    for s in front.items:
+        # put alt extensions (diff from kmers[i+1]) into next
+        load_alt_extensions(s,next_real,bf,next)
+
+    front = next
+    next.init
+    # put alt extensions (diff from kmers[i+1]) into front
+    load_alt_extensions(curr_kmer,next_real,bf,front)
+
+
+proc load_front(kmers: openarray[string], front: var HashSet[string], bf: object) = 
+    var 
+        next = initSet[string]()
+        test_kmer, next_real: string
+
+    front.incl(kmers[0])
+    for i in 0..j:
+        next_real = kmers[i+1]
+        advance_front(kmers[i], next_real, front, next, bf)
+        # for s in front.items:
+        #     # put alt extensions (diff from kmers[i+1]) into next
+        #     load_alt_extensions(s,next_real,bf,next)
+
+        # front = next
+        # next.init
+        # # put alt extensions (diff from kmers[i+1]) into front
+        # load_alt_extensions(kmers[i],next_real,bf,front)
+        echo(front)
+        
+
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
     discard """ scan reads to find candidate j+1 length paths. 
@@ -225,17 +275,11 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     """
     var
         f_hand = open(filename)
-        cands = newStringTable()
+        cands = initSet[string]() # newStringTable()
         line_no = 0
         read: string
-        kmers: array[0..read_len-k, string] # remember both ends included in ranges
-        buff = get_empty_buff(j)
-        backs : ref Table[string,seq[string]]
-        fronts : ref Table[string,seq[string]]
-        comms = newStringTable()
-        # alts : newStringTable()
-        next_real: string
-        alt_paths = newSeq[string]()
+        kmers: array[0..read_len-k, string]
+        front = initSet[string]()
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -244,49 +288,16 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         if rc:
             read = get_rc(read)
         get_kmers(read, k, kmers)
-        # echo(read)
-        init_read_buff(kmers[0], buff, bf)
-        # print_buff_info(buff)
-        # if (line_no+1 == 10): break
-        for ind, value in @kmers:
-            # echo("back: " & $buff.back & " front: " & $buff.front)
-            backs = get_buffer_level(buff,j,buff.back)
-            # for key in backs.keys:
-            #         echo(key & ": " & backs[key])
+        echo(read)
+        load_front(kmers, front, bf)
+        # echo(front)
+        if line_no+1==4: break
+        # for ind, value in @kmers:
             
-            fronts = get_buffer_level(buff,j,buff.front)
-            # for key in fronts.keys:
-            #     echo(key & ": " & fronts[key])
-            
-            for key in backs.keys: # get intersection
-                if haskey(fronts, key):
-                    # echo(key & ": " & backs[key])
-                    # echo(key & ": " & fronts[key])
-                    comms[key]=nil
-                    # echo(comms)
-            if len(comms) >= 2:
-                if ind < read_len-k-1:
-                    next_real = kmers[ind+1][j..k-1]
-                else:
-                    next_real = ""
-                # note next_real not removed from string table
-                # comms because I don't know how...
-           
-                alt_paths = get_alt_paths_from_buff(comms, next_real, backs, fronts, buff)
-                if len(alt_paths) > 0:
-                    # echo(alt_paths)
-                    for alt in alt_paths:
-                        cands[value[0] & alt] = nil
-                    clean_front(buff,fronts,comms)
-            advance_buffer(buff,bf)
-            comms = newStringTable()
+
 
         inc(line_no)
-        # clear out buffer state before re-use
-        for i in 0 .. len(buff.levels)-1:
-            buff.levels[i] = newStringTable() 
-            #### thought would be faster, but doesn't work:
-            #### clear(buff.levels[i], modeCaseSensitive)
+        
     if rc==true:
         echo("got rev. com. candidates")
     else:
@@ -297,12 +308,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 10_000)
         bf_cands = get_candidate_paths(reads_file, bf)
-        bf_rc_cands  = get_candidate_paths(reads_file, bf, true)
-    # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
-    # echo reverse(read)
-    # echo get_rc(read)
-    # echo read # original isn't changed
-        
+        # bf_rc_cands  = get_candidate_paths(reads_file, bf, true)
+   
