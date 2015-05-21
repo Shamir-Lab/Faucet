@@ -235,35 +235,29 @@ proc load_alt_extensions(curr_real, next_real: string,
             next_set.incl(test_kmer)
 
 proc advance_front(curr_kmer, next_real: string,
- front, next: var HashSet[string], bf: object) = 
+ front: var HashSet[string], bf: object) = 
+    var next = initSet[string]()
     for s in front.items:
-        # put alt extensions (diff from kmers[i+1]) into next
+        # alt extensions --> diff from next (read) kmer
+        # put alt extensions of curr front nodes 
+        # diff from next_real into next
         load_alt_extensions(s,next_real,bf,next)
 
     front = next
     next.init
-    # put alt extensions (diff from kmers[i+1]) into front
+    # put alt extensions of curr_kmer into front
     load_alt_extensions(curr_kmer,next_real,bf,front)
 
 
 proc load_front(kmers: openarray[string], front: var HashSet[string], bf: object) = 
     var 
-        next = initSet[string]()
         test_kmer, next_real: string
 
     front.incl(kmers[0])
     for i in 0..j:
         next_real = kmers[i+1]
-        advance_front(kmers[i], next_real, front, next, bf)
-        # for s in front.items:
-        #     # put alt extensions (diff from kmers[i+1]) into next
-        #     load_alt_extensions(s,next_real,bf,next)
-
-        # front = next
-        # next.init
-        # # put alt extensions (diff from kmers[i+1]) into front
-        # load_alt_extensions(kmers[i],next_real,bf,front)
-        echo(front)
+        advance_front(kmers[i], next_real, front, bf)
+        # echo(front)
         
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
@@ -280,6 +274,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         read: string
         kmers: array[0..read_len-k, string]
         front = initSet[string]()
+        next_real = ""
+        back_suffix = ""
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -288,12 +284,29 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         if rc:
             read = get_rc(read)
         get_kmers(read, k, kmers)
-        echo(read)
+        # echo(read)
         load_front(kmers, front, bf)
         # echo(front)
-        if line_no+1==4: break
-        # for ind, value in @kmers:
-            
+        # if line_no+1==4: break
+        for ind, kmer in @kmers:
+            # can only set when next real is known
+            # otherwise every front node is alt path
+            if ind < read_len-k:
+                next_real = kmers[ind+1]
+                back_suffix = next_real[j..k-1]
+            for s in front.items:
+                # below only holds for alts
+                if s[0..j-1]!=back_suffix:
+                    # alt path is source k-mer concat with last j+1 chars
+                    # of node in front
+                    cands.incl(kmer & s[k-j-1..k-1])
+                    front.excl(s)
+
+            advance_front(kmer,next_real,front,bf)
+
+            # test if alt paths at front
+            # when found, are added to cands, removed from front
+            # advance front
 
 
         inc(line_no)
@@ -308,8 +321,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.head"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 10_000)
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
         bf_cands = get_candidate_paths(reads_file, bf)
         # bf_rc_cands  = get_candidate_paths(reads_file, bf, true)
    
