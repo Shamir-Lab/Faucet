@@ -76,7 +76,7 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
                 reals[value]=nil
         inc(line_no)
     f_hand.close()
-    echo($len(reals) & " reals k-mers loaded")
+    echo($len(reals) & " real k-mers loaded")
     (bf,sources,sinks,reals)
 
 
@@ -294,59 +294,13 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     f_hand.close()
     return cands
 
-# def get_candidate_paths(filename,bf,rc=False):
-#     """ scan reads to find candidate j+1 length paths. 
-#         finds nodes having descendents at level j+1 that differ from read sequence
-#         used to check against reals later, to know which are false joins, vs. true
-#         alternate paths; returns list of candidate lists corr. to all candidate per read
-#     """
-#     cands = []
-#     line_no = 0
-#     with open(filename) as f:
-#         for line in f:
-#             if (line_no+1)%10000==0:
-#                 print line_no+1, len(cands)
-#             read = line.rstrip()
-#             if rc:
-#                 kmers = get_kmers(get_rc(read),k)
-#             else:
-#                 kmers = get_kmers(read,k)
-#             buff = get_j_forward_buff(kmers[0],bf,j)
-            
-#             for ind, kmer in enumerate(kmers):
-#                 backs = get_buffer_level(buff,j,0) 
-#                 fronts = get_buffer_level(buff,j,j)
-#                 comms = (set(backs.keys())).intersection(set(fronts.keys()))
-
-#                 if len(comms) >= 2: 
-#                     if ind < read_len-k:
-#                         next_real = kmers[ind+1][j:] # k-j suffix from next real k-mer  
-#                     else: # if read's end reached, don't know what next real is
-#                         next_real = set()                   
-#                     alts = comms - set([next_real]) 
-#                     alt_paths = get_alt_paths_from_buff(alts, backs, fronts, buff)
-#                     if alt_paths:
-#                         for alt in alt_paths:
-#                             alt = kmer[0] + alt # add first letter of previous k-mer
-#                         cands.append(alt_paths)
-#                         clean_front(buff,fronts,alts)
-
-#                 advance_buffer(buff,bf)
-#                 if ind < read_len-k: # need to think more about read ends
-#                     clean_back(buff,kmers[ind+1])   
-#             line_no +=1
-#     if rc:
-#         print "got rc candidates"
-#     else:
-#         print "got forward candidates"
-#     return cands
-
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.1M"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 1_000_000)
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
         bf_cands = get_candidate_paths(reads_file, bf)
+        bf_rc_cands  = get_candidate_paths(reads_file, bf, true)
     # var read = "ACGTTCGTTTGACACTTCGTTTGTCGTTTGGTTCGTTGTTCGTT"
     # echo reverse(read)
     # echo get_rc(read)
