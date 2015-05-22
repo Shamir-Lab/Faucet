@@ -80,140 +80,140 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
     (bf,sources,sinks,reals)
 
 
-proc get_empty_buff(j: int): Buff = 
-    # newSeqWith seen at http://forum.nim-lang.org/t/1161
-    var levels : seq[StringTableRef] = newSeqWith(j+2, newStringTable())
-    # init with one extra empty level, that's rotated from front to back
-    # to avoid allocations
-    return Buff(front:0,back:0,levels:levels)
+# proc get_empty_buff(j: int): Buff = 
+#     # newSeqWith seen at http://forum.nim-lang.org/t/1161
+#     var levels : seq[StringTableRef] = newSeqWith(j+2, newStringTable())
+#     # init with one extra empty level, that's rotated from front to back
+#     # to avoid allocations
+#     return Buff(front:0,back:0,levels:levels)
 
-proc print_buff_info(buff: Buff) =
-    echo("back: " & $buff.back & " front: " & $buff.front)
-    for i in 0..len(buff.levels)-1:
-        var x = 0
-        var lev  = (buff.back + i) mod (j+2)
-        echo("buff level " & $lev & ": ")
-        for key in buff.levels[lev].keys:
-            echo($(x+1) & ' ' & key)
-            inc(x)
+# proc print_buff_info(buff: Buff) =
+#     echo("back: " & $buff.back & " front: " & $buff.front)
+#     for i in 0..len(buff.levels)-1:
+#         var x = 0
+#         var lev  = (buff.back + i) mod (j+2)
+#         echo("buff level " & $lev & ": ")
+#         for key in buff.levels[lev].keys:
+#             echo($(x+1) & ' ' & key)
+#             inc(x)
 
-proc init_read_buff(source: string, buff: var Buff, bf: object) = 
-    var 
-        currs, next : StringTableRef
-        test_kmer, canon : string
-    buff.levels[0][source]=nil
-    for level in 0..j:
-        currs = buff.levels[level]
-        next = buff.levels[level+1]
-        for curr in currs.keys:
-            test_kmer = curr[1..k-1]
-            # echo(test_kmer)
-            for b in bases:
-                if b == 'A': 
-                    test_kmer.add(b)
-                else:
-                    test_kmer[k-1]=b
-                canon = min(test_kmer, get_rc(test_kmer))
-                if bf.lookup(canon)==true:
-                    next[test_kmer]=nil
-        buff.levels[level+1] = next
-    buff.levels[0] = newStringTable()
-    buff.front = j+1 #(buff.front+1) mod (j+2)
-    buff.back = 1 #(buff.back+1) mod (j+2)
+# proc init_read_buff(source: string, buff: var Buff, bf: object) = 
+#     var 
+#         currs, next : StringTableRef
+#         test_kmer, canon : string
+#     buff.levels[0][source]=nil
+#     for level in 0..j:
+#         currs = buff.levels[level]
+#         next = buff.levels[level+1]
+#         for curr in currs.keys:
+#             test_kmer = curr[1..k-1]
+#             # echo(test_kmer)
+#             for b in bases:
+#                 if b == 'A': 
+#                     test_kmer.add(b)
+#                 else:
+#                     test_kmer[k-1]=b
+#                 canon = min(test_kmer, get_rc(test_kmer))
+#                 if bf.lookup(canon)==true:
+#                     next[test_kmer]=nil
+#         buff.levels[level+1] = next
+#     buff.levels[0] = newStringTable()
+#     buff.front = j+1 #(buff.front+1) mod (j+2)
+#     buff.back = 1 #(buff.back+1) mod (j+2)
 
-        # print_buff_info(buff)
+#         # print_buff_info(buff)
 
-proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
-    discard """ gets buffer contents from chosen level (in [0,j])
-        returns dictionary containing invariant k-j as keys
-        and k-mers including them as values - e.g., level = 0
-        contains (k-j)-mers as suffixes, level = j+1 contains 
-        them as prefixes  
-    """
-    ###### nim version assumes only get front or back level ####
+# proc get_buffer_level(buff: Buff, j,level: int): TableRef[string,seq[string]] =
+#     discard """ gets buffer contents from chosen level (in [0,j])
+#         returns dictionary containing invariant k-j as keys
+#         and k-mers including them as values - e.g., level = 0
+#         contains (k-j)-mers as suffixes, level = j+1 contains 
+#         them as prefixes  
+#     """
+#     ###### nim version assumes only get front or back level ####
     
-    var inv: string
-    result = newTable[string,seq[string]]()
+#     var inv: string
+#     result = newTable[string,seq[string]]()
     
-    for kmer in buff.levels[level].keys:
+#     for kmer in buff.levels[level].keys:
 
-        if (level == buff.front):
-            inv = kmer[0 .. (k-j-1)]
-        else:
-            inv = kmer[j .. (k-1)]
+#         if (level == buff.front):
+#             inv = kmer[0 .. (k-j-1)]
+#         else:
+#             inv = kmer[j .. (k-1)]
 
-        # echo("inv in get_level " & inv)
-        if hasKey(result, inv):
-            result.mget(inv).add(kmer)
-        else:
-            result[inv] = @[kmer]
+#         # echo("inv in get_level " & inv)
+#         if hasKey(result, inv):
+#             result.mget(inv).add(kmer)
+#         else:
+#             result[inv] = @[kmer]
 
-proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
- backs, fronts: TableRef[string,seq[string]], buff: Buff): auto =
-    discard """ given (k-j)-mers of alt paths, gets their start and end
-        k-mers to create paths to check (list returned)
-    """
-    var
-        pref, path : string
-        ends = newSeq[string]()
-    result = newSeq[string]() # newStringTable()
-    # echo($len(comms) & ' ' & next_real)
-    for comm in comms.keys:
-        if comm != next_real:
-            # echo("\n" & comm)
-            # echo("backs")
-            # echo(backs[comm])
-            # echo("\n" & $backs)
-            # echo("fronts")
-            # echo(fronts[comm])
-            # echo("\n" & $fronts)
-            pref = backs[comm][0]
-            ends = fronts[comm]
-            for fr in ends:
-                path = pref & fr[k-(1+j) .. k-1]
-                result.add(path) # [path]=nil
+# proc get_alt_paths_from_buff(comms: StringTableRef, next_real: string,
+#  backs, fronts: TableRef[string,seq[string]], buff: Buff): auto =
+#     discard """ given (k-j)-mers of alt paths, gets their start and end
+#         k-mers to create paths to check (list returned)
+#     """
+#     var
+#         pref, path : string
+#         ends = newSeq[string]()
+#     result = newSeq[string]() # newStringTable()
+#     # echo($len(comms) & ' ' & next_real)
+#     for comm in comms.keys:
+#         if comm != next_real:
+#             # echo("\n" & comm)
+#             # echo("backs")
+#             # echo(backs[comm])
+#             # echo("\n" & $backs)
+#             # echo("fronts")
+#             # echo(fronts[comm])
+#             # echo("\n" & $fronts)
+#             pref = backs[comm][0]
+#             ends = fronts[comm]
+#             for fr in ends:
+#                 path = pref & fr[k-(1+j) .. k-1]
+#                 result.add(path) # [path]=nil
 
 
-proc clean_front(buff: var Buff, fronts:TableRef[string,seq[string]], 
-    comms:StringTableRef) =
-    discard """ removes all nodes starting with alt. (k-j)-mers
-        from buffer front
-    """
-    var new_front = newStringTable()
-    for fr in fronts.keys:
-        # instead of discarding, only insert non-alts
-        # then replace buffer front
-        if (not hasKey(comms, fr)):
-            for key in fronts[fr]:
-                new_front[key]=nil
-    buff.levels[buff.front]=new_front
+# proc clean_front(buff: var Buff, fronts:TableRef[string,seq[string]], 
+#     comms:StringTableRef) =
+#     discard """ removes all nodes starting with alt. (k-j)-mers
+#         from buffer front
+#     """
+#     var new_front = newStringTable()
+#     for fr in fronts.keys:
+#         # instead of discarding, only insert non-alts
+#         # then replace buffer front
+#         if (not hasKey(comms, fr)):
+#             for key in fronts[fr]:
+#                 new_front[key]=nil
+#     buff.levels[buff.front]=new_front
 
-proc advance_buffer(buff: var Buff, bf: object) = 
-    discard """ does BFS using Bloom filter bf from loaded buffer
-        extends each front node one step, removes first level
-    """
-    var 
-        fronts = newStringTable()
-        next = newStringTable()
-        test_kmer, canon: string
-    fronts = buff.levels[buff.front]
-    for node in fronts.keys:
-        test_kmer = node[1..k-1]
-        for b in bases:
-            if b == 'A': 
-                test_kmer.add(b)
-            else:
-                test_kmer[k-1]=b        
-            canon = min(test_kmer, get_rc(test_kmer))
-            if bf.lookup(canon)==true:
-                next[test_kmer]=nil
-    buff.front = (buff.front+1) mod (j+2)
-    # echo("new front is " & $buff.front)
-    buff.levels[buff.front] = next
-    # echo(next)
-    # echo(buff.levels[buff.front])
-    buff.back = (buff.back+1) mod (j+2)
-    # echo("new back is " & $buff.back)
+# proc advance_buffer(buff: var Buff, bf: object) = 
+#     discard """ does BFS using Bloom filter bf from loaded buffer
+#         extends each front node one step, removes first level
+#     """
+#     var 
+#         fronts = newStringTable()
+#         next = newStringTable()
+#         test_kmer, canon: string
+#     fronts = buff.levels[buff.front]
+#     for node in fronts.keys:
+#         test_kmer = node[1..k-1]
+#         for b in bases:
+#             if b == 'A': 
+#                 test_kmer.add(b)
+#             else:
+#                 test_kmer[k-1]=b        
+#             canon = min(test_kmer, get_rc(test_kmer))
+#             if bf.lookup(canon)==true:
+#                 next[test_kmer]=nil
+#     buff.front = (buff.front+1) mod (j+2)
+#     # echo("new front is " & $buff.front)
+#     buff.levels[buff.front] = next
+#     # echo(next)
+#     # echo(buff.levels[buff.front])
+#     buff.back = (buff.back+1) mod (j+2)
+#     # echo("new back is " & $buff.back)
 
 
 proc load_alt_extensions(curr_real, next_real: string, 
@@ -234,31 +234,34 @@ proc load_alt_extensions(curr_real, next_real: string,
         if bf.lookup(canon)==true:
             next_set.incl(test_kmer)
 
-proc advance_front(curr_kmer, next_real: string,
+proc advance_front(read_pos: int, kmers: openarray[string],
  front: var HashSet[string], bf: object) = 
-    var next = initSet[string]()
+    var 
+        next = initSet[string]()
+        front_kmer = ""
+        next_real = ""
+    if read_pos < read_len - k:
+        front_kmer = kmers[read_pos]
+    if read_pos < read_len - k - 1:
+        next_real = kmers[read_pos+1]
+    # echo(front_kmer & " " & next_real)
     for s in front.items:
         # alt extensions --> diff from next (read) kmer
         # put alt extensions of curr front nodes 
         # diff from next_real into next
         load_alt_extensions(s,next_real,bf,next)
 
+    # put alt extensions of real at front into next
+    load_alt_extensions(front_kmer,next_real,bf,next)
     front = next
     next.init
-    # put alt extensions of curr_kmer into front
-    load_alt_extensions(curr_kmer,next_real,bf,front)
-
+    # echo(front)
 
 proc load_front(kmers: openarray[string], front: var HashSet[string], bf: object) = 
-    var 
-        test_kmer, next_real: string
-
     front.incl(kmers[0])
     for i in 0..j:
-        next_real = kmers[i+1]
-        advance_front(kmers[i], next_real, front, bf)
-        # echo(front)
-        
+        advance_front(i, kmers, front, bf)
+
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
@@ -274,7 +277,9 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         read: string
         kmers: array[0..read_len-k, string]
         front = initSet[string]()
+        front_prefs = initSet[string]()
         next_real = ""
+        front_real = ""
         back_suffix = ""
 
     for line in f_hand.lines:
@@ -286,29 +291,31 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         get_kmers(read, k, kmers)
         # echo(read)
         load_front(kmers, front, bf)
-        # echo(front)
-        # if line_no+1==4: break
+        # if line_no+1==10: break
+
         for ind, kmer in @kmers:
             # can only set when next real is known
             # otherwise every front node is alt path
             if ind < read_len-k:
                 next_real = kmers[ind+1]
                 back_suffix = next_real[j..k-1]
+            # echo(front)
             for s in front.items:
                 # below only holds for alts
-                if s[0..j-1]!=back_suffix:
+                # echo("back suffix: " & back_suffix & " front prefix: " & s[0..k-j-1])
+                if s[0..k-j-1]!=back_suffix:
                     # alt path is source k-mer concat with last j+1 chars
                     # of node in front
-                    cands.incl(kmer & s[k-j-1..k-1])
+                    # echo("position " & $ind)
+                    cands.incl(kmer) # & s[k-j-1..k-1])
                     front.excl(s)
-
-            advance_front(kmer,next_real,front,bf)
+            advance_front(ind+j+1, kmers, front, bf)
 
             # test if alt paths at front
             # when found, are added to cands, removed from front
             # advance front
 
-
+        # echo($len(cands) & " cands: "& $cands)
         inc(line_no)
         
     if rc==true:
