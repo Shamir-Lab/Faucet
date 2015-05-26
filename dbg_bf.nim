@@ -145,7 +145,6 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         read: string
         kmers: array[0..read_len-k, string]
         front : CritBitTree[void]
-        front_prefs : CritBitTree[void]
         next_real = ""
         front_real = ""
         back_suffix = ""
