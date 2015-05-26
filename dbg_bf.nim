@@ -2,8 +2,9 @@ import tables, sets
 import bloom
 import strtabs # used often as string sets - keys are usually nil
 import strutils, sequtils
-import nimprof
-import locks
+# import nimprof
+# import locks
+import critbits
 
 const
     bases = ['A', 'C', 'G', 'T']
@@ -82,7 +83,7 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
 
 
 proc load_alt_extensions(curr_real, next_real: string, 
-    bf: object, next_set: var HashSet[string]) = 
+    bf: object, next_set: var CritBitTree[void]) = 
     var 
         test_kmer = curr_real[1..k-1]
         canon : string
@@ -103,9 +104,9 @@ proc load_alt_extensions(curr_real, next_real: string,
             next_set.incl(test_kmer)
 
 proc advance_front(read_pos: int, kmers: openarray[string],
- front: var HashSet[string], bf: object) = 
+ front: var CritBitTree[void], bf: object) = 
     var 
-        next = initSet[string]()
+        next : CritBitTree[void]
         front_kmer = ""
         next_real = ""
     if read_pos < read_len - k:
@@ -122,10 +123,9 @@ proc advance_front(read_pos: int, kmers: openarray[string],
     # put alt extensions of real at front into next
     load_alt_extensions(front_kmer,next_real,bf,next)
     front = next
-    next.init
     # echo(front)
 
-proc load_front(kmers: openarray[string], front: var HashSet[string], bf: object) = 
+proc load_front(kmers: openarray[string], front: var CritBitTree[void], bf: object) = 
     front.incl(kmers[0])
     for i in 0..j:
         advance_front(i, kmers, front, bf)
@@ -140,12 +140,12 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     """
     var
         f_hand = open(filename)
-        cands = initSet[string]() # newStringTable()
+        cands : CritBitTree[void] # newStringTable()
         line_no = 0
         read: string
         kmers: array[0..read_len-k, string]
-        front = initSet[string]()
-        front_prefs = initSet[string]()
+        front : CritBitTree[void]
+        front_prefs : CritBitTree[void]
         next_real = ""
         front_real = ""
         back_suffix = ""
@@ -197,9 +197,9 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/vol/scratch/rozovr/chr20.c10.reads.1M"
+        reads_file = "/vol/scratch/rozovr/chr20.c10.reads.100k"
         #reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 1_000_000)
+        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
         bf_cands = get_candidate_paths(reads_file, bf)
 
     # solution with threads
