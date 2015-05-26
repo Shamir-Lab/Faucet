@@ -47,14 +47,9 @@ proc load_bf(fname: string, sub_len, numreads: int): auto =
     discard """ loads k-mers into bloom filter
     """
     var
-        # sources = initSet[string]()
-        # sinks = initSet[string]() 
-        # reals = initSet[string]()
         bf = initialize_bloom_filter(capacity = (read_len-sub_len+1)*numreads, error_rate = fp)   
         kmers: seq[string] = newSeq[string](read_len-sub_len+1)
         canons: seq[string] = newSeq[string](read_len-sub_len+1)
-
-        # array[0..read_len-sub_len, string]
 
         f_hand = open(fname)
         line_no = 0
@@ -62,22 +57,15 @@ proc load_bf(fname: string, sub_len, numreads: int): auto =
 
     for line in f_hand.lines:
         if (line_no + 1) mod 30_000==0:
-            echo ($(line_no+1) & " read k-mers processed ")# & 
-                # $(len(sources)) & ' ' & $len(sinks) & ' ' & $len(reals))
+            echo ($(line_no+1) & " read k-mers processed ")
         get_kmers(line,sub_len,kmers)
         get_canons(kmers,canons)
-        # sources.incl(canons[0]) # ] = nil
-        # sinks.incl(canons[read_len-k]) # ] = nil
         for i,value in @canons:
             if value!=nil:
                 bf.insert(value)
-                # reals only for debugging:
-                # reals.incl(value) # ]=nil
         inc(line_no)
     f_hand.close()
-    # echo($len(reals) & " real k-mers loaded")
-    return bf #,sources,sinks,reals)
-
+    return bf 
 
 proc load_alt_extensions(curr_real, next_real: string, 
     bf: object, next_set: var CritBitTree[void]) = 
@@ -133,7 +121,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     discard """ scan reads to find candidate j+1 length paths. 
         finds nodes having descendents at level j+1 that differ from read sequence
         used to check against reals later, to know which are false joins, vs. true
-        alternate paths; returns list of candidate lists corr. to all candidate per read
+        alternate paths; returns set of candidate (k+j+1) length paths
     """
     var
         f_hand = open(filename)
@@ -176,10 +164,6 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
             # echo($(ind+j+1))
             advance_front(ind+j+1, kmers, front, bf)
 
-            # test if alt paths at front
-            # when found, are added to cands, removed from front
-            # advance front
-
         # echo($len(cands) & " cands: "& $cands)
         inc(line_no)
         
@@ -198,7 +182,7 @@ when isMainModule:
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
         bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
 
-        bf_cands = get_candidate_paths(reads_file, bf1)
+        # bf_cands = get_candidate_paths(reads_file, bf1)
 
     # solution with threads
     # load BF using 1 thread
