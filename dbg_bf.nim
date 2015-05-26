@@ -9,7 +9,7 @@ const
     complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}.toTable()
     k = 27
     fp = 0.01
-    j = 10
+    j = 2
     read_len = 100
 
 type
@@ -51,9 +51,9 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
         sources and sinks
     """
     var
-        sources = newStringTable()
-        sinks = newStringTable()
-        reals = newStringTable()
+        sources = initSet[string]() # newStringTable()
+        sinks = initSet[string]() # newStringTable()
+        reals = initSet[string]() # newStringTable()
         bf = initialize_bloom_filter(capacity = (read_len-k+1)*numreads, error_rate = fp)   
         kmers: array[0..read_len-k, string]
         canons: array[0..read_len-k, string]
@@ -67,13 +67,13 @@ proc load_bf_sources_sinks(fname: string, numreads: int): auto =
                 $(len(sources)) & ' ' & $len(sinks) & ' ' & $len(reals))
         get_kmers(line,k,kmers)
         get_canons(kmers,canons)
-        sources[canons[0]] = nil
-        sinks[canons[read_len-k]] = nil
+        sources.incl(canons[0]) # ] = nil
+        sinks.incl(canons[read_len-k]) # ] = nil
         for i,value in @canons:
             if value!=nil:
                 bf.insert(value)
                 # reals only for debugging:
-                reals[value]=nil
+                reals.incl(value) # ]=nil
         inc(line_no)
     f_hand.close()
     echo($len(reals) & " real k-mers loaded")
@@ -221,6 +221,9 @@ proc load_alt_extensions(curr_real, next_real: string,
     var 
         test_kmer = curr_real[1..k-1]
         canon : string
+    # echo("curr_real: " & curr_real & " next_real: " & next_real)
+    if test_kmer == "": return
+
     for b in bases:
         if b == 'A': 
             test_kmer.add(b)
@@ -309,6 +312,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                     # echo("position " & $ind)
                     cands.incl(kmer) # & s[k-j-1..k-1])
                     front.excl(s)
+            # echo($(ind+j+1))
             advance_front(ind+j+1, kmers, front, bf)
 
             # test if alt paths at front
@@ -328,7 +332,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        reads_file = "/vol/scratch/rozovr/chr20.c10.reads.100k"
+        #reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
         bf_cands = get_candidate_paths(reads_file, bf)
         # bf_rc_cands  = get_candidate_paths(reads_file, bf, true)
