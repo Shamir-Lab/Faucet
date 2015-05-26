@@ -14,16 +14,12 @@ const
     j = 2
     read_len = 100
 
-type
-    Buff = ref object
-        front, back : int
-        levels : seq[StringTableRef]
 
-proc get_kmers(r: string, k: int, kmers: var openarray[string] ) =
+proc get_kmers(r: string, sub_len: int, kmers: var openarray[string] ) =
     # chose openarray for kmers because may want k-mers of contigs
     var i = 0
-    while i < len(r)-k+1:
-        kmers[i] = r[i .. i+k-1]
+    while i < len(r)-sub_len+1:
+        kmers[i] = r[i .. i+sub_len-1]
         i = i+1
 
 proc reverse(s: string): string =
@@ -47,39 +43,40 @@ proc get_canons(kmers: openarray[string], canons: var openarray[string]) =
 
 
 #### note use of auto to determine types inside tuple returned
-proc load_bf_sources_sinks(fname: string, numreads: int): auto =
+proc load_bf(fname: string, sub_len, numreads: int): auto =
     discard """ loads k-mers into bloom filter
-        loads to sets ends of reads as potential
-        sources and sinks
     """
     var
-        sources = initSet[string]() # newStringTable()
-        sinks = initSet[string]() # newStringTable()
-        reals = initSet[string]() # newStringTable()
-        bf = initialize_bloom_filter(capacity = (read_len-k+1)*numreads, error_rate = fp)   
-        kmers: array[0..read_len-k, string]
-        canons: array[0..read_len-k, string]
+        # sources = initSet[string]()
+        # sinks = initSet[string]() 
+        # reals = initSet[string]()
+        bf = initialize_bloom_filter(capacity = (read_len-sub_len+1)*numreads, error_rate = fp)   
+        kmers: seq[string] = newSeq[string](read_len-sub_len+1)
+        canons: seq[string] = newSeq[string](read_len-sub_len+1)
+
+        # array[0..read_len-sub_len, string]
+
         f_hand = open(fname)
         line_no = 0
     echo(bf) 
 
     for line in f_hand.lines:
-        if (line_no + 1) mod 10_000==0:
-            echo ($(line_no+1) & " read k-mers processed " & 
-                $(len(sources)) & ' ' & $len(sinks) & ' ' & $len(reals))
-        get_kmers(line,k,kmers)
+        if (line_no + 1) mod 30_000==0:
+            echo ($(line_no+1) & " read k-mers processed ")# & 
+                # $(len(sources)) & ' ' & $len(sinks) & ' ' & $len(reals))
+        get_kmers(line,sub_len,kmers)
         get_canons(kmers,canons)
-        sources.incl(canons[0]) # ] = nil
-        sinks.incl(canons[read_len-k]) # ] = nil
+        # sources.incl(canons[0]) # ] = nil
+        # sinks.incl(canons[read_len-k]) # ] = nil
         for i,value in @canons:
             if value!=nil:
                 bf.insert(value)
                 # reals only for debugging:
-                reals.incl(value) # ]=nil
+                # reals.incl(value) # ]=nil
         inc(line_no)
     f_hand.close()
-    echo($len(reals) & " real k-mers loaded")
-    (bf,sources,sinks,reals)
+    # echo($len(reals) & " real k-mers loaded")
+    return bf #,sources,sinks,reals)
 
 
 proc load_alt_extensions(curr_real, next_real: string, 
@@ -174,7 +171,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                     # alt path is source k-mer concat with last j+1 chars
                     # of node in front
                     # echo("position " & $ind)
-                    cands.incl(kmer) # & s[k-j-1..k-1])
+                    cands.incl(kmer & s[k-j-1..k-1])
                     front.excl(s)
             # echo($(ind+j+1))
             advance_front(ind+j+1, kmers, front, bf)
@@ -196,10 +193,12 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/vol/scratch/rozovr/chr20.c10.reads.100k"
+        reads_file = "/vol/scratch/rozovr/chr20.c10.reads.1M"
         #reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
-        (bf,sources,sinks,reals)=load_bf_sources_sinks(reads_file, 100_000)
-        bf_cands = get_candidate_paths(reads_file, bf)
+        bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
+        bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
+
+        bf_cands = get_candidate_paths(reads_file, bf1)
 
     # solution with threads
     # load BF using 1 thread
