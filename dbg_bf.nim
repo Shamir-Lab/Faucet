@@ -177,12 +177,13 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/vol/scratch/rozovr/chr20.c10.reads.1M"
+        reads_file = "/vol/scratch/rozovr/chr20.c30.cor.reads.1M"
         #reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
         bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
 
-        # bf_cands = get_candidate_paths(reads_file, bf1)
+        bf_cands = get_candidate_paths(reads_file, bf1)
+        rc_cands = get_candidate_paths(reads_file, bf1, true)
 
     # solution with threads
     # load BF using 1 thread
