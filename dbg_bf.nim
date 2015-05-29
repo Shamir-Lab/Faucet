@@ -1,7 +1,6 @@
 import tables, sets
 import bloom
-import strtabs # used often as string sets - keys are usually nil
-import strutils, sequtils
+from strutils import strip
 # import nimprof
 # import locks
 import critbits
@@ -10,10 +9,9 @@ const
     bases = ['A', 'C', 'G', 'T']
     complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}.toTable()
     k = 27
-    fp = 0.01
+    fp = 0.10
     j = 2
     read_len = 100
-
 
 proc get_kmers(r: string, sub_len: int, kmers: var openarray[string] ) =
     # chose openarray for kmers because may want k-mers of contigs
