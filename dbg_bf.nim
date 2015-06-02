@@ -109,6 +109,9 @@ proc advance_front(read_pos: int, kmers: openarray[string],
     # echo(front)
 
 proc load_front(kmers: openarray[string], front: var CritBitTree[void], bf: object) = 
+    if len(front)>0:
+        for s in front.items:
+            front.excl(s)
     front.incl(kmers[0])
     for i in 0..j:
         advance_front(i, kmers, front, bf)
@@ -131,6 +134,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         next_real = ""
         front_real = ""
         back_suffix = ""
+        first_buff_pref = ""
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -149,6 +153,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
             if ind < read_len-k:
                 next_real = kmers[ind+1]
                 back_suffix = next_real[j..k-1]
+                first_buff_pref = next_real[0..k-2]
             # echo(front)
             for s in front.items:
                 # below only holds for alts
@@ -157,7 +162,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                     # alt path is source k-mer concat with last j+1 chars
                     # of node in front
                     # echo("position " & $ind)
-                    cands.incl(kmer & s[k-j-1..k-1])
+                    cands.incl(first_buff_pref & s[k-j-1]) # candidate to check is first k-mer in buffer
                     front.excl(s)
             # echo($(ind+j+1))
             advance_front(ind+j+1, kmers, front, bf)
@@ -178,7 +183,7 @@ when isMainModule:
         reads_file = "/vol/scratch/rozovr/chr20.c30.cor.reads.1M"
         #reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
-        bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
+        # bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
 
         bf_cands = get_candidate_paths(reads_file, bf1)
         rc_cands = get_candidate_paths(reads_file, bf1, true)
