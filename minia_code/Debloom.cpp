@@ -85,7 +85,7 @@ int debloom(int order, int max_memory, Bloom * bloo1)
 	
 
     ifstream solidReads;
-    solidReads.open(solid_kmers_file);
+    solidReads.open(solid_reads_file);
 
     uint64_t cc=0;
     kmer_type new_graine;

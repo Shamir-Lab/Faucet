@@ -8,6 +8,7 @@ struct timeval tim;
 uint64_t nbkmers_solid = 0, b1_size = 0; 
 
 const char *solid_kmers_file = (char *)"solid_reads_100k"; 
+char solid_reads_file[1024];
 const char *false_positive_kmers_file = (char *)"false_positive_kmers";
 const char *bloom_file = (char *)"bloom_data";
 const char *assembly_file = (char *)"contigs.fa";
