@@ -14,11 +14,6 @@ const
     j = 1
     read_len = 100
 
-type # stores 
-    JuncNode = object
-        kmer: string
-        extensions* : array[4, bool]
-
 proc get_kmers(r: string, sub_len: int, kmers: var openarray[string] ) =
     # chose openarray for kmers because may want k-mers of contigs
     var i = 0
@@ -159,7 +154,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     """
     var
         f_hand = open(filename)
-        cands  = HashSet[JuncNode]() # set of seen JuncNode objects
+        cands  = initTable[string, int]() # table of seen JuncNode objects
         line_no = 0
         # cand_cnt = 0
         read: string
@@ -188,6 +183,9 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
             if ind < read_len-k:
                 next_real = kmers[ind+1]
                 back_suffix = next_real[j..k-1]
+            else:
+                next_real = "" # clear out past values
+                back_suffix = ""
             first_buff_pref = kmer[1..k-1]
             # echo(front)
             for s in front.items:
@@ -196,6 +194,9 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                 if s[0..k-j-1]!=back_suffix:
                     if not added:
                         # cands.incl(next_real)
+                        if next_real != "":
+                            # is there default value for table val?
+                            cands[kmer] = cands[kmer] or (1 shl base_vals[next_real[k-1]])
                         added = true
                     front.excl(s)
 
@@ -215,7 +216,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 when isMainModule:
     var 
         reads_file = "/vol/scratch/rozovr/chr20.c30.orc_out.reads.tail.1M" #"/vol/scratch/rozovr/chr20.c10.reads.1M"
-        #reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        # reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
         # reals = load_reals(reads_file, k)
         # bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
