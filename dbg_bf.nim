@@ -9,8 +9,8 @@ const
     bases = ['A', 'C', 'G', 'T']
     complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}.toTable()
     k = 27
-    fp = 0.10
-    j = 2
+    fp = 0.01
+    j = 1
     read_len = 100
 
 proc get_kmers(r: string, sub_len: int, kmers: var openarray[string] ) =
@@ -51,19 +51,46 @@ proc load_bf(fname: string, sub_len, numreads: int): auto =
 
         f_hand = open(fname)
         line_no = 0
+    
     echo(bf) 
 
     for line in f_hand.lines:
         if (line_no + 1) mod 30_000==0:
-            echo ($(line_no+1) & " read k-mers processed ")
+            echo ($(line_no+1) & " read k-mers inserted to BF ")
         get_kmers(line,sub_len,kmers)
         get_canons(kmers,canons)
         for i,value in @canons:
             if value!=nil:
                 bf.insert(value)
+                
         inc(line_no)
     f_hand.close()
     return bf 
+    
+proc load_reals(fname: string, sub_len: int): auto =
+    discard """ loads k-mers into set
+    """
+    var
+        reals: CritBitTree[void]
+        kmers: seq[string] = newSeq[string](read_len-sub_len+1)
+        canons: seq[string] = newSeq[string](read_len-sub_len+1)
+
+        f_hand = open(fname)
+        line_no = 0
+    
+    for line in f_hand.lines:
+        if (line_no + 1) mod 30_000==0:    
+            echo ($(line_no+1) & " read k-mers inserted to reals set")
+
+        get_kmers(line,sub_len,kmers)
+        get_canons(kmers,canons)
+        for i,value in @canons:
+            if value!=nil:    
+                reals.incl(value)
+        inc(line_no)
+    f_hand.close()
+    return reals 
+
 
 proc load_alt_extensions(curr_real, next_real: string, 
     bf: object, next_set: var CritBitTree[void]) = 
@@ -128,13 +155,14 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         f_hand = open(filename)
         cands : CritBitTree[void] # newStringTable()
         line_no = 0
+        # cand_cnt = 0
         read: string
         kmers: array[0..read_len-k, string]
         front : CritBitTree[void]
         next_real = ""
-        front_real = ""
         back_suffix = ""
         first_buff_pref = ""
+        added : bool
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -146,6 +174,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         # echo(read)
         load_front(kmers, front, bf)
         # if line_no+1==10: break
+        added = false
 
         for ind, kmer in @kmers:
             # can only set when next real is known
@@ -153,18 +182,24 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
             if ind < read_len-k:
                 next_real = kmers[ind+1]
                 back_suffix = next_real[j..k-1]
-                first_buff_pref = next_real[0..k-2]
+            first_buff_pref = kmer[1..k-1]
             # echo(front)
             for s in front.items:
                 # below only holds for alts
                 # echo("back suffix: " & back_suffix & " front prefix: " & s[0..k-j-1])
                 if s[0..k-j-1]!=back_suffix:
-                    # alt path is source k-mer concat with last j+1 chars
-                    # of node in front
-                    # echo("position " & $ind)
-                    cands.incl(first_buff_pref & s[k-j-1]) # candidate to check is first k-mer in buffer
+                    if not added:
+                        cands.incl(next_real)
+                        added = true
                     front.excl(s)
-            # echo($(ind+j+1))
+
+            #         # alt path is source k-mer concat with last j+1 chars
+            #         # of node in front
+            #         # echo("position " & $ind)
+            #         cands.incl(first_buff_pref & s[k-j-1]) # candidate to check is first k-mer in buffer
+            #         inc(cand_cnt)
+            #         front.excl(s)
+            # # echo($(ind+j+1))
             advance_front(ind+j+1, kmers, front, bf)
 
         # echo($len(cands) & " cands: "& $cands)
@@ -175,18 +210,28 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     else:
         echo("got forward candidates") 
     f_hand.close()
-    return cands
+    return cands #, cand_cnt)
 
 
 when isMainModule:
     var 
-        reads_file = "/vol/scratch/rozovr/chr20.c30.cor.reads.1M"
+        reads_file = "/vol/scratch/rozovr/chr20.c30.orc_out.reads.tail.1M" #"/vol/scratch/rozovr/chr20.c10.reads.1M"
         #reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
+        # reals = load_reals(reads_file, k)
         # bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
 
         bf_cands = get_candidate_paths(reads_file, bf1)
-        rc_cands = get_candidate_paths(reads_file, bf1, true)
+        # num_fps = 0
+    # echo("cands paths list size: " & $cnd_cnt & ", cands juncs set size: " & $len(bf_cands))
+    echo("cands real junc set size: " & $len(bf_cands))
+    # for s in bf_cands.items:
+    #     if not reals.contains(s) and not reals.contains(get_rc(s)):
+    #         inc(num_fps)
+
+    # echo($num_fps & " false junctions found") 
+
+        # rc_cands = get_candidate_paths(reads_file, bf1, true)
 
     # solution with threads
     # load BF using 1 thread
