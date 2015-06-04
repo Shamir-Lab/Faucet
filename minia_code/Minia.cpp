@@ -14,7 +14,7 @@
 #define MIN_CONTIG_SIZE (2*sizeKmer+1)
 
 
-const float fpRate = .01;
+float fpRate = .01;
 float max_memory; // the most memory one should alloc at any time, in MB
 
 int order = 0; // deblooming order; 0 = debloom everything; 1 = don't debloom 1-node tips (experimental, untested, shouldn't work);// (made extern int in Traversal.h)
@@ -42,19 +42,20 @@ int64_t nb_reads;
 /*
 To run the new version, type make in the directory to compile.
 
-Then, type ./minia 1 2 3 4 5, where
+Then, type ./minia 1 2 3 4 5 6, where
 1 = name of reads file (current format is each line has a string of characters representing the read)
 2 = k
 3 = read length
 4 = number of reads
 5 = prefix for output files ("" works for me, I'll look into what exactly this does)
+6 = false positive rate (.01 is a good base rate) 
 
 This will load a bloom filter with all the kmers from the reads, then scan through them inserting potential false positives.
 No error correction corrently, and no assembly.
 */
 
 inline int handle_arguments(int argc, char *argv[]){
-if(argc <  6)
+if(argc <  7)
     {
         fprintf (stderr,"usage:\n");
         fprintf (stderr," %s input_file kmer_size min_abundance estimated_nb_reads prefix\n",argv[0]);
@@ -94,6 +95,9 @@ if(argc <  6)
     
     //5th arg: output prefix
     strcpy(prefix,argv[5]);
+
+    //6th arg: false posiive rate
+    fpRate = atof(argv[6]);
 }
 
 inline void load_bloom_filter(Bloom* bloo1, const char* reads_filename){
