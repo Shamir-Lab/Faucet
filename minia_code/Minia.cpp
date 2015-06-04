@@ -15,6 +15,7 @@
 
 
 float fpRate = .01;
+int j = 0;
 float max_memory; // the most memory one should alloc at any time, in MB
 
 int order = 0; // deblooming order; 0 = debloom everything; 1 = don't debloom 1-node tips (experimental, untested, shouldn't work);// (made extern int in Traversal.h)
@@ -42,20 +43,21 @@ int64_t nb_reads;
 /*
 To run the new version, type make in the directory to compile.
 
-Then, type ./minia 1 2 3 4 5 6, where
+Then, type ./minia 1 2 3 4 5 6 7, where
 1 = name of reads file (current format is each line has a string of characters representing the read)
 2 = k
 3 = read length
 4 = number of reads
 5 = prefix for output files ("" works for me, I'll look into what exactly this does)
 6 = false positive rate (.01 is a good base rate) 
+7 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
 
 This will load a bloom filter with all the kmers from the reads, then scan through them inserting potential false positives.
 No error correction corrently, and no assembly.
 */
 
 inline int handle_arguments(int argc, char *argv[]){
-if(argc <  7)
+if(argc <  8)
     {
         fprintf (stderr,"usage:\n");
         fprintf (stderr," %s input_file kmer_size min_abundance estimated_nb_reads prefix\n",argv[0]);
@@ -98,6 +100,10 @@ if(argc <  7)
 
     //6th arg: false posiive rate
     fpRate = atof(argv[6]);
+
+    //7th arg: j
+    j = atoi(argv[7]);
+    printf("j: %d \n", j);
 }
 
 inline void load_bloom_filter(Bloom* bloo1, const char* reads_filename){
@@ -112,17 +118,14 @@ inline void load_bloom_filter(Bloom* bloo1, const char* reads_filename){
     printf("Weight before load: %ld \n", bloo1->weight());
     while (getline(solidReads, read))
     {
-        kmer_type * kmer_table_seq =  (kmer_type*) malloc (sizeof(kmer_type)*read.length()*2);
-        compute_kmer_table_from_one_seq(read.length(),&read[0],kmer_table_seq);
+        getFirstKmerFromRead(&kmer,&read[0]);
 
-        for (int i = 0; i <= read.length() - sizeKmer ; i++){
-            kmer = kmer_table_seq[i];
+        for (int i = 0; i <= read.length() - sizeKmer ; i++, 
+          shift_kmer(&kmer, NT2int(read[i+sizeKmer-1]), 0)){
             bloo1->add(get_canon(kmer));
             readsProcessed++;
             if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
         }
-
-        free(kmer_table_seq);
     }
 
     solidReads.close();
@@ -154,6 +157,36 @@ inline Bloom* create_bloom_filter(int estimated_items, float fpRate){
 return bloo1;
 }
 
+inline void test_bloom_filter(Bloom* bloo1, const char* reads_filename){
+
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+
+    int readsProcessed = 0;
+    kmer_type new_graine, kmer;
+    string read;
+
+    printf("Weight before load: %ld \n", bloo1->weight());
+    while (getline(solidReads, read))
+    {
+        kmer_type * kmer_table_seq =  (kmer_type*) malloc (sizeof(kmer_type)*read.length()*2);
+        compute_kmer_table_from_one_seq(read.length(),&read[0],kmer_table_seq);
+
+        for (int i = 0; i <= read.length() - sizeKmer ; i++){
+            kmer = kmer_table_seq[i];
+            bloo1->add(get_canon(kmer));
+            readsProcessed++;
+            if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+        }
+
+        free(kmer_table_seq);
+    }
+
+    solidReads.close();
+    printf("\n");
+    printf("Weight after load: %ld \n", bloo1->weight());
+}
+
 int main(int argc, char *argv[])
 {
     
@@ -167,7 +200,7 @@ int main(int argc, char *argv[])
     load_bloom_filter(bloo1, solid_reads_file);
 
     // debloom, write false positives to disk, insert them into false_positives
-    debloom(order, max_memory, bloo1);
+    debloom(order, max_memory, bloo1, j);
 
     printf("Program reached end. \n");
     return 0;

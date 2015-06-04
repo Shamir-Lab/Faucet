@@ -10,8 +10,13 @@ using namespace std;
 // load_false_positives_cascading4().
 Set *false_positives; 
 
+set<kmer_type> jcheckedSet;
+set<kmer_type> thisRealSet;
+set<kmer_type> nextRealSet;
 
-int NbCandKmer=0, NbRawCandKmer = 0;
+  kmer_type * last = new kmer_type[1000];
+  kmer_type * next = new kmer_type[1000];
+int NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0;
 uint64_t NbSolidKmer =0;
 FILE * F_debloom_read;
 FILE * F_debloom_write;
@@ -74,8 +79,40 @@ void end_debloom_partition(bool last_partition)
         fclose(file_false_positive_kmers);
 } 
 
+//j = 0 always returns true
+//j > 0 checks extensions up to j deep from kmer, and returns true if there is a sequence of j extensions
+//which returns all positive in the bloom filter
+inline bool jcheck(kmer_type kmer, int j, int strand, Bloom* bloo1){
+  kmer_type this_kmer, nextKmer;
+  int lastCount, nextCount;
 
-inline void traverse_read(string read, Bloom* bloo1, int order, FILE * debloom_file){
+  lastCount = 1;
+  last[0] = kmer;
+
+  for(int i = 0; i < j; i++){
+    //printf("Level %d. \n", i);
+    nextCount = 0;
+    for(int k = 0; k < lastCount; k++){
+      this_kmer = last[k];
+      //printf("%s \n", print_kmer(this_kmer));
+      for(int nt = 0; nt < 4; nt++){
+        nextKmer = next_kmer(this_kmer, nt, strand);
+        if(bloo1->contains(get_canon(nextKmer))){
+          next[nextCount] = nextKmer;
+          nextCount++;
+        }
+      }
+    }
+    if(nextCount == 0){
+      return false;
+    }
+    lastCount = nextCount;
+    last = next;
+  }
+  return true;
+}
+
+inline void traverse_read(string read, Bloom* bloo1, int order, FILE * debloom_file, int j){
   //printf("Read: %s \n", &read[0]);
   kmer_type kmer;
   getFirstKmerFromRead(&kmer,&read[0]);
@@ -94,18 +131,25 @@ inline void traverse_read(string read, Bloom* bloo1, int order, FILE * debloom_f
             kmer_type new_graine = next_kmer(kmer,nt, strand);
             //printf("%s ", print_kmer(new_graine));
             if(bloo1->contains(get_canon(new_graine))){ 
+
                 //printf("is in the filter ");
                 NbRawCandKmer++;
                 if(new_graine != next_real){
-                  //printf("and is not in the read. ");
-                                      //printf("%s is a positive extension! \n", print_kmer(new_graine));
                   NbCandKmer++;
-
-                  if (!fwrite(&new_graine, sizeof(new_graine), 1, debloom_file))
-                  {
-                    printf("error: can't fwrite (disk full?)\n");
-                    exit(1);
+                  if(jcheck(new_graine, j, strand, bloo1)){
+                    thisRealSet.insert(kmer);
+                    nextRealSet.insert(next_real);
+                    jcheckedSet.insert(new_graine);
+                    NbJCheckKmer++;
+                    //printf("and is not in the read. ");
+                    //printf("%s is a positive extension! \n", print_kmer(new_graine));
+                    // if (!fwrite(&new_graine, sizeof(new_graine), 1, debloom_file))
+                    // {
+                    //   printf("error: can't fwrite (disk full?)\n");
+                    //   exit(1);
+                    // }
                   }
+                 
                 }
             }
             //printf("\n");
@@ -116,7 +160,7 @@ inline void traverse_read(string read, Bloom* bloo1, int order, FILE * debloom_f
   }
 }
 
-int debloom(int order, int max_memory, Bloom * bloo1)
+int debloom(int order, int max_memory, Bloom * bloo1, int j)
 {
   STARTWALL(pos);
   FILE * debloom_file = fopen(return_file_name("debloom"),"wb+");
@@ -131,11 +175,15 @@ int debloom(int order, int max_memory, Bloom * bloo1)
   printf("Weight before debloom: %d \n", bloo1->weight());
   while (getline(solidReads, read))
   {
-    traverse_read(read, bloo1, order, debloom_file);
+    traverse_read(read, bloo1, order, debloom_file, j);
   }
 
   solidReads.close();
-  printf ("\n Number of candidate kmers %d \n",NbCandKmer);
+  printf("\n Distinct this reals: %d \n", thisRealSet.size());
+  printf("Distinct next reals: %d \n", nextRealSet.size());
+  printf(" Distinct jchecked candidates: %d \n", jcheckedSet.size());
+  printf(" Number of j-checked candidate kmers: %d \n", NbJCheckKmer);
+  printf (" Number of non-read candidate kmers %d \n",NbCandKmer);
 
   printf (" Number of raw candidate kmers %d \n",NbRawCandKmer);
   printf ("Estimated false positive rate: %f \n", float(NbCandKmer)/float(NbSolidKmer*6));

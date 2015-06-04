@@ -279,6 +279,7 @@ void revcomp_sequence(char s[], int len)
 
 }
 
+//DONT USE THIS
 //Legacy from initial minia code: use the other versioN!
 //this one returns the canonical version which just confuses repeated extensions
 kmer_type next_kmer(kmer_type graine, int added_nt, int *strand)
