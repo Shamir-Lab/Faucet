@@ -8,10 +8,16 @@ import critbits
 const
     bases = ['A', 'C', 'G', 'T']
     complements = {'A':'T', 'C':'G', 'G':'C', 'T':'A'}.toTable()
+    base_vals = {'A':0, 'C':1, 'G':2, 'T':3}.toTable()
     k = 27
     fp = 0.01
     j = 1
     read_len = 100
+
+type # stores 
+    JuncNode = object
+        kmer: string
+        extensions* : array[4, bool]
 
 proc get_kmers(r: string, sub_len: int, kmers: var openarray[string] ) =
     # chose openarray for kmers because may want k-mers of contigs
@@ -67,29 +73,29 @@ proc load_bf(fname: string, sub_len, numreads: int): auto =
     f_hand.close()
     return bf 
     
-proc load_reals(fname: string, sub_len: int): auto =
-    discard """ loads k-mers into set
-    """
-    var
-        reals: CritBitTree[void]
-        kmers: seq[string] = newSeq[string](read_len-sub_len+1)
-        canons: seq[string] = newSeq[string](read_len-sub_len+1)
+# proc load_reals(fname: string, sub_len: int): auto =
+#     discard """ loads k-mers into set
+#     """
+#     var
+#         reals: CritBitTree[void]
+#         kmers: seq[string] = newSeq[string](read_len-sub_len+1)
+#         canons: seq[string] = newSeq[string](read_len-sub_len+1)
 
-        f_hand = open(fname)
-        line_no = 0
+#         f_hand = open(fname)
+#         line_no = 0
     
-    for line in f_hand.lines:
-        if (line_no + 1) mod 30_000==0:    
-            echo ($(line_no+1) & " read k-mers inserted to reals set")
+#     for line in f_hand.lines:
+#         if (line_no + 1) mod 30_000==0:    
+#             echo ($(line_no+1) & " read k-mers inserted to reals set")
 
-        get_kmers(line,sub_len,kmers)
-        get_canons(kmers,canons)
-        for i,value in @canons:
-            if value!=nil:    
-                reals.incl(value)
-        inc(line_no)
-    f_hand.close()
-    return reals 
+#         get_kmers(line,sub_len,kmers)
+#         get_canons(kmers,canons)
+#         for i,value in @canons:
+#             if value!=nil:    
+#                 reals.incl(value)
+#         inc(line_no)
+#     f_hand.close()
+#     return reals 
 
 
 proc load_alt_extensions(curr_real, next_real: string, 
@@ -153,7 +159,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
     """
     var
         f_hand = open(filename)
-        cands : CritBitTree[void] # newStringTable()
+        cands  = HashSet[JuncNode]() # set of seen JuncNode objects
         line_no = 0
         # cand_cnt = 0
         read: string
@@ -189,17 +195,10 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                 # echo("back suffix: " & back_suffix & " front prefix: " & s[0..k-j-1])
                 if s[0..k-j-1]!=back_suffix:
                     if not added:
-                        cands.incl(next_real)
+                        # cands.incl(next_real)
                         added = true
                     front.excl(s)
 
-            #         # alt path is source k-mer concat with last j+1 chars
-            #         # of node in front
-            #         # echo("position " & $ind)
-            #         cands.incl(first_buff_pref & s[k-j-1]) # candidate to check is first k-mer in buffer
-            #         inc(cand_cnt)
-            #         front.excl(s)
-            # # echo($(ind+j+1))
             advance_front(ind+j+1, kmers, front, bf)
 
         # echo($len(cands) & " cands: "& $cands)
