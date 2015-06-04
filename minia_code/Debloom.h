@@ -32,7 +32,7 @@ typedef ListSet FPSet; // list-based
 // GUS: see comment in Debloom.cpp, where false_positive is been declared
 extern Set *false_positives;
 
-int debloom(int order, int max_memory, Bloom* bloo1);
+int debloom(int order, int max_memory, Bloom* bloo1, int j);
 void end_debloom_partition(bool last_partition);
 
 Set *dummy_false_positives();
