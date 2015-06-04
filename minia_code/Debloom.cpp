@@ -88,13 +88,7 @@ inline void traverse_read(string read, Bloom* bloo1, int order, FILE * debloom_f
     
     for (int strand = 0; strand < 2 ; strand++){
           //printf("strand %d :\n", strand);
-
-          int nucPos = i+sizeKmer;
-          if(strand == 1){
-              nucPos = i-1;
-          }
-
-          kmer_type next_real = next_kmer(kmer,NT2int(read[nucPos]), strand);
+          kmer_type next_real = next_kmer_in_read(kmer,i,&read[0], strand);
         
           for(int nt=0; nt<4; nt++) {
             kmer_type new_graine = next_kmer(kmer,nt, strand);

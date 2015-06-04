@@ -108,10 +108,61 @@ void getFirstKmerFromRead_test(){
     char* read = (char*)"ACGGGGGTCAAAATCGGGAATCCGGGGGGAGGCCCTAGT";
     kmer_type kmer;
     getFirstKmerFromRead(&kmer, read);
-    char* kmerSeq;
+    char* kmerSeq = new char[sizeKmer];
     code2seq(kmer, kmerSeq);
     for(int i = 0; i < sizeKmer; i++){
         if(kmerSeq[i] != read[i]){
+            fail(testName);
+            return;
+        }
+    }
+
+    succeed(testName);
+}
+
+void nextKmerInRead_test_forward(){
+    char* testName = (char*) "nextKmerInRead_test_forward";
+    kmer_type kmer = (uint64_t) 2394867203721228976;
+    char* kmerSeq = new char [sizeKmer];
+    code2seq(kmer, kmerSeq);
+
+    char* read = new char [100];
+    read[0] = 'C';
+    strcpy(&read[1], kmerSeq);
+    read[1+sizeKmer] = 'T';
+
+    kmer_type next_kmer = next_kmer_in_read(kmer, 1, read, 0);
+    char* nextKmerSeq = new char[sizeKmer];
+    code2seq(next_kmer, nextKmerSeq);
+
+    for(int i = 0; i < sizeKmer; i++){
+        if(nextKmerSeq[i] != read[i+2]){
+            fail(testName);
+            return;
+        }
+    }
+
+    succeed(testName);
+}
+
+
+void nextKmerInRead_test_backward(){
+    char* testName = (char*) "nextKmerInRead_test_backward";
+    kmer_type kmer = (uint64_t) 2394867203721228976;
+    char* kmerSeq = new char [sizeKmer];
+    code2seq(kmer, kmerSeq);
+
+    char* read = new char [100];
+    read[0] = 'C';
+    strcpy(&read[1], kmerSeq);
+    read[1+sizeKmer] = 'T';
+
+    kmer_type next_kmer = next_kmer_in_read(kmer, 1, read, 1);
+    char* nextKmerSeq = new char[sizeKmer];
+    code2seq(next_kmer, nextKmerSeq);
+
+    for(int i = 0; i < sizeKmer; i++){
+        if(nextKmerSeq[i] != read[i]){
             fail(testName);
             return;
         }
@@ -130,6 +181,10 @@ int main(int argc, char *argv[]){
 
     getFirstKmerFromRead_test();
     
+    nextKmerInRead_test_forward();
+    nextKmerInRead_test_backward();
+
+
     return 0;
 }
 

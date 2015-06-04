@@ -338,8 +338,17 @@ kmer_type next_kmer(kmer_type graine, int added_nt, int strand)
     return new_graine;
 }
 
+//Assumes index_in_read is in fact the index of kmer in the read!
+kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, int strand){
+    int nucPos = index_in_read + sizeKmer;
+    if(strand == 1){
+        nucPos = index_in_read-1;
+    }
+    return next_kmer(kmer,NT2int(read[nucPos]), strand);
+}
 
-//////////////////////////funcs for binary reads
+
+//////////////////////////funcs for binary readSeq
 
 
 kmer_type  codeSeed_bin(char *seq)
