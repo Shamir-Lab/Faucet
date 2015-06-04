@@ -64,7 +64,10 @@ kmer_type extractKmerFromRead(char *readSeq, int position, kmer_type *graine, km
 // examples:
 // next_kmer(ACTG,A,&0)=CTGA with strand = 0 (because revcomp=TCAG); 
 // next_kmer(ACTG,A,&1)= (revcomp of ACTG + A = CAGT+A = ) AGTA with strand = 0 (because revcomp = TACT)
-kmer_type next_kmer(kmer_type graine, int added_nt, int *strand);
+kmer_type next_kmer(kmer_type graine, int added_nt, int strand);//returns shifted in a new place
+kmer_type next_kmer(kmer_type graine, int added_nt, int* strand);
+void shift_kmer(kmer_type *graine, int added_nt, int strand); //shifts in place
+void getFirstKmerFromRead(kmer_type* kmer, char* read);
 
 void revcomp_sequence(char s[], int len);
 
@@ -77,6 +80,7 @@ kmer_type  codeSeedRight_revcomp_bin(char *seq, kmer_type  val_seed, bool new_re
 
 kmer_type extractKmerFromRead_bin(char *readSeq, int position, kmer_type *graine, kmer_type *graine_revcomp, bool use_compressed);
 
+kmer_type get_canon(kmer_type a);
 char* print_kmer(kmer_type kmer); // debugging
 char* print_kmer(kmer_type kmer, int sizeKmer, kmer_type kmerMask); // debugging
 

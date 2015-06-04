@@ -101,30 +101,27 @@ inline void load_bloom_filter(Bloom* bloo1, const char* reads_filename){
     ifstream solidReads;
     solidReads.open(reads_filename);
 
-    int NbRead = 0;
+    int readsProcessed = 0;
     kmer_type new_graine, kmer;
     string read;
 
-
     printf("Weight before load: %ld \n", bloo1->weight());
-    // load bloom filter
     while (getline(solidReads, read))
     {
         kmer_type * kmer_table_seq =  (kmer_type*) malloc (sizeof(kmer_type)*read.length()*2);
-      
         compute_kmer_table_from_one_seq(read.length(),&read[0],kmer_table_seq);
 
         for (int i = 0; i <= read.length() - sizeKmer ; i++){
-            kmer_type lkmer;
-            lkmer = kmer_table_seq[i];
-            bloo1->add(min(revcomp(lkmer),lkmer));
-            NbRead++;
-            if ((NbRead%10000)==0) fprintf (stderr,"%c %lld",13,(long long)NbRead);
+            kmer = kmer_table_seq[i];
+            bloo1->add(get_canon(kmer));
+            readsProcessed++;
+            if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
         }
+
         free(kmer_table_seq);
     }
+
     solidReads.close();
-    //and ends here
     printf("\n");
     printf("Weight after load: %ld \n", bloo1->weight());
 }

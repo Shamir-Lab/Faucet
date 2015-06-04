@@ -77,126 +77,65 @@ int debloom(int order, int max_memory, Bloom * bloo1)
     STARTWALL(pos);
 
     FILE * debloom_file = fopen(return_file_name("debloom"),"wb+");
-    FILE * debloom_file_2 = fopen(return_file_name("debloom2"),"wb+");
-    FILE * F_tmp;
-    
-    F_debloom_read = debloom_file;
-    F_debloom_write = debloom_file_2;
-	
 
     ifstream solidReads;
     solidReads.open(solid_reads_file);
 
-    uint64_t cc=0;
-    kmer_type new_graine;
+    kmer_type new_graine, next_real, kmer;
     string read;
-    int nt;
+    int nt, nextNuc, nucPos, strand;
    
-    int NbCandKmer = 0;
-    int NbRawCandKmer = 0;
+    int NbCandKmer=0, NbRawCandKmer = 0;
     uint64_t NbSolidKmer =0;
+
     // write all positive extensions in disk file
     printf("Weight before debloom: %d \n", bloo1->weight());
     while (getline(solidReads, read))
     {
+ 
+      //printf("Read: %s \n", &read[0]);
+      getFirstKmerFromRead(&kmer,&read[0]);
 
-      kmer_type * kmer_table_seq =  (kmer_type*) malloc (sizeof(kmer_type)*read.length()*2);
-      
-      compute_kmer_table_from_one_seq(read.length(),&read[0],kmer_table_seq);
-
-      for (int i = 0; i <= read.length() - sizeKmer ; i++){
-
-        kmer_type lkmer;
-        lkmer = kmer_table_seq[i];
-        //printf("This kmer: %s \n", print_kmer(lkmer));
-        //printf("Extensions: \n");
-        //8 right extensions   (4F and 4R); left extensions are redundant by revcomplementation
+      for (int i = 0; i <= read.length() - sizeKmer ; i++, 
+        shift_kmer(&kmer, NT2int(read[i+sizeKmer-1]), 0)){
         
-        int strand;
+          //printf("This kmer: %s \n", print_kmer(kmer));
+         // printf("Extensions: \n");
+        
         for (strand = 0; strand < 2 ; strand++){
-          //printf("strand %d :\n", strand);
+              //printf("strand %d :\n", strand);
 
-              int current_strand = strand;
-              int nextNuc = NT2int(read[i+sizeKmer]);
+              nucPos = i+sizeKmer;
               if(strand == 1){
-                nextNuc = revcomp_int(NT2int(read[i-1]));
+                  nucPos = i-1;
               }
-            kmer_type next_real = next_kmer(lkmer,nextNuc, &current_strand);
-              if(current_strand != strand){
-                 next_real = revcomp(next_real);
-              }   
-              //printf("Next real: %s \n", print_kmer(next_real));
-            for(nt=0; nt<4; nt++) {
 
-              current_strand = strand;
-              new_graine = next_kmer(lkmer,nt, &current_strand);
-              if(current_strand != strand){
-                new_graine = revcomp(new_graine);
-              }
-              //printf("%s ", print_kmer(new_graine));
-                if(bloo1->contains( min(new_graine, revcomp(new_graine)) )){ 
-                  //printf("is in the filter ");
+              next_real = next_kmer(kmer,NT2int(read[nucPos]), strand);
+            
+              for(nt=0; nt<4; nt++) {
+                new_graine = next_kmer(kmer,nt, strand);
+                //printf("%s ", print_kmer(new_graine));
+                if(bloo1->contains(get_canon(new_graine))){ 
+                    //printf("is in the filter ");
                     NbRawCandKmer++;
                     if(new_graine != next_real){
-                      //printf("%s is a positive extension! \n", print_kmer(new_graine));
-                    // extension is positive
-                    // maybe do more lax deblooming; if it's a dead-end, it's no big sdeal, don't pass it to the false positive test
-                    // what would have been needed if i decided to enable order>0 (but actually this won't happen): 
-                    //  - better estimate of structure size in the presence of order>0 deblooming  
-                    if (order == 1)  // this case just detects tips
-                    {
-                        bool is_linked = false;
-                        for(int tip_nt=0; tip_nt<4; tip_nt++) 
-                        {
-                            int new_strand = current_strand;
-                            kmer_type kmer_after_possible_tip = next_kmer(new_graine,tip_nt, &new_strand);
-                            if(bloo1->contains(kmer_after_possible_tip))
-                            {
-                                is_linked = true;
-                                break;
-                            }
-                        }
-                        if (!is_linked)
-                            continue; // it's a tip, because it's linked to nothing
-                    }
-    
-                    if (order > 1) // general case. should work for order = 1, but i coded an optimized version above
-                    { 
-                        Frontline frontline( new_graine, current_strand, bloo1, NULL, NULL, NULL);
-                        while (frontline.depth < order)
-                        {
-                            frontline.go_next_depth();
-                            if (frontline.size() == 0)
-                                break;
-                            // don't allow a breadth too large anywqy
-                            if (frontline.size()> 10)
-                                break;
-                        }
-                        if (frontline.size() == 0)
-                            continue; // it's a deadend
-                    }
-
-                    NbCandKmer++;
-                    if (!fwrite(&new_graine, sizeof(new_graine), 1, debloom_file))
-                    {
+                      //printf("and is not in the read. ");
+                                          //printf("%s is a positive extension! \n", print_kmer(new_graine));
+                  
+                      NbCandKmer++;
+                      if (!fwrite(&new_graine, sizeof(new_graine), 1, debloom_file))
+                      {
                         printf("error: can't fwrite (disk full?)\n");
                         exit(1);
+                      }
                     }
-                    cc++;
                 }
-                else {
-                  //printf("but is in the read. \n");
-                }
-              }
-              else{
-                //printf("is not in the filter. \n");
-              }
+                //printf("\n");
             }
         }
         NbSolidKmer++;
         if ((NbSolidKmer%10000)==0) fprintf (stderr,"%c Writing positive Bloom Kmers %lld",13,NbSolidKmer);
       }
-      free(kmer_table_seq);
       }
       solidReads.close();
       printf ("\n Number of candidate kmers %d \n",NbCandKmer);
@@ -517,3 +456,46 @@ void print_size_summary(FPSetCascading4 *fp)
   DEBUGE((stderr,"Size of the FP table (T4)     : %.2lf MB\n", toMB((double)size_T4)));
   fprintf(stderr,"      Total %.2lf MB for %lld solid kmers  ==>  %.2lf bits / solid kmer\n\n", toMB(total_size), nbkmers_solid, total_size / nbkmers_solid);
 }
+
+
+//j-checking code from legacy.  Moved down here since we may want to refer to it but don't need it yet.
+/*
+
+  // maybe do more lax deblooming; if it's a dead-end, it's no big sdeal, don't pass it to the false positive test
+                    // what would have been needed if i decided to enable order>0 (but actually this won't happen): 
+                    //  - better estimate of structure size in the presence of order>0 deblooming  
+                    
+
+if (order == 1)  // this case just detects tips
+                    {
+                        bool is_linked = false;
+                        for(int tip_nt=0; tip_nt<4; tip_nt++) 
+                        {
+                            int new_strand = strand;
+                            kmer_type kmer_after_possible_tip = next_kmer(new_graine,tip_nt, &new_strand);
+                            if(bloo1->contains(kmer_after_possible_tip))
+                            {
+                                is_linked = true;
+                                break;
+                            }
+                        }
+                        if (!is_linked)
+                            continue; // it's a tip, because it's linked to nothing
+                    }
+    
+                    if (order > 1) // general case. should work for order = 1, but i coded an optimized version above
+                    { 
+                        Frontline frontline( new_graine, strand, bloo1, NULL, NULL, NULL);
+                        while (frontline.depth < order)
+                        {
+                            frontline.go_next_depth();
+                            if (frontline.size() == 0)
+                                break;
+                            // don't allow a breadth too large anywqy
+                            if (frontline.size()> 10)
+                                break;
+                        }
+                        if (frontline.size() == 0)
+                            continue; // it's a deadend
+                    }
+*/

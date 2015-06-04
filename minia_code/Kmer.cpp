@@ -7,6 +7,7 @@
 #include <algorithm> // for min
 #include "Kmer.h"
 #include "lut.h"
+#include <string>
 
 using namespace std;
 
@@ -278,9 +279,11 @@ void revcomp_sequence(char s[], int len)
 
 }
 
-
+//Legacy from initial minia code: use the other versioN!
+//this one returns the canonical version which just confuses repeated extensions
 kmer_type next_kmer(kmer_type graine, int added_nt, int *strand)
 {
+    printf("Using legacy next_kmer!");
     assert(added_nt<4);
     assert(graine<=revcomp(graine));
     assert((strand == NULL) || (*strand<2));
@@ -301,6 +304,38 @@ kmer_type next_kmer(kmer_type graine, int added_nt, int *strand)
         *strand = (new_graine < revcomp_new_graine)?0:1;
 
     return min(new_graine,revcomp_new_graine);
+}
+
+void shift_kmer(kmer_type* graine, int added_nt, int strand){
+
+    assert(added_nt<4);
+    assert(strand<2);
+
+    if (strand == 1){// the kmer we're extending is actually a revcomp sequence in the bidirected debruijn graph node
+        *graine >>= 2 ;
+        *graine += (uint64_t)added_nt << (2*sizeKmer-2);
+        *graine &= kmerMask;
+    }
+    else{
+        *graine <<= 2;
+        *graine += added_nt;
+        *graine &= kmerMask;
+    }
+}
+
+void getFirstKmerFromRead(kmer_type *kmer, char* read){
+      for(int i = 0; i < sizeKmer; i++){
+        shift_kmer(kmer, NT2int(read[i]), 0);
+      }
+}
+
+//USE THIS ONE
+//preserves the orientation of the kmer, considers it as a revcomp if strand == 1, or normal if strand == 0
+kmer_type next_kmer(kmer_type graine, int added_nt, int strand)
+{
+    kmer_type new_graine = graine;
+    shift_kmer(&new_graine, added_nt, strand);
+    return new_graine;
 }
 
 
@@ -356,6 +391,10 @@ kmer_type extractKmerFromRead_bin(char *readSeq, int position, kmer_type *graine
         *graine_revcomp = codeSeedRight_revcomp_bin(&readSeq[position], *graine_revcomp, new_read);
     }
     return  min(*graine,*graine_revcomp);
+}
+
+kmer_type get_canon(kmer_type kmer){
+    return min(kmer, revcomp(kmer));
 }
 
 
