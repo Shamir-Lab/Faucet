@@ -45,7 +45,7 @@ extern float NBITS_PER_KMER;
 
 // constants
 extern const char *solid_kmers_file;// = (char *)"solid_kmers_binary"; 
-extern char solid_reads_file[1024];
+extern char solids_file[1024];
 extern const char *false_positive_kmers_file ;//= (char *)"false_positive_kmers";
 extern const char *bloom_file ;//= (char *)"bloom_data";
 extern const char *assembly_file ;//= (char *)"contigs.fa";

@@ -21,7 +21,6 @@ uint64_t NbSolidKmer =0;
 FILE * F_debloom_read;
 FILE * F_debloom_write;
 uint64_t n_false_positives=0;
-
 Hash16 * hasht1;
 
 void end_debloom_partition(bool last_partition)
@@ -112,18 +111,19 @@ inline bool jcheck(kmer_type kmer, int j, int strand, Bloom* bloo1){
   return true;
 }
 
-inline void traverse_read(string read, Bloom* bloo1, int order, FILE * debloom_file, int j){
+inline void traverse_read(string read, Bloom* bloo1, int j){
   //printf("Read: %s \n", &read[0]);
   kmer_type kmer;
-  getFirstKmerFromRead(&kmer,&read[0]);
+  getFirstKmerFromRead(&kmer,&read[1]);
 
-  for (int i = 0; i <= read.length() - sizeKmer ; i++, 
+  for (int i = 1; i <= read.length() - sizeKmer -1; i++, 
     shift_kmer(&kmer, NT2int(read[i+sizeKmer-1]), 0)){
     
       //printf("This kmer: %s \n", print_kmer(kmer));
      // printf("Extensions: \n");
     
-    for (int strand = 0; strand < 2 ; strand++){
+    //SET FOR ONE DIRECTION SCANNING
+    for (int strand = 0; strand < 1 ; strand++){
           //printf("strand %d :\n", strand);
           kmer_type next_real = next_kmer_in_read(kmer,i,&read[0], strand);
         
@@ -156,17 +156,88 @@ inline void traverse_read(string read, Bloom* bloo1, int order, FILE * debloom_f
         }
     }
     NbSolidKmer++;
-    if ((NbSolidKmer%10000)==0) fprintf (stderr,"%c Writing positive Bloom Kmers %lld",13,NbSolidKmer);
+    if ((NbSolidKmer%10000)==0) fprintf (stderr,"%c Deblooming kmers: %lld",13,NbSolidKmer);
   }
 }
 
-int debloom(int order, int max_memory, Bloom * bloo1, int j)
+inline void scan_kpomer(string kpomer, Bloom* bloo1, int j){
+//printf("Read: %s \n", &read[0]);
+  kmer_type left, right;
+  kmer_type next;
+  getFirstKmerFromRead(&left,&kpomer[0]);
+  right = next_kmer(left, NT2int(kpomer[sizeKmer]),0);
+  //printf("kpomer: %s\n", &kpomer[0]);
+  //printf("%s \n", print_kmer(left));
+  //printf("%s \n", print_kmer(right));
+    
+      //printf("This kmer: %s \n", print_kmer(kmer));
+     // printf("Extensions: \n");
+    
+    kmer_type thisone = left, other = right;
+    for (int strand = 0; strand < 2 ; strand++, thisone = right, other = left){
+          //printf("Strand %d \n", strand);
+          //printf("This: %s \n", print_kmer(thisone));
+          //printf("Other: %s \n", print_kmer(other));
+
+          for(int nt=0; nt<4; nt++) {
+            next = next_kmer(thisone,nt, strand);
+            //printf("Next: %s \n", print_kmer(next));
+            if(bloo1->contains(get_canon(next))){ 
+
+                //printf("is in the filter ");
+                NbRawCandKmer++;
+                if(next != other){
+                  NbCandKmer++;
+                  if(jcheck(next, j, strand, bloo1)){
+                    thisRealSet.insert(thisone);
+                    nextRealSet.insert(other);
+                    jcheckedSet.insert(next);
+                    NbJCheckKmer++;
+                  }
+                 
+                }
+            }
+            //printf("\n");
+        }
+    }
+    NbSolidKmer++;
+    if ((NbSolidKmer%10000)==0) fprintf (stderr,"%c Deblooming Kmers: %lld",13,NbSolidKmer);
+  }
+
+
+int debloom_kpomerscan(Bloom * bloo1, int j)
 {
-  STARTWALL(pos);
-  FILE * debloom_file = fopen(return_file_name("debloom"),"wb+");
+
+  ifstream solidKmers;
+  solidKmers.open(solids_file);
+
+  string kpomer;
+ 
+  // write all positive extensions in disk file
+  while (getline(solidKmers, kpomer))
+  {
+    scan_kpomer(kpomer, bloo1, j);
+  }
+
+  solidKmers.close();
+
+  printf("\n Distinct this reals: %d \n", thisRealSet.size());
+  printf("Distinct next reals: %d \n", nextRealSet.size());
+  printf(" Distinct jchecked candidates: %d \n", jcheckedSet.size());
+  printf(" Number of j-checked candidate kmers: %d \n", NbJCheckKmer);
+  printf (" Number of non-read candidate kmers %d \n",NbCandKmer);
+
+  printf (" Number of raw candidate kmers %d \n",NbRawCandKmer);
+  printf ("Estimated false positive rate: %f \n", float(NbCandKmer)/float(NbSolidKmer*6));
+}
+
+
+
+int debloom_readscan(Bloom * bloo1, int j)
+{
 
   ifstream solidReads;
-  solidReads.open(solid_reads_file);
+  solidReads.open(solids_file);
 
   kmer_type new_graine, next_real, kmer;
   string read;
@@ -175,7 +246,7 @@ int debloom(int order, int max_memory, Bloom * bloo1, int j)
   printf("Weight before debloom: %d \n", bloo1->weight());
   while (getline(solidReads, read))
   {
-    traverse_read(read, bloo1, order, debloom_file, j);
+    traverse_read(read, bloo1, j);
   }
 
   solidReads.close();
@@ -187,95 +258,6 @@ int debloom(int order, int max_memory, Bloom * bloo1, int j)
 
   printf (" Number of raw candidate kmers %d \n",NbRawCandKmer);
   printf ("Estimated false positive rate: %f \n", float(NbCandKmer)/float(NbSolidKmer*6));
-  /* nbkmers_solid =  NbSolidKmer; // GUS: it's global now
-
-  fprintf(stderr,"\n%lli kmers written\n",cc);
-
-  STOPWALL(pos,"Write all positive kmers");
-
-  STARTWALL(deb);
-
-  double bl1tai =  (double)bloo1->tai ;
-  delete bloo1;
-
-  // now that bloo1 is deleted, initialize hasht1
-  int NBITS_HT = max( (int)ceilf(log2f((0.1*max_memory*1024L*1024L)/sizeof(cell_ptr_t))), 1); // set hasht1 cells to occupy 0.1 * [as much mem as poss]
-  hasht1 =new Hash16(NBITS_HT); 
-  
-  ////////////////////////////////////////////////////////////////   --find false positive, with hash table partitioning
-  uint64_t max_kmer_per_part = (uint64_t) (0.8*max_memory*1024LL*1024LL /sizeof(cell<kmer_type>));
-  //adapter taille ht en fonction
-  
-
-  printf("%d partitions will be needed\n",(int)(nbkmers_solid/max_kmer_per_part));
-
-  NbSolidKmer =0;
-  int numpart = 0;
-  
-  return 1;
-
-  SolidKmers->rewind_all();
-
-  // deblooming:
-  // read the list of (non-redundant) solid kmers and load it, in chunks, into a hash table
-  // at each pass, check all the positive extensions and keep those which are not indicated, by the current chunk, as solid kmers
-  // at the end, only the positive extensions which are not solid are kept
-  while (SolidKmers->read_element(&kmer))
-  {
-      hasht1->add(kmer);
-
-      NbSolidKmer++;
-      if ((NbSolidKmer%10000)==0) fprintf (stderr,"%cBuild Hash table %lld",13,NbSolidKmer);
-
-      if(hasht1->nb_elem >max_kmer_per_part) //end partition,  find false positives
-      {
-          fprintf(stderr,"End of debloom partition  %lli / %lld \n",hasht1->nb_elem,max_kmer_per_part);
-
-          end_debloom_partition(false);
-
-          //swap file pointers
-          F_tmp = F_debloom_read;
-          F_debloom_read = F_debloom_write;
-          F_debloom_write = F_tmp;
-          /////////end write files
-
-          //reset hash table
-          hasht1->empty_all();
-
-          fprintf(stderr,"\n%lli false positives written , partition %i \n",n_false_positives,numpart);
-
-          numpart++;
-      } ///end partition
-
-
-  }
-  //fprintf(stderr,"Nb kmers stored in the bloom table %lld\n",nbkmers_solid);
-
-
-  ///////////////////////// last partition, will write all the FP's to the good file
-
-  end_debloom_partition(true); 
-
-  /////////end write files
-
-
-  fprintf(stderr,"Total nb false positives stored in the Debloom hashtable %lli \n",n_false_positives);
-
-  delete hasht1;
-
-
-  STOPWALL(deb,"Debloom");
-
-  // GUS: will use to output summary later
-  b1_size = (uint64_t) bl1tai;
-
-  fclose(debloom_file);
-  fclose(debloom_file_2);
-  SolidKmers->close();
-
-
-  return 1;
-  */
 }
 
 uint64_t countFP(Bank *FalsePositives)
@@ -501,6 +483,101 @@ void print_size_summary(FPSetCascading4 *fp)
   DEBUGE((stderr,"Size of the FP table (T4)     : %.2lf MB\n", toMB((double)size_T4)));
   fprintf(stderr,"      Total %.2lf MB for %lld solid kmers  ==>  %.2lf bits / solid kmer\n\n", toMB(total_size), nbkmers_solid, total_size / nbkmers_solid);
 }
+
+
+//Old validation code
+/* nbkmers_solid =  NbSolidKmer; // GUS: it's global now
+
+  fprintf(stderr,"\n%lli kmers written\n",cc);
+
+  STOPWALL(pos,"Write all positive kmers");
+
+  STARTWALL(deb);
+
+  double bl1tai =  (double)bloo1->tai ;
+  delete bloo1;
+
+  // now that bloo1 is deleted, initialize hasht1
+  int NBITS_HT = max( (int)ceilf(log2f((0.1*max_memory*1024L*1024L)/sizeof(cell_ptr_t))), 1); // set hasht1 cells to occupy 0.1 * [as much mem as poss]
+  hasht1 =new Hash16(NBITS_HT); 
+  
+  ////////////////////////////////////////////////////////////////   --find false positive, with hash table partitioning
+  uint64_t max_kmer_per_part = (uint64_t) (0.8*max_memory*1024LL*1024LL /sizeof(cell<kmer_type>));
+  //adapter taille ht en fonction
+  
+
+  printf("%d partitions will be needed\n",(int)(nbkmers_solid/max_kmer_per_part));
+
+  NbSolidKmer =0;
+  int numpart = 0;
+  
+  return 1;
+
+  SolidKmers->rewind_all();
+
+  // deblooming:
+  // read the list of (non-redundant) solid kmers and load it, in chunks, into a hash table
+  // at each pass, check all the positive extensions and keep those which are not indicated, by the current chunk, as solid kmers
+  // at the end, only the positive extensions which are not solid are kept
+  while (SolidKmers->read_element(&kmer))
+  {
+      hasht1->add(kmer);
+
+      NbSolidKmer++;
+      if ((NbSolidKmer%10000)==0) fprintf (stderr,"%cBuild Hash table %lld",13,NbSolidKmer);
+
+      if(hasht1->nb_elem >max_kmer_per_part) //end partition,  find false positives
+      {
+          fprintf(stderr,"End of debloom partition  %lli / %lld \n",hasht1->nb_elem,max_kmer_per_part);
+
+          end_debloom_partition(false);
+
+          //swap file pointers
+          F_tmp = F_debloom_read;
+          F_debloom_read = F_debloom_write;
+          F_debloom_write = F_tmp;
+          /////////end write files
+
+          //reset hash table
+          hasht1->empty_all();
+
+          fprintf(stderr,"\n%lli false positives written , partition %i \n",n_false_positives,numpart);
+
+          numpart++;
+      } ///end partition
+
+
+  }
+  //fprintf(stderr,"Nb kmers stored in the bloom table %lld\n",nbkmers_solid);
+
+
+  ///////////////////////// last partition, will write all the FP's to the good file
+
+  end_debloom_partition(true); 
+
+  /////////end write files
+
+
+  fprintf(stderr,"Total nb false positives stored in the Debloom hashtable %lli \n",n_false_positives);
+
+  delete hasht1;
+
+
+  STOPWALL(deb,"Debloom");
+
+  // GUS: will use to output summary later
+  b1_size = (uint64_t) bl1tai;
+
+  fclose(debloom_file);
+  fclose(debloom_file_2);
+  SolidKmers->close();
+
+
+  return 1;
+  */
+
+
+
 
 
 //j-checking code from legacy.  Moved down here since we may want to refer to it but don't need it yet.

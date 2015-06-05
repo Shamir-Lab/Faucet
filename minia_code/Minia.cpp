@@ -14,12 +14,15 @@
 #define MIN_CONTIG_SIZE (2*sizeKmer+1)
 
 
+int order = 0;//DEPRECATED
 float fpRate = .01;
 int j = 0;
-float max_memory; // the most memory one should alloc at any time, in MB
+float max_memory; // the most memory one should alloc at any time, in MBmain
 
-int order = 0; // deblooming order; 0 = debloom everything; 1 = don't debloom 1-node tips (experimental, untested, shouldn't work);// (made extern int in Traversal.h)
+bool from_kmers = true;
 int read_length;
+bool get_kmers = false;//only to initially get the kmer files so i could use them, don't want to really use this code yet
+char* kmer_filename = (char*) "solid_27mers_10k";
 
 #include "Bank.h"
 #include "Hash16.h"
@@ -39,7 +42,7 @@ int read_length;
 using namespace std;
 
 int64_t nb_reads;
-
+set<kmer_type> all_kmers;
 /*
 To run the new version, type make in the directory to compile.
 
@@ -51,13 +54,13 @@ Then, type ./minia 1 2 3 4 5 6 7, where
 5 = prefix for output files ("" works for me, I'll look into what exactly this does)
 6 = false positive rate (.01 is a good base rate) 
 7 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
-
+8 = from_kmers.  Put in 0, it will be from_kmers = false, do it like normal from reads.  Put in 1, it does from kmers.
 This will load a bloom filter with all the kmers from the reads, then scan through them inserting potential false positives.
 No error correction corrently, and no assembly.
 */
 
 inline int handle_arguments(int argc, char *argv[]){
-if(argc <  8)
+if(argc <  9)
     {
         fprintf (stderr,"usage:\n");
         fprintf (stderr," %s input_file kmer_size min_abundance estimated_nb_reads prefix\n",argv[0]);
@@ -67,17 +70,12 @@ if(argc <  8)
     }
 
     //1st arg: read file name
-    strcpy(solid_reads_file,argv[1]);
-    printf("Reads file name: %s \n", solid_reads_file);
+    strcpy(solids_file,argv[1]);
+    printf("Reads file name: %s \n", solids_file);
 
     // 2rd arg: kmer size.
     sizeKmer=27;
     sizeKmer = atoi(argv[2]);
-    if (sizeKmer%2==0)
-    {
-        sizeKmer-=1;
-        printf("Need odd kmer size to avoid palindromes. I've set kmer size to %d.\n",sizeKmer);
-    }
     if (sizeKmer>((int)sizeof(kmer_type)*4))
     {
         printf("Max kmer size on this compiled version is %lu\n",sizeof(kmer_type)*4);
@@ -87,6 +85,7 @@ if(argc <  8)
         kmerMask = -1;
     else
         kmerMask=(((kmer_type)1)<<(sizeKmer*2))-1;
+    printf("k: %d: \n", sizeKmer);
 
     //3rd arg: read length
     read_length = atoi(argv[3]);
@@ -104,10 +103,16 @@ if(argc <  8)
     //7th arg: j
     j = atoi(argv[7]);
     printf("j: %d \n", j);
+
+    //8th arg: whether to do from kmers or from reads
+    from_kmers = atoi(argv[8]);
+    if(from_kmers)
+        printf("Working from kmers. \n");
+    else
+        printf("Working from reads. \n");
 }
 
-inline void load_bloom_filter(Bloom* bloo1, const char* reads_filename){
-
+inline void load_filter_from_reads(Bloom* bloo1, const char* reads_filename){
     ifstream solidReads;
     solidReads.open(reads_filename);
 
@@ -130,7 +135,34 @@ inline void load_bloom_filter(Bloom* bloo1, const char* reads_filename){
 
     solidReads.close();
     printf("\n");
-    printf("Weight after load: %ld \n", bloo1->weight());
+    printf("Weight after load: %ld \n", bloo1->weight()); 
+}
+
+inline void load_filter_from_kmers(Bloom* bloo1, const char* kmers_filename){
+    ifstream solidKmers;
+    solidKmers.open(kmers_filename);
+
+    int kmersProcessed = 0;
+    kmer_type left,right;
+    string kpomer;
+
+    //printf("Weight before load: %ld \n", bloo1->weight());
+    while (getline(solidKmers, kpomer))
+    {
+        //printf("kpomer %s \n", &kpomer[0]);
+        getFirstKmerFromRead(&left,&kpomer[0]);
+        right = next_kmer(left, NT2int(kpomer[sizeKmer]),0);
+        //printf("left %s \n", print_kmer(left));
+        //printf("right %s \n", print_kmer(right));
+        bloo1->add(get_canon(left));
+        bloo1->add(get_canon(right));
+        kmersProcessed++;
+        if ((kmersProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)kmersProcessed);
+    }
+
+    solidKmers.close();
+    printf("\n");
+    printf("Weight after load: %ld \n", bloo1->weight()); 
 }
 
 inline Bloom* create_bloom_filter(int estimated_items, float fpRate){
@@ -140,13 +172,12 @@ inline Bloom* create_bloom_filter(int estimated_items, float fpRate){
 
     // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
     uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
+    printf("Estimated items: %d \n", estimated_items);
     printf("Estimated bloom size: %d .\n", (int)estimated_bloom_size);
     
     max_memory =  (float)(estimated_bloom_size/8LL /1024LL)/1024;
 
-    printf("estimated values: nbits Bloom %lli. \n",estimated_bloom_size);
-
-    printf("Max Memory: %f MB\n", max_memory);
+    printf("BF memory: %f MB\n", max_memory);
     bloo1 = new Bloom(estimated_bloom_size);
 
     printf("Bits per kmer: %d \n", bits_per_item);
@@ -176,7 +207,7 @@ inline void test_bloom_filter(Bloom* bloo1, const char* reads_filename){
             kmer = kmer_table_seq[i];
             bloo1->add(get_canon(kmer));
             readsProcessed++;
-            if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+            if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
         }
 
         free(kmer_table_seq);
@@ -187,6 +218,42 @@ inline void test_bloom_filter(Bloom* bloo1, const char* reads_filename){
     printf("Weight after load: %ld \n", bloo1->weight());
 }
 
+void write_kmers(const char* reads_filename){
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+    kmer_type kmer;
+    char* kmerSeq = new char[sizeKmer];
+    int readsProcessed = 0;
+    printf("Building kmer set.\n");
+    string read;
+    while (getline(solidReads, read))
+    {
+        getFirstKmerFromRead(&kmer,&read[0]);
+
+        for (int i = 0; i <= read.length() - sizeKmer ; i++, 
+            shift_kmer(&kmer, NT2int(read[i+sizeKmer-1]), 0)){
+            all_kmers.insert(kmer);
+            readsProcessed++;
+            if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+        }
+    }
+    solidReads.close();
+    printf("Done building kmer set.\n");
+    ofstream solidKmers;
+    solidKmers.open(kmer_filename);
+    
+    printf("Writing to kmer file\n");
+    set<kmer_type>::iterator it;
+    for(it = all_kmers.begin(); it != all_kmers.end(); it++){
+        code2seq(*it, kmerSeq);
+        solidKmers << kmerSeq;
+        solidKmers << '\n';
+    }
+    printf("Done writing to kmer file.\n");
+    solidKmers.close();
+
+}
+
 int main(int argc, char *argv[])
 {
     
@@ -194,13 +261,23 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    if(get_kmers){
+        write_kmers(solids_file);
+    }
+
     int estimated_kmers = nb_reads*(read_length-sizeKmer);
     Bloom* bloo1 = create_bloom_filter(estimated_kmers, fpRate);
    
-    load_bloom_filter(bloo1, solid_reads_file);
+   if(from_kmers){
+    load_filter_from_kmers(bloo1, solids_file);
+    debloom_kpomerscan(bloo1, j);
+    }
+   else{
+    load_filter_from_reads(bloo1, solids_file);
+    debloom_readscan(bloo1, j);
+    }
 
-    // debloom, write false positives to disk, insert them into false_positives
-    debloom(order, max_memory, bloo1, j);
+
 
     printf("Program reached end. \n");
     return 0;
@@ -209,7 +286,7 @@ int main(int argc, char *argv[])
 
 
 
-
+/*
 inline void assemble(Bloom* bloo1)
 {
 
@@ -355,3 +432,4 @@ inline void assemble(Bloom* bloo1)
     free(contig);
     SolidKmers->close();
 }
+*/
