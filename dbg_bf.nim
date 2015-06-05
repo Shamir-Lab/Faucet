@@ -144,6 +144,16 @@ proc load_front(kmers: openarray[string], front: var CritBitTree[void], bf: obje
     for i in 0..j:
         advance_front(i, kmers, front, bf)
 
+proc count_set_bits(val, len: int): int =
+    var copy = val
+    echo "initial val is ", val
+    for i in 0..<len:
+        # echo "val updated to ", copy
+        if copy mod 2 == 1:
+            inc result
+            # echo "result updated to ", result
+        copy = copy shr 1
+    echo "final result is ", result
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
@@ -198,11 +208,11 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                         val = mgetOrPut(cands,kmer,mask)
                         cands[kmer] = val or mask
                         
-                        if val != mask:
-                            echo("mask value is " & $mask)
-                            echo("key's value is " & $val)                        
-                            echo("val or mask is " & $(val or mask))
-                            echo("value set to " & $cands[kmer])
+                        # if val != mask:
+                        #     echo("mask value is " & $mask)
+                        #     echo("key's value is " & $val)                        
+                        #     echo("val or mask is " & $(val or mask))
+                        #     echo("value set to " & $cands[kmer])
                             # if not cands[kmer] in [1,2,4,8]:
                         #     echo(kmer & ": " & $cands[kmer])
                         added = true
@@ -232,7 +242,12 @@ when isMainModule:
         bf_cands = get_candidate_paths(reads_file, bf1)
         # num_fps = 0
     # echo("cands paths list size: " & $cnd_cnt & ", cands juncs set size: " & $len(bf_cands))
-    echo("cands real junc set size: " & $len(bf_cands))
+    echo("real junc set size: " & $len(bf_cands))
+    var num_paths = 0
+    for s in bf_cands.keys:
+        num_paths += count_set_bits(bf_cands[s],4)
+    echo num_paths, " paths found"
+
     # for s in bf_cands.items:
     #     if not reals.contains(s) and not reals.contains(get_rc(s)):
     #         inc(num_fps)
