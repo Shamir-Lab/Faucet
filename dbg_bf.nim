@@ -146,14 +146,14 @@ proc load_front(kmers: openarray[string], front: var CritBitTree[void], bf: obje
 
 proc count_set_bits(val, len: int): int =
     var copy = val
-    echo "initial val is ", val
+    # echo "initial val is ", val
     for i in 0..<len:
         # echo "val updated to ", copy
         if copy mod 2 == 1:
             inc result
             # echo "result updated to ", result
         copy = copy shr 1
-    echo "final result is ", result
+    # echo "final result is ", result
 
 proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
@@ -233,8 +233,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        # reads_file = "/vol/scratch/rozovr/chr20.c30.orc_out.reads.tail.1M" #"/vol/scratch/rozovr/chr20.c10.reads.1M"
-        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        reads_file = "/vol/scratch/rozovr/chr20.c30.orc_out.reads.tail.1M" #"/vol/scratch/rozovr/chr20.c10.reads.1M"
+        # reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
         # reals = load_reals(reads_file, k)
         # bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
