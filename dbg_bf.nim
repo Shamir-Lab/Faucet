@@ -162,8 +162,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         front : CritBitTree[void]
         next_real = ""
         back_suffix = ""
-        first_buff_pref = ""
         added : bool
+        mask, val: int
 
     for line in f_hand.lines:
         if (line_no + 1) mod 10_000==0:
@@ -174,7 +174,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
         get_kmers(read, k, kmers)
         # echo(read)
         load_front(kmers, front, bf)
-        # if line_no+1==10: break
+        # if line_no+1==100: break
         added = false
 
         for ind, kmer in @kmers:
@@ -184,19 +184,27 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                 next_real = kmers[ind+1]
                 back_suffix = next_real[j..k-1]
             else:
-                next_real = "" # clear out past values
-                back_suffix = ""
-            first_buff_pref = kmer[1..k-1]
+                break # if don't know next_real, junctions can't be added
             # echo(front)
             for s in front.items:
                 # below only holds for alts
                 # echo("back suffix: " & back_suffix & " front prefix: " & s[0..k-j-1])
                 if s[0..k-j-1]!=back_suffix:
                     if not added:
-                        # cands.incl(next_real)
-                        if next_real != "":
-                            # is there default value for table val?
-                            cands[kmer] = cands[kmer] or (1 shl base_vals[next_real[k-1]])
+                        # add junction, mark its known real extension
+                        # if key in table, or curr. val with extension
+                        # otherwise add key with extension as val
+                        mask = (1 shl base_vals[next_real[k-1]])
+                        val = mgetOrPut(cands,kmer,mask)
+                        cands[kmer] = val or mask
+                        
+                        if val != mask:
+                            echo("mask value is " & $mask)
+                            echo("key's value is " & $val)                        
+                            echo("val or mask is " & $(val or mask))
+                            echo("value set to " & $cands[kmer])
+                            # if not cands[kmer] in [1,2,4,8]:
+                        #     echo(kmer & ": " & $cands[kmer])
                         added = true
                     front.excl(s)
 
@@ -215,8 +223,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
 
 when isMainModule:
     var 
-        reads_file = "/vol/scratch/rozovr/chr20.c30.orc_out.reads.tail.1M" #"/vol/scratch/rozovr/chr20.c10.reads.1M"
-        # reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
+        # reads_file = "/vol/scratch/rozovr/chr20.c30.orc_out.reads.tail.1M" #"/vol/scratch/rozovr/chr20.c10.reads.1M"
+        reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
         # reals = load_reals(reads_file, k)
         # bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
