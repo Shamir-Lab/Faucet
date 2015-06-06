@@ -119,7 +119,9 @@ inline void load_filter_from_reads(Bloom* bloo1, const char* reads_filename){
     int readsProcessed = 0;
     kmer_type new_graine, kmer;
     string read;
-
+    time_t start;
+    time_t stop;
+    time(&start);
     printf("Weight before load: %ld \n", bloo1->weight());
     while (getline(solidReads, read))
     {
@@ -136,6 +138,8 @@ inline void load_filter_from_reads(Bloom* bloo1, const char* reads_filename){
     solidReads.close();
     printf("\n");
     printf("Weight after load: %ld \n", bloo1->weight()); 
+    time(&stop);
+    printf("Time to load: %f \n", difftime(stop,start));
 }
 
 inline void load_filter_from_kmers(Bloom* bloo1, const char* kmers_filename){
