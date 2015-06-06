@@ -201,13 +201,8 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                         # if key in table, or curr. val with extension
                         # otherwise add key with extension as val
                         mask = (1 shl base_vals[next_real[k-1]])
-                        if hasKey(cands,kmer):
-                            cands[kmer] = cands[kmer] or mask
-                        else:
-                            cands[kmer] = mask
-
-                        # val = mgetOrPut(cands,kmer,mask)
-                        # cands[kmer] = val or mask                                               
+                        val = mgetOrPut(cands,kmer,mask)
+                        cands[kmer] = val or mask                                               
                         added = true
                     front.excl(s)
             if ind+1 == read_len-k: break
@@ -230,10 +225,9 @@ when isMainModule:
         # reads_file = "/home/nasheran/rozovr/BARCODE_test_data/chr20.c10.reads.100k"
         bf1 = load_bf(reads_file, k, 1_000_000) # ,sources,sinks,reals)
         # reals = load_reals(reads_file, k)
-        # bf2 = load_bf(reads_file, k+j+1, 1_000_000) # ,sources,sinks,reals)
 
         bf_cands = get_candidate_paths(reads_file, bf1)
-        # num_fps = 0
+
     # echo("cands paths list size: " & $cnd_cnt & ", cands juncs set size: " & $len(bf_cands))
     echo("real junc set size: " & $len(bf_cands))
     var num_paths = 0
@@ -241,17 +235,5 @@ when isMainModule:
         num_paths += count_set_bits(bf_cands[s],4)
     echo num_paths, " paths found"
 
-    # for s in bf_cands.items:
-    #     if not reals.contains(s) and not reals.contains(get_rc(s)):
-    #         inc(num_fps)
-
-    # echo($num_fps & " false junctions found") 
-
-        # rc_cands = get_candidate_paths(reads_file, bf1, true)
-
-    # solution with threads
-    # load BF using 1 thread
-    # find candidates with 10 threads - 
-    # each thread reads from block of reads (based on index parameter)
-    # all can query (read only from) bf
-    # each returns candidate set, take union at end
+   
+    
