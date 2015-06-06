@@ -193,32 +193,24 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
             if ind < read_len-k:
                 next_real = kmers[ind+1]
                 back_suffix = next_real[j..k-1]
-            else:
-                break # if don't know next_real, junctions can't be added
-            # echo(front)
+            
             for s in front.items:
-                # below only holds for alts
-                # echo("back suffix: " & back_suffix & " front prefix: " & s[0..k-j-1])
                 if s[0..k-j-1]!=back_suffix:
                     if not added:
                         # add junction, mark its known real extension
                         # if key in table, or curr. val with extension
                         # otherwise add key with extension as val
                         mask = (1 shl base_vals[next_real[k-1]])
-                        # echo "next base is ", $next_real[k-1], " mask is ", $mask 
-                        val = mgetOrPut(cands,kmer,mask)
-                        cands[kmer] = val or mask
-                        
-                        # if val != mask:
-                        #     echo("mask value is " & $mask)
-                        #     echo("key's value is " & $val)                        
-                        #     echo("val or mask is " & $(val or mask))
-                        #     echo("value set to " & $cands[kmer])
-                            # if not cands[kmer] in [1,2,4,8]:
-                        #     echo(kmer & ": " & $cands[kmer])
+                        if hasKey(cands,kmer):
+                            cands[kmer] = cands[kmer] or mask
+                        else:
+                            cands[kmer] = mask
+
+                        # val = mgetOrPut(cands,kmer,mask)
+                        # cands[kmer] = val or mask                                               
                         added = true
                     front.excl(s)
-
+            if ind+1 == read_len-k: break
             advance_front(ind+j+1, kmers, front, bf)
 
         # echo($len(cands) & " cands: "& $cands)
