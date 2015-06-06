@@ -205,6 +205,7 @@ proc get_candidate_paths(filename: string, bf: object; rc=false): auto =
                         # if key in table, or curr. val with extension
                         # otherwise add key with extension as val
                         mask = (1 shl base_vals[next_real[k-1]])
+                        # echo "next base is ", $next_real[k-1], " mask is ", $mask 
                         val = mgetOrPut(cands,kmer,mask)
                         cands[kmer] = val or mask
                         
