@@ -269,7 +269,7 @@ void Bloom::load(char * filename)
  FILE *file_data;
  file_data = fopen(filename,"rb");
  printf("loading bloom filter from file, nelem %lli \n",nchar);
- fread(blooma, sizeof(unsigned char), nchar, file_data);
+ int a = fread(blooma, sizeof(unsigned char), nchar, file_data);// go away warning..
  printf("bloom loaded\n");
 }
 

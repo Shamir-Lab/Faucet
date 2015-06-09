@@ -1,18 +1,12 @@
-type `make` then `./minia` for usage.
+To run the new version, type make in the directory to compile.
 
-short manual: ./manual/manual.pdf
-
-we have set up a Q&A website, see the Support section in http://minia.genouest.org
-
-to contact an author directly: rayan.chikhi@ens-cachan.org
-
-if you read the source code, disregard any code where (order > 0).
-
-[internal information] list of projects which import minia as svn:external:
-
-dsk
-minia-graph
-ultimategf
-kissnp2
-mapsembler2
-kmergenie
+Then, type ./minia 1 2 3 4 5 6 7, where
+1 = name of reads file (current format is each line has a string of characters representing the read)
+2 = k
+3 = read length
+4 = number of reads
+5 = false positive rate (.01 is a good base rate) 
+6 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
+7 = from_kmers.  Put in 0, it will be from_kmers = false, do it like normal from reads.  Put in 1, it does from kmers.
+This will load a bloom filter with all the kmers from the reads, then scan through them inserting potential false positives.
+No error correction currently, and no assembly.

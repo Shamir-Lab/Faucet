@@ -7,7 +7,7 @@ all:
 	$(MAKE) $(EXEC)
 
 minia: $(OBJ) Minia.cpp
-	g++ --std=c++0x $(SRC) -o minia 
+	g++ --std=c++0x $(SRC) -o minia $(CFLAGS)
 
 %.o: %.cpp %.h
 	g++ --std=c++0x -o $@ -c $< $(CFLAGS)

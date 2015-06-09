@@ -16,7 +16,6 @@ string inserted_5mers[] = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAAC
 
 
 void traverseReads(int j){
-    junctionMap = {};
     smart_traverse_read(fake_readX, bloom_fake, j);
     smart_traverse_read(fake_readY, bloom_fake, j);
     smart_traverse_read(fake_readZ, bloom_fake, j);
@@ -24,6 +23,7 @@ void traverseReads(int j){
 
 void testTraverseReads_J0(){
     char* testName = (char*)"testTraverseReads_J0";
+    junctionMap = {};
 
     traverseReads(0);
 
@@ -41,6 +41,7 @@ void testTraverseReads_J0(){
 
 void testTraverseReads_J1(){
     char* testName = (char*)"testTraverseReads_J1";
+    junctionMap = {};
 
     traverseReads(1);
 
@@ -58,6 +59,7 @@ void testTraverseReads_J1(){
 
 void testTraverseReads_J2(){
     char* testName = (char*)"testTraverseReads_J2";
+    junctionMap = {};
 
     traverseReads(2);
 
@@ -72,13 +74,14 @@ void testTraverseReads_J2(){
     succeed(testName);
 }
 
-void testTraverseReadTwice_Skips(){
-    char* testName = (char*)"testTraverseReads_J2";
+void testTraverseReadTwice_SameJuncs(){
+    char* testName = (char*)"testTraverseReadsTwice_SameJuncs";
+    junctionMap = {};
 
-    traverseReads(2);
-    traverseReads(2);
+    traverseReads(1);
+    traverseReads(1);
 
-    if(junctionMap.size() != 3){
+    if(junctionMap.size() != 4){
         fail(testName, "junction map size was wrong.");
         printf("Size: %d \n", junctionMap.size());
         for (auto& kv : junctionMap){
@@ -96,4 +99,6 @@ void runTraverseReadsTests(){
     testTraverseReads_J0();
     testTraverseReads_J1();
     testTraverseReads_J2();
+
+    testTraverseReadTwice_SameJuncs();
 }

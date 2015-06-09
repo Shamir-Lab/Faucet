@@ -65,7 +65,7 @@ if(argc <  8)
     sizeKmer = atoi(argv[2]);
     if (sizeKmer>((int)sizeof(kmer_type)*4))
     {
-        printf("Max kmer size on this compiled version is %lu\n",sizeof(kmer_type)*4);
+        printf("Max kmer size on this compiled version is %u\n",sizeof(kmer_type)*4);
         exit(1);
     }
     if (sizeKmer == (int)(sizeof(kmer_type)*4))
@@ -79,7 +79,7 @@ if(argc <  8)
 
     //4th arg: number of reads
     nb_reads  = atoll(argv[4]);
-    printf("Number reads: %d .\n", nb_reads);
+    printf("Number reads: %lli .\n", nb_reads);
     
     //5th arg: false posiive rate
     fpRate = atof(argv[5]);

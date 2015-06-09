@@ -413,8 +413,15 @@ kmer_type get_canon(kmer_type kmer){
     return min(kmer, revcomp(kmer));
 }
 
+kmer_type get_kmer_from_read(char* read, int pos){
+    kmer_type kmer = 0;
+    for (int i =pos; i < pos + sizeKmer; i++){
+        shift_kmer(&kmer, NT2int(read[i]), 0);
+    }
+    return kmer;
+}
+
 //Tested!
-//Need to test
 kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos){
     if(endPos < startPos){
         printf("advance_kmer does not yet support backwards advances!\n");
