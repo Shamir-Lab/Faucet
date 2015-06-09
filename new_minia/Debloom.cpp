@@ -2,14 +2,14 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <time.h>
 using namespace std;
 
 set<kmer_type> jcheckedSet;
-map<kmer_type,unsigned char*> junctionMap;
+unordered_map<kmer_type,unsigned char*> junctionMap;
 set<kmer_type> nextRealSet;
-map<kmer_type, unsigned char*>::iterator mappedIt;
+unordered_map<kmer_type, unsigned char*>::iterator mappedIt;
 unsigned char* mappedInfo;
 
 kmer_type * last = new kmer_type[20000];
@@ -236,6 +236,8 @@ int debloom_readscan(char* solids_file, Bloom * bloo1, int j)
   while (getline(solidReads, read))
   {
     //lastSum = thisSum;
+    smart_traverse_read(read, bloo1, j);
+    revcomp_sequence( &read[0], read.length());
     smart_traverse_read(read, bloo1, j);
     //thisSum = NbProcessed+NbSkipped;
     // if((thisSum - lastSum) != 73){

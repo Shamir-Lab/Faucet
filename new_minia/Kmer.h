@@ -71,8 +71,7 @@ void getFirstKmerFromRead(kmer_type* kmer, char* read);
 kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, int strand);
 kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos);
 
-void revcomp_sequence(char s[], int len);
-
+void revcomp_sequence(char* s, int len);
 
 kmer_type  codeSeed_bin(char *seq);
 

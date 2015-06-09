@@ -19,6 +19,7 @@ int j = 0;
 char* solids_file = new char[100];
 bool from_kmers = true;
 int read_length;
+uint64_t genome_size;
 bool get_kmers = false;//only to initially get the kmer files so i could use them, don't want to really use this code yet
 int64_t nb_reads;
 char* kmer_filename = (char*)"solid_27mers_100k";
@@ -78,8 +79,8 @@ if(argc <  8)
     read_length = atoi(argv[3]);
 
     //4th arg: number of reads
-    nb_reads  = atoll(argv[4]);
-    printf("Number reads: %lli .\n", nb_reads);
+    genome_size = atoll(argv[4]);
+    printf("Genome size: %lli .\n", genome_size);
     
     //5th arg: false posiive rate
     fpRate = atof(argv[5]);
@@ -159,8 +160,8 @@ inline Bloom* create_bloom_filter(int estimated_items, float fpRate){
     int bits_per_item = -log(fpRate)/log(2)/log(2); // needed to process argv[5]
 
     // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
-    uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
-    printf("Estimated items: %d \n", estimated_items);
+    uint64_t estimated_bloom_size = (uint64_t) (genome_size*bits_per_item);
+    printf("Estimated items: %lli \n", genome_size);
     printf("Estimated bloom size: %d .\n", (int)estimated_bloom_size);
     
     printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
@@ -221,7 +222,7 @@ int main(int argc, char *argv[])
         write_kmers(solids_file);
     }
 
-    int estimated_kmers = nb_reads*(read_length-sizeKmer);
+    int estimated_kmers = genome_size;
     Bloom* bloo1 = create_bloom_filter(estimated_kmers, fpRate);
    
    if(from_kmers){
@@ -233,16 +234,14 @@ int main(int argc, char *argv[])
     debloom_readscan(solids_file, bloo1, j);
     }
 
-
-
     printf("Program reached end. \n");
     return 0;
 }
 
 
 
-
 /*
+
 inline void assemble(Bloom* bloo1)
 {
 

@@ -262,7 +262,7 @@ __uint128_t revcomp(__uint128_t x) {
 #endif
 
 // will be used by assemble()
-void revcomp_sequence(char s[], int len)
+void revcomp_sequence(char * s, int len)
 {
 #define CHAR_REVCOMP(a,b) {switch(a){\
 	case 'A': b='T';break;case 'C': b='G';break;case 'G': b='C';break;case 'T': b='A';break;default: b=a;break;}}
@@ -353,6 +353,16 @@ kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, int s
     }
     return next_kmer(kmer,NT2int(read[nucPos]), strand);
 }
+
+// void revcompread(char** read, int length){
+//     char* firstChar = *read;
+//     char temp;
+//     for (int i = 0; i <= length/2; i++){
+//         temp = firstChar[i];
+//         firstChar[i] = firstChar[length-1-i];
+//         firstChar[length-1-i] = temp;
+//     }
+// }
 
 
 //////////////////////////funcs for binary readSeq

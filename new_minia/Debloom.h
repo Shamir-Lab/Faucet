@@ -8,9 +8,9 @@
 #include <algorithm> // for max
 #include <unistd.h> // for truncate
 #include <string>
-#include <map>
+#include <unordered_map>
 using std::string;
-using std::map;
+using std::unordered_map;
 
 #ifndef DEBLOOM_H
 #define DEBLOOM_H
@@ -20,7 +20,7 @@ using std::map;
 
 #define DEBUGE(a)  //printf a
 
-extern map<kmer_type, unsigned char *> junctionMap;
+extern unordered_map<kmer_type, unsigned char *> junctionMap;
 extern uint64_t  b1_size ;
 extern uint64_t nbkmers_solid ;
 
