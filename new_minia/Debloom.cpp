@@ -15,7 +15,7 @@ unsigned char* mappedInfo;
 kmer_type * last = new kmer_type[20000];
 kmer_type * nextList = new kmer_type[20000];
 kmer_type * temp;
-int NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, NbSkipped = 0, NbProcessed = 0;
+int NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, NbSkipped = 0, NbProcessed = 0, readsProcessed = 0;
 uint64_t NbSolidKmer =0;
 FILE * F_debloom_read;
 FILE * F_debloom_write;
@@ -239,6 +239,8 @@ int debloom_readscan(char* solids_file, Bloom * bloo1, int j)
     smart_traverse_read(read, bloo1, j);
     revcomp_sequence( &read[0], read.length());
     smart_traverse_read(read, bloo1, j);
+    if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
+    readsProcessed++;
     //thisSum = NbProcessed+NbSkipped;
     // if((thisSum - lastSum) != 73){
     //   printf("Read length %d, read %s\n", read.length(), &read[0]);
