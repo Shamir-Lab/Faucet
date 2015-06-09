@@ -290,18 +290,28 @@ long Bloom::weight()
 
 void Bloom::add(bloom_elem elem)
 {
-    uint64_t h1;
+    uint64_t hA,hB,h;
+    #if CUSTOMSIZE
+      hA= hash_func(elem,0) % tai; 
+    #else
+        hA = hash_func(elem,0) & (tai-1);
+    #endif
+     #if CUSTOMSIZE
+      hB = hash_func(elem,1) % tai; 
+    #else
+      hB = hash_func(elem,1) & (tai-1);
+    #endif
+
     int i;
-    for(i=0; i<n_hash_func; i++)
+    h = hA;
+    for(i=0; i<n_hash_func; i++, h += hB)
     {
-#if CUSTOMSIZE
-      h1 = hash_func(elem,i) % tai; 
-#else
-      h1 = hash_func(elem,i) & (tai-1);
-#endif
+        if(h > tai){
+            h -= tai;
+        }
       //printf("%c \n", bit_mask[h1 & 7]);
      // printf("%" PRIu64 "\n", h1 & 7);
-        blooma [h1 >> 3] |= bit_mask[h1 & 7];
+        blooma [h >> 3] |= bit_mask[h & 7];
     }
     
     //nb_elem++;
@@ -315,22 +325,32 @@ int Bloom::contains(bloom_elem elem)
     if(fake){
         return (valid_set.find(elem) != valid_set.end());
     }
-  uint64_t h1;
-    int i;
-    for(i=0; i<n_hash_func; i++)
-    {
-#if CUSTOMSIZE
-      h1 = hash_func(elem,i) % tai;
-#else
-      h1 = hash_func(elem,i) & (tai-1);
-#endif
+  uint64_t hA,hB,h;
+    #if CUSTOMSIZE
+      hA= hash_func(elem,0) % tai; 
+    #else
+        hA = hash_func(elem,0) & (tai-1);
+    #endif
+     #if CUSTOMSIZE
+      hB = hash_func(elem,1) % tai; 
+    #else
+      hB = hash_func(elem,1) & (tai-1);
+    #endif
 
-        if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != bit_mask[h1 & 7]){
+    int i;
+    h = hA;
+    for(i=0; i<n_hash_func; i++, h += hB)
+    {
+        if(h > tai){
+            h -= tai;
+        }
+      //printf("%c \n", bit_mask[h1 & 7]);
+     // printf("%" PRIu64 "\n", h1 & 7);
+        
+        if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
             return 0;
         }
     }
-    
-    
     return 1;
 }
 

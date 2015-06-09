@@ -28,7 +28,7 @@ void testTraverseReads_J0(){
     traverseReads(0);
 
     if(junctionMap.size() != 4){
-        fail(testName, "junction map size was wrong.");
+        fail(testName, (char*)"junction map size was wrong.");
         printf("Size: %d \n", junctionMap.size());
         for (auto& kv : junctionMap){
             printf("%s \n", print_kmer(kv.first));
@@ -46,7 +46,7 @@ void testTraverseReads_J1(){
     traverseReads(1);
 
     if(junctionMap.size() != 4){
-        fail(testName, "junction map size was wrong.");
+        fail(testName, (char*)"junction map size was wrong.");
         printf("Size: %d \n", junctionMap.size());
         for (auto& kv : junctionMap){
             printf("%s \n", print_kmer(kv.first));
@@ -64,7 +64,7 @@ void testTraverseReads_J2(){
     traverseReads(2);
 
     if(junctionMap.size() != 3){
-        fail(testName, "junction map size was wrong.");
+        fail(testName, (char*)"junction map size was wrong.");
         printf("Size: %d \n", junctionMap.size());
         for (auto& kv : junctionMap){
             printf("%s \n", print_kmer(kv.first));
@@ -82,7 +82,7 @@ void testTraverseReadTwice_SameJuncs(){
     traverseReads(1);
 
     if(junctionMap.size() != 4){
-        fail(testName, "junction map size was wrong.");
+        fail(testName, (char*)"junction map size was wrong.");
         printf("Size: %d \n", junctionMap.size());
         for (auto& kv : junctionMap){
             printf("%s \n", print_kmer(kv.first));
