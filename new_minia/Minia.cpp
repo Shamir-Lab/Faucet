@@ -16,6 +16,7 @@
 float fpRate = .01;
 int j = 0;
 
+char* junctions_filename = new char[100];
 char* solids_file = new char[100];
 bool from_kmers = true;
 int read_length;
@@ -35,14 +36,18 @@ set<kmer_type> all_kmers;
 /*
 To run the new version, type make in the directory to compile.
 
-Then, type ./minia 1 2 3 4 5 6 7, where
+Then, type ./minia 1 2 3 4 5 6 7 [8], where
 1 = name of reads file (current format is each line has a string of characters representing the read)
 2 = k
 3 = read length
-4 = number of reads
+4 = number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
 5 = false positive rate (.01 is a good base rate) 
 6 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
 7 = from_kmers.  Put in 0, it will be from_kmers = false, do it like normal from reads.  Put in 1, it does from kmers.
+8 = junctions file name.  Will print out to this file. If no filename is given, no file will be printed.
+
+[] indicate optional arguments.
+
 This will load a bloom filter with all the kmers from the reads, then scan through them inserting potential false positives.
 No error correction corrently, and no assembly.
 */
@@ -95,6 +100,11 @@ if(argc <  8)
         printf("Working from kmers. \n");
     else
         printf("Working from reads. \n");
+
+    if(argc > 8){
+        strcpy(junctions_filename,argv[8]);
+        printf("Junctions file name: %s \n", junctions_filename);
+    }
 }
 
 inline void load_filter_from_reads(Bloom* bloo1, const char* reads_filename){
@@ -226,12 +236,15 @@ int main(int argc, char *argv[])
     Bloom* bloo1 = create_bloom_filter(estimated_kmers, fpRate);
    
    if(from_kmers){
-    load_filter_from_kmers(bloo1, solids_file);
-    debloom_kpomerscan(solids_file, bloo1, j);
+        load_filter_from_kmers(bloo1, solids_file);
+        debloom_kpomerscan(solids_file, bloo1, j);
     }
-   else{
-    load_filter_from_reads(bloo1, solids_file);
-    debloom_readscan(solids_file, bloo1, j);
+    else{
+        load_filter_from_reads(bloo1, solids_file);
+        debloom_readscan(solids_file, bloo1, j, genome_size);
+        if(argc > 8){
+            junctionMapToFile(junctions_filename);
+        }   
     }
 
     printf("Program reached end. \n");

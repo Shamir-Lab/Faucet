@@ -6,7 +6,7 @@ OBJ= $(SRC:.cpp=.o)
 all:
 	$(MAKE) $(EXEC)
 
-minia: $(OBJ) Minia.cpp
+minia: $(OBJ) Minia.cpp 
 	g++ --std=c++0x $(SRC) -o minia $(CFLAGS)
 
 %.o: %.cpp %.h

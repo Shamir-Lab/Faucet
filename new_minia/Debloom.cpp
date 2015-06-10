@@ -14,8 +14,10 @@ unsigned char* mappedInfo;
 
 kmer_type * last = new kmer_type[20000];
 kmer_type * nextList = new kmer_type[20000];
+unsigned char * junctionMapAllocation; 
+int junctionMapIndex;
 kmer_type * temp;
-int NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, NbSkipped = 0, NbProcessed = 0, readsProcessed = 0;
+uint64_t NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, NbSkipped = 0, NbProcessed = 0, readsProcessed = 0;
 uint64_t NbSolidKmer =0;
 FILE * F_debloom_read;
 FILE * F_debloom_write;
@@ -91,7 +93,9 @@ inline bool find_next_junction(int* pos, kmer_type * kmer, string read, int j, B
               if(jcheck(next_test, j, 0, bloo1)){//branch jchecks- found a junction!
                 //printf("Size before before: %d \n", junctionMap.size());
                     //printf("size before and after: %d,", junctionMap.size());
-                    mappedInfo = new unsigned char[4]{0,0,0,0};
+                    mappedInfo = &junctionMapAllocation[junctionMapIndex];
+                    junctionMapIndex+=4;
+                    mappedInfo[0] = 0, mappedInfo[1] = 0, mappedInfo[2] = 0, mappedInfo[3] = 0;
                     junctionMap[*kmer] = mappedInfo;
                     mappedInfo[NT2int(read[*pos+sizeKmer])] = (unsigned char)1;
                     //printf("%d \n", junctionMap.size());
@@ -214,12 +218,16 @@ inline int smart_traverse_read(string read, Bloom* bloo1, int j){
   // if(noJuncs){
   //   //junctionMap(advanceKmers(&read[0],));
   //   NbNoJuncs++;
-  // }
+  // }  
   return numSkips;
 }
 
-int debloom_readscan(char* solids_file, Bloom * bloo1, int j)
+int debloom_readscan(char* solids_file, Bloom * bloo1, int j, int genome_size)
 {
+  junctionMapAllocation = new unsigned char[genome_size*4/10];
+  printf("Space allocated for %d junctions,\n", genome_size/10);
+  printf("%d MB allocated.\n", genome_size*4/10/1000000);
+  junctionMapIndex = 0;
   time_t start;
   time_t stop;
   time(&start);
@@ -229,15 +237,16 @@ int debloom_readscan(char* solids_file, Bloom * bloo1, int j)
 
   kmer_type new_graine, next_real, kmer;
   string read;
- 
+  int readLength;
   // write all positive extensions in disk file
   printf("Weight before debloom: %li \n", bloo1->weight());
   int lastSum = 0, thisSum = 0;
   while (getline(solidReads, read))
   {
     //lastSum = thisSum;
+    readLength = read.length();
     smart_traverse_read(read, bloo1, j);
-    revcomp_sequence( &read[0], read.length());
+    revcomp_sequence(&read[0], readLength);
     smart_traverse_read(read, bloo1, j);
     if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;
@@ -250,16 +259,33 @@ int debloom_readscan(char* solids_file, Bloom * bloo1, int j)
     // }
   }
   solidReads.close();
-  printf("\n Distinct this reals: %d \n", junctionMap.size());
-  printf(" Number of j-checked candidate kmers: %d \n", NbJCheckKmer);
-  printf (" Number of reads with no junctions: %d \n",NbNoJuncs);
-  printf("Number of skipped kmers: %d \n", NbSkipped);
-  printf("Number of processed kmers: %d \n", NbProcessed);
+  printf("\n Distinct junctions: %d \n", junctionMap.size());
+  printf(" Number of j-checked candidate kmers: %lli \n", NbJCheckKmer);
+  printf (" Number of reads with no junctions: %lli \n",NbNoJuncs);
+  printf("Number of skipped kmers: %lli \n", ((readLength-sizeKmer)*readsProcessed*2) - NbProcessed);
+  printf("Number of processed kmers: %lli \n", NbProcessed);
   time(&stop);
   printf("Time in seconds for debloom: %f \n", difftime(stop,start));
 }
 
-
+void junctionMapToFile(string filename){
+    ofstream jFile;
+    jFile.open(filename);
+    
+    printf("Writing to junction file\n");
+    kmer_type kmer;
+    for(mappedIt = junctionMap.begin(); mappedIt != junctionMap.end(); mappedIt++){
+        kmer = mappedIt->first;
+        mappedInfo = mappedIt->second;
+        jFile << print_kmer(kmer) << " ";
+        for(int i = 0; i < 4; i++){
+          jFile << (int)mappedInfo[i] << " " ;
+        }
+        jFile << "\n";
+    }
+    printf("Done writing to junction file\n");
+    jFile.close();
+}
 // inline int smart_traverse_binread(char binread[], Bloom* bloo1, int j){
 //   int numSkips  = 0;
 //   //printf("Starting smart traversal \n");
@@ -512,10 +538,10 @@ int debloom_kpomerscan(char* solids_file, Bloom * bloo1, int j)
   printf("\n Distinct this reals: %d \n", junctionMap.size());
   printf("Distinct next reals: %d \n", nextRealSet.size());
   printf(" Distinct jchecked candidates: %d \n", jcheckedSet.size());
-  printf(" Number of j-checked candidate kmers: %d \n", NbJCheckKmer);
-  printf (" Number of reads with no junctions: %d \n",NbNoJuncs);
+  printf(" Number of j-checked candidate kmers: %lli \n", NbJCheckKmer);
+  printf (" Number of reads with no junctions: %lli \n",NbNoJuncs);
 
-  printf (" Number of raw candidate kmers %d \n",NbRawCandKmer);
+  printf (" Number of raw candidate kmers %lli \n",NbRawCandKmer);
   printf ("Estimated false positive rate: %f \n", float(NbCandKmer)/float(NbSolidKmer*6));
 }
 
