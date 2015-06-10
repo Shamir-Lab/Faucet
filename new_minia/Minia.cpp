@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
     }
     else{
         load_filter_from_reads(bloo1, solids_file);
-        debloom_readscan(solids_file, bloo1, j, genome_size);
+        readscan(solids_file, bloo1, j, genome_size);
         if(argc > 8){
             junctionMapToFile(junctions_filename);
         }   

@@ -30,7 +30,7 @@ bool jcheck(kmer_type kmer, int j, int strand, Bloom* bloo1);
 bool find_next_junction(int* pos, kmer_type * kmer, string read, int j, Bloom* bloo1);
 void smart_traverse_read(string read, Bloom* bloo1, int j);
 int debloom_kpomerscan(char* solids_file, Bloom* bloo1, int j);
-int debloom_readscan(char* solids_file, Bloom* bloo1, int j, int genome_size);
+int readscan(char* solids_file, Bloom* bloo1, int j, int genome_size);
 void end_debloom_partition(bool last_partition);
 
 #endif

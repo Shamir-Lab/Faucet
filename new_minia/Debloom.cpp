@@ -215,7 +215,7 @@ void allocateJunctionMap(uint64_t size){
   junctionMapAllocation = new unsigned char[size];
 }
 
-int debloom_readscan(char* solids_file, Bloom * bloo1, int j, int genome_size)
+int readscan(char* solids_file, Bloom * bloo1, int j, int genome_size)
 {
   allocateJunctionMap(genome_size*4/10);
   printf("Space allocated for %d junctions,\n", genome_size/10);
