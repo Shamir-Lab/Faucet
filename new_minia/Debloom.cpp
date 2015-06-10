@@ -161,11 +161,10 @@ inline void smart_traverse_read(string read, Bloom* bloo1, int j){
         if(lastJunc)//update info on last junction if it exists
         {
           lastJunc[lastJuncExt] = max((int)(lastJunc[lastJuncExt]), (pos - lastJuncPos));
-          mappedInfo[4] = max((int)(mappedInfo[4]), (pos-lastJuncPos)); 
+          if(mappedInfo[4] == 0 || mappedInfo[4] > pos - lastJuncPos){
+            mappedInfo[4] = pos-lastJuncPos; 
+          }
         } 
-        else{
-          mappedInfo[4] = pos+1;
-        }
         //determine next search and set up lastJunc info to refer to this junc
         lastJunc = mappedInfo; //this is now the last junc
         lastJuncExt =NT2int(read[pos+sizeKmer]); //the extension is at pos+k in the read
