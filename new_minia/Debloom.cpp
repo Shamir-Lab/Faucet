@@ -95,7 +95,7 @@ inline bool find_next_junction(int* pos, kmer_type * kmer, string read, int j, B
                     //printf("size before and after: %d,", junctionMap.size());
                     mappedInfo = &junctionMapAllocation[junctionMapIndex];
                     junctionMapIndex+=5;
-                    mappedInfo[0] = 0, mappedInfo[1] = 0, mappedInfo[2] = 0, mappedInfo[3] = 0, mappedInfo[5] = 0;
+                    mappedInfo[0] = 0, mappedInfo[1] = 0, mappedInfo[2] = 0, mappedInfo[3] = 0, mappedInfo[4] = 0;
                     junctionMap[*kmer] = mappedInfo;
                     mappedInfo[NT2int(read[*pos+sizeKmer])] = (unsigned char)1;
                     //printf("%d \n", junctionMap.size());
@@ -161,7 +161,11 @@ inline void smart_traverse_read(string read, Bloom* bloo1, int j){
         if(lastJunc)//update info on last junction if it exists
         {
           lastJunc[lastJuncExt] = max((int)(lastJunc[lastJuncExt]), (pos - lastJuncPos));
+          mappedInfo[4] = max((int)(mappedInfo[4]), (pos-lastJuncPos)); 
         } 
+        else{
+          mappedInfo[4] = pos+1;
+        }
         //determine next search and set up lastJunc info to refer to this junc
         lastJunc = mappedInfo; //this is now the last junc
         lastJuncExt =NT2int(read[pos+sizeKmer]); //the extension is at pos+k in the read
@@ -267,7 +271,7 @@ void junctionMapToFile(string filename){
         kmer = mappedIt->first;
         mappedInfo = mappedIt->second;
         jFile << print_kmer(kmer) << " ";
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 5; i++){
           jFile << (int)mappedInfo[i] << " " ;
         }
         jFile << "\n";
