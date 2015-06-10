@@ -94,8 +94,8 @@ inline bool find_next_junction(int* pos, kmer_type * kmer, string read, int j, B
                 //printf("Size before before: %d \n", junctionMap.size());
                     //printf("size before and after: %d,", junctionMap.size());
                     mappedInfo = &junctionMapAllocation[junctionMapIndex];
-                    junctionMapIndex+=4;
-                    mappedInfo[0] = 0, mappedInfo[1] = 0, mappedInfo[2] = 0, mappedInfo[3] = 0;
+                    junctionMapIndex+=5;
+                    mappedInfo[0] = 0, mappedInfo[1] = 0, mappedInfo[2] = 0, mappedInfo[3] = 0, mappedInfo[5] = 0;
                     junctionMap[*kmer] = mappedInfo;
                     mappedInfo[NT2int(read[*pos+sizeKmer])] = (unsigned char)1;
                     //printf("%d \n", junctionMap.size());
@@ -127,8 +127,7 @@ inline bool find_next_junction(int* pos, kmer_type * kmer, string read, int j, B
   return false;
 }
 
-inline int smart_traverse_read(string read, Bloom* bloo1, int j){
-  int numSkips  = 0;
+inline void smart_traverse_read(string read, Bloom* bloo1, int j){
   //printf("Starting smart traversal \n");
   //printf("%s \n", &read[0]);
   int pos = 0; //stores the current position on the read
@@ -155,27 +154,14 @@ inline int smart_traverse_read(string read, Bloom* bloo1, int j){
           //printf("New branch of this junction! \n");
           mappedInfo[NT2int(read[pos+sizeKmer])] =  (unsigned char)1;
         }
-        else
+        // else
+        // {
+        //   //printf("Already saw this branch! Tells me to go ahead %d \n", (int)junctionMap[kmer][NT2int(read[pos+sizeKmer])]);
+        // }
+        if(lastJunc)//update info on last junction if it exists
         {
-          numSkips++;
-          //printf("Already saw this branch! Tells me to go ahead %d \n", (int)junctionMap[kmer][NT2int(read[pos+sizeKmer])]);
-          if(lastJunc)//update info on last junction if it exists
-          {
-            //printf("Have info on last junction!\n");
-            //maximum of what it already is and how far we scanned this time
-            // if (pos - lastJuncPos < 0){
-            //   printf("%s \n", &read[0]);
-            //   printf("Wtfmate: Pos %d, lastJuncPos %d. \n", pos,lastJuncPos);
-            //   printf("%s \n", print_kmer(kmer));
-            // }
-            lastJunc[lastJuncExt] = max((int)(lastJunc[lastJuncExt]), (pos - lastJuncPos));
-
-            // if(lastJunc[lastJuncExt] < 0){
-            //   //printf("New last junc info: Extension %d at position %d. \n", lastJuncExt, lastJuncPos);
-            //   //printf("Junc info for that extension: %d \n", lastJunc[lastJuncExt]);
-            // }
-          } 
-        }
+          lastJunc[lastJuncExt] = max((int)(lastJunc[lastJuncExt]), (pos - lastJuncPos));
+        } 
         //determine next search and set up lastJunc info to refer to this junc
         lastJunc = mappedInfo; //this is now the last junc
         lastJuncExt =NT2int(read[pos+sizeKmer]); //the extension is at pos+k in the read
@@ -219,12 +205,15 @@ inline int smart_traverse_read(string read, Bloom* bloo1, int j){
   //   //junctionMap(advanceKmers(&read[0],));
   //   NbNoJuncs++;
   // }  
-  return numSkips;
+}
+
+void allocateJunctionMap(uint64_t size){
+  junctionMapAllocation = new unsigned char[size];
 }
 
 int debloom_readscan(char* solids_file, Bloom * bloo1, int j, int genome_size)
 {
-  junctionMapAllocation = new unsigned char[genome_size*4/10];
+  allocateJunctionMap(genome_size*4/10);
   printf("Space allocated for %d junctions,\n", genome_size/10);
   printf("%d MB allocated.\n", genome_size*4/10/1000000);
   junctionMapIndex = 0;

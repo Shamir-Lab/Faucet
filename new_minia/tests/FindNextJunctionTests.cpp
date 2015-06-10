@@ -94,7 +94,8 @@ void findNextJunction_J1_Find2Branch(){
 
 void runFindNextJunctionTests(){
     loadBloom(bloomFake, real_5mers,30);
-
+    allocateJunctionMap(1000);
+    
    findNextJunction_J1_testFromStart();
    findNextJunction_J2_testOffEnd();
    findNextJunction_J2_Ignore2Branch();

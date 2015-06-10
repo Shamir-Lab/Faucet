@@ -94,6 +94,7 @@ void testTraverseReadTwice_SameJuncs(){
 
 void runTraverseReadsTests(){
     setSizeKmer(5);
+    allocateJunctionMap(1000);
     loadBloom(bloom_fake, inserted_5mers,30);
 
     testTraverseReads_J0();
