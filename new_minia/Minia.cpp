@@ -25,7 +25,7 @@ bool get_kmers = false;//only to initially get the kmer files so i could use the
 int64_t nb_reads;
 char* kmer_filename = (char*)"solid_27mers_100k";
 #include "Bloom.h"
-#include "Debloom.h"
+#include "ReadScanner.h"
 #include "Kmer.h"
 #include <iostream>
 #include <fstream>
@@ -221,7 +221,6 @@ void write_kmers(const char* reads_filename){
 
 }
 
-
 int main(int argc, char *argv[])
 {
     if (handle_arguments(argc, argv) == 1){
@@ -235,18 +234,19 @@ int main(int argc, char *argv[])
     int estimated_kmers = genome_size;
     Bloom* bloo1 = create_bloom_filter(estimated_kmers, fpRate);
    
-   if(from_kmers){
-        load_filter_from_kmers(bloo1, solids_file);
-        debloom_kpomerscan(solids_file, bloo1, j);
-    }
-    else{
-        load_filter_from_reads(bloo1, solids_file);
-        readscan(solids_file, bloo1, j, genome_size);
-        if(argc > 8){
-            junctionMapToFile(junctions_filename);
-        }   
-    }
+   // if(from_kmers){
+   //      load_filter_from_kmers(bloo1, solids_file);
+   //      debloom_kpomerscan(solids_file, bloo1, j);
+   //  }
+    load_filter_from_reads(bloo1, solids_file);
+    ReadScanner* scanner = new ReadScanner(solids_file, bloo1);
+    scanner->setJ(j);
 
+    scanner->scanReads(genome_size);
+    scanner->printScanSummary();
+    if(argc > 8){
+        scanner->junctionMapToFile(junctions_filename);
+    }   
     printf("Program reached end. \n");
     return 0;
 }

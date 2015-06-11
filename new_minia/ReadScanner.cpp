@@ -1,4 +1,4 @@
-#include "Debloom.h"
+#include "ReadScanner.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -6,27 +6,30 @@
 #include <time.h>
 using namespace std;
 
-set<kmer_type> jcheckedSet;
-unordered_map<kmer_type,unsigned char*> junctionMap;
-set<kmer_type> nextRealSet;
-unordered_map<kmer_type, unsigned char*>::iterator mappedIt;
-unsigned char* mappedInfo;
+ReadScanner::ReadScanner(string readFile, Bloom* bloo1){
+  reads_file = readFile;
+  bloom = bloo1;
+  last = new kmer_type[20000];
+  nextList = new kmer_type[20000];
+  j = 0; //default no j-checking
+}
 
-kmer_type * last = new kmer_type[20000];
-kmer_type * nextList = new kmer_type[20000];
-unsigned char * junctionMapAllocation; 
-int junctionMapIndex;
-kmer_type * temp;
-uint64_t NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, NbSkipped = 0, NbProcessed = 0, readsProcessed = 0;
-uint64_t NbSolidKmer =0;
-FILE * F_debloom_read;
-FILE * F_debloom_write;
-uint64_t n_false_positives=0;
+void ReadScanner::printScanSummary(){
+  printf("\n Distinct junctions: %d \n", junctionMap.size());
+  printf(" Number of j-checked candidate kmers: %lli \n", NbJCheckKmer);
+  printf (" Number of reads with no junctions: %lli \n",NbNoJuncs);
+  printf("Number of skipped kmers: %lli \n", ((readLength-sizeKmer)*readsProcessed*2) - NbProcessed);
+  printf("Number of processed kmers: %lli \n", NbProcessed);
+}
+
+void ReadScanner::setJ(int jVal){
+  j = jVal;
+}
 
 //j = 0 always returns true
 //j > 0 checks extensions up to j deep from kmer, and returns true if there is a sequence of j extensions
 //which returns all positive in the bloom filter
-inline bool jcheck(kmer_type kmer, int j, int strand, Bloom* bloo1){
+inline bool ReadScanner::jcheck(kmer_type kmer, int strand){
   if(j == 0){
     return true;
   }
@@ -45,7 +48,7 @@ inline bool jcheck(kmer_type kmer, int j, int strand, Bloom* bloo1){
       //printf("%s \n", print_kmer(this_kmer));
       for(int nt = 0; nt < 4; nt++){
         nextKmer = next_kmer(this_kmer, nt, strand);
-        if(bloo1->contains(get_canon(nextKmer))){
+        if(bloom->contains(get_canon(nextKmer))){
        // printf("BF positive in jcheck: %s \n", print_kmer(nextKmer));
           nextList[nextCount] = nextKmer;
           nextCount++;
@@ -66,51 +69,33 @@ inline bool jcheck(kmer_type kmer, int j, int strand, Bloom* bloo1){
 
 //starts at position *pos, kmer *kmer on read, and if it returns true, pos and *kmer should be the
 //pos and kmer of the next branch point. If it returns false, no guarantee- it ran off the end and we can handle that.
-inline bool find_next_junction(int* pos, kmer_type * kmer, string read, int j, Bloom* bloo1){
-  //printf("Finding next junction.\n ");
+bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
   for (; *pos < read.length()-sizeKmer; shift_kmer(kmer, NT2int(read[*pos+sizeKmer-1]), 0))
   {
-
-    //printf("Kmer, position: %s %d. \n", print_kmer(*kmer), *pos);
-     //printf("This kmer: %s \n", print_kmer(*kmer));
-    // printf("Extensions: \n");
     kmer_type next_real = next_kmer_in_read(*kmer,*pos,&read[0], 0);
   
-       // printf("Next real: %s \n", print_kmer(next_real));
     for(int nt=0; nt<4; nt++) {
       kmer_type next_test = next_kmer(*kmer,nt, 0);
       if(next_real != next_test && next_real != *kmer && next_test != *kmer){
         //looking at a possible branch
-        //printf("Possible branch: %s \n", print_kmer(next_test));
-        if(bloo1->contains(get_canon(next_test)))//branch checks out initially
+        if(bloom->contains(get_canon(next_test)))//branch checks out initially
         { 
-         // printf("BF positive before jcheck: %s \n", print_kmer(next_test));
             //logic is simpler if you jcheck first but checking the junctionmap first seems to be slightly faster.
             // can play around with that going forward.
             mappedIt = junctionMap.find(*kmer);
             if(mappedIt == junctionMap.end()){//not an already found junction
-              //printf("%s", &read[0]);
-              if(jcheck(next_test, j, 0, bloo1)){//branch jchecks- found a junction!
-                //printf("Size before before: %d \n", junctionMap.size());
-                    //printf("size before and after: %d,", junctionMap.size());
-                    mappedInfo = &junctionMapAllocation[junctionMapIndex];
-                    junctionMapIndex+=5;
-                    mappedInfo[0] = 0, mappedInfo[1] = 0, mappedInfo[2] = 0, mappedInfo[3] = 0, mappedInfo[4] = 0;
-                    junctionMap[*kmer] = mappedInfo;
-                    mappedInfo[NT2int(read[*pos+sizeKmer])] = (unsigned char)1;
-                    //printf("%d \n", junctionMap.size());
+              if(jcheck(next_test, 0)){//branch jchecks- found a junction!
+                    mappedInfo = new junction;
+                    mappedInfo->ext[NT2int(read[*pos+sizeKmer])] = (unsigned char)1;                  
+                    junctionMap[*kmer] = *mappedInfo;
                     NbJCheckKmer++;
-                    //jcheckedSet.insert(*kmer);
-                
-                //printf("Found junction at kmer %s, pos %d \n.", print_kmer(*kmer), *pos);
                 return true;
               }
             }
             else{//an already found junction!
-                mappedInfo = mappedIt->second;
-                 mappedInfo[NT2int(read[*pos+sizeKmer])] = 
-                  max(mappedInfo[NT2int(read[*pos+sizeKmer])],(unsigned char)1);
-                //printf("%d \n", junctionMap.size());
+                mappedInfo = &mappedIt->second;
+                mappedInfo->ext[NT2int(read[*pos+sizeKmer])] = 
+                  max(mappedInfo->ext[NT2int(read[*pos+sizeKmer])],(unsigned char)1);
                 NbJCheckKmer++;
                 //jcheckedSet.insert(*kmer);
                 return true;
@@ -118,51 +103,39 @@ inline bool find_next_junction(int* pos, kmer_type * kmer, string read, int j, B
           }
       }
     }
-    //printf("\n");
     (*pos)++;
     NbProcessed++;
     //if ((NbProcessed % 10000)==0) fprintf (stderr,"%c Deblooming kmers: %d",13,NbProcessed);
-      
   }
   return false;
 }
 
-inline void smart_traverse_read(string read, Bloom* bloo1, int j){
-  //printf("Starting smart traversal \n");
-  //printf("%s \n", &read[0]);
+void ReadScanner::smart_traverse_read(string read){
   int pos = 0; //stores the current position on the read
   int lastJuncPos = 0; //stores the position on the read of the last junction
-  unsigned char* lastJunc = NULL; //stores the junction we last saw
+  junction * lastJunc = NULL; //stores the junction we last saw
   int lastJuncExt = 0; //stores the extension we followed last time
   kmer_type kmer;
-  getFirstKmerFromRead(&kmer,&read[0]);//stores current kmer throughout
   bool noJuncs = true;
+  getFirstKmerFromRead(&kmer,&read[0]);//stores current kmer throughout
   while(pos < read.length()-sizeKmer)
   {
-      //printf("%s \n", print_kmer(kmer));
       //assumption: kmer is set, pos is set, lastJunc info is all set
       mappedIt = junctionMap.find(kmer);
       if(mappedIt != junctionMap.end()) // is a seen junctioN!
       { 
-        mappedInfo = mappedIt->second;
-        //printf("1");
+        mappedInfo = &mappedIt->second;
         // don’t need to scan, we’re at a junction.  Need to update info
           //handle last junction statistics
-        //printf("At a junction!\n");
-        if (mappedInfo[NT2int(read[pos+sizeKmer])] == (unsigned char)0)
+        if (mappedInfo->ext[NT2int(read[pos+sizeKmer])] == (unsigned char)0)
         {
-          //printf("New branch of this junction! \n");
-          mappedInfo[NT2int(read[pos+sizeKmer])] =  (unsigned char)1;
+          mappedInfo->ext[NT2int(read[pos+sizeKmer])] =  (unsigned char)1;
         }
-        // else
-        // {
-        //   //printf("Already saw this branch! Tells me to go ahead %d \n", (int)junctionMap[kmer][NT2int(read[pos+sizeKmer])]);
-        // }
         if(lastJunc)//update info on last junction if it exists
         {
-          lastJunc[lastJuncExt] = max((int)(lastJunc[lastJuncExt]), (pos - lastJuncPos));
-          if(mappedInfo[4] == 0 || mappedInfo[4] > pos - lastJuncPos){
-            mappedInfo[4] = pos-lastJuncPos; 
+          lastJunc->ext[lastJuncExt] = max((int)(lastJunc->ext[lastJuncExt]), (pos - lastJuncPos));
+          if(mappedInfo->back == 0 || mappedInfo->back > pos - lastJuncPos){
+            mappedInfo->back = pos-lastJuncPos; 
           }
         } 
         //determine next search and set up lastJunc info to refer to this junc
@@ -170,110 +143,79 @@ inline void smart_traverse_read(string read, Bloom* bloo1, int j){
         lastJuncExt =NT2int(read[pos+sizeKmer]); //the extension is at pos+k in the read
         lastJuncPos = pos; //this is now the last junc position
        
-        advance_kmer(&read[0], &kmer, pos, pos + (int)lastJunc[lastJuncExt]);//advance kmer to jump forward
-        // if(lastJunc[lastJuncExt] > 1){
-        //   //printf("skip %d ", dist);
-        //   NbSkipped += min(((int)read.length()-sizeKmer-pos-1), (int)(lastJunc[lastJuncExt]-1));
-        // }   
-        pos += (int)lastJunc[lastJuncExt]; //set new pos appropriately 
+        advance_kmer(&read[0], &kmer, pos, pos + (int)lastJunc->ext[lastJuncExt]);//advance kmer to jump forward
+        pos += (int)lastJunc->ext[lastJuncExt]; //set new pos appropriately 
         NbProcessed++;
-        //if ((NbProcessed%10000)==0) fprintf (stderr,"%c Deblooming kmers: %d",13,NbProcessed);
-        
       }   
       else// not at a seen junction, need to scan! No info to update since we’re not at a junction yet
       //this only happens at the beginning or after we run off the end of our known section, so there is either
       //no last junction or the info is already stored for the last junction.
       {         
-        //printf("Not at a junction! \n");
-        if(find_next_junction(&pos, &kmer, read, j, bloo1))     //scanned and stopped at a junction
-        {  
-          noJuncs = false;
-          //printf("Found next junction! \n");
-            continue; 
-        }
-        else{
-          pos = read.length()-sizeKmer;
-          //printf("Didn't find next junction.  Ran off the end of the read.\n");
-          //same code as above to update info in case that we run off the end
-          //pos is now = length so we'll be done after this
+        if(!find_next_junction(&pos, &kmer, read)) {  //scanned off the end of the read
+          pos = read.length()-sizeKmer; //pos is now = length so we'll be done after this
           if(lastJunc){
-            lastJunc[lastJuncExt] = max((int)lastJunc[lastJuncExt], pos - lastJuncPos);
+            lastJunc->ext[lastJuncExt] = max((int)lastJunc->ext[lastJuncExt], pos - lastJuncPos);
           }
+          continue;
         }
+        noJuncs = false;
       }
   }
-  //printf("\n");
   NbNoJuncs += noJuncs;
-  // if(noJuncs){
-  //   //junctionMap(advanceKmers(&read[0],));
-  //   NbNoJuncs++;
-  // }  
 }
 
-void allocateJunctionMap(uint64_t size){
-  junctionMapAllocation = new unsigned char[size];
-}
-
-int readscan(char* solids_file, Bloom * bloo1, int j, int genome_size)
+void ReadScanner::scanReads(int genome_size)
 {
-  allocateJunctionMap(genome_size*4/10);
-  printf("Space allocated for %d junctions,\n", genome_size/10);
-  printf("%d MB allocated.\n", genome_size*4/10/1000000);
-  junctionMapIndex = 0;
+  NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, 
+  NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0;
+
   time_t start;
   time_t stop;
   time(&start);
 
   ifstream solidReads;
-  solidReads.open(solids_file);
+  solidReads.open(reads_file);
 
-  kmer_type new_graine, next_real, kmer;
   string read;
-  int readLength;
+
   // write all positive extensions in disk file
-  printf("Weight before debloom: %li \n", bloo1->weight());
+  printf("Weight before read scan: %li \n", bloom->weight());
   int lastSum = 0, thisSum = 0;
   while (getline(solidReads, read))
   {
     //lastSum = thisSum;
     readLength = read.length();
-    smart_traverse_read(read, bloo1, j);
+    smart_traverse_read(read);
     revcomp_sequence(&read[0], readLength);
-    smart_traverse_read(read, bloo1, j);
+    smart_traverse_read(read);
     if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;
-    //thisSum = NbProcessed+NbSkipped;
-    // if((thisSum - lastSum) != 73){
-    //   printf("Read length %d, read %s\n", read.length(), &read[0]);
-    //   printf("Difference: %d \n", thisSum - lastSum);
-    //   printf("Number of skipped and processed kmers: %d, %d\n", NbSkipped, NbProcessed);
-    //   printf("Sum: %d \n", NbProcessed + NbSkipped);
-    // }
   }
+
   solidReads.close();
-  printf("\n Distinct junctions: %d \n", junctionMap.size());
-  printf(" Number of j-checked candidate kmers: %lli \n", NbJCheckKmer);
-  printf (" Number of reads with no junctions: %lli \n",NbNoJuncs);
-  printf("Number of skipped kmers: %lli \n", ((readLength-sizeKmer)*readsProcessed*2) - NbProcessed);
-  printf("Number of processed kmers: %lli \n", NbProcessed);
   time(&stop);
-  printf("Time in seconds for debloom: %f \n", difftime(stop,start));
+  printf("Time in seconds for read scan: %f \n", difftime(stop,start));
 }
 
-void junctionMapToFile(string filename){
+void ReadScanner::writeJunction(ofstream*jFile, junction toPrint){
+  for(int i = 0; i < 4; i++){
+    *jFile << (int)toPrint.ext[i] << " " ;
+  }
+  *jFile << (int)toPrint.back << " ";
+  *jFile << "\n";
+}
+
+void ReadScanner::junctionMapToFile(string filename){
     ofstream jFile;
     jFile.open(filename);
-    
+    junction toPrint;
+
     printf("Writing to junction file\n");
     kmer_type kmer;
     for(mappedIt = junctionMap.begin(); mappedIt != junctionMap.end(); mappedIt++){
         kmer = mappedIt->first;
-        mappedInfo = mappedIt->second;
-        jFile << print_kmer(kmer) << " ";
-        for(int i = 0; i < 5; i++){
-          jFile << (int)mappedInfo[i] << " " ;
-        }
-        jFile << "\n";
+        jFile << print_kmer(kmer) << " " ;
+        writeJunction(&jFile, mappedIt->second);    
     }
     printf("Done writing to junction file\n");
     jFile.close();
@@ -408,7 +350,9 @@ void junctionMapToFile(string filename){
 //   printf("Time in seconds for debloom: %f \n", difftime(stop,start));
 // }
 
-inline void traverse_read(string read, Bloom* bloo1, int j){
+
+/*
+inline void ReadScanner::traverse_read(string read, Bloom* bloo1, int j){
   //printf("Read: %s \n", &read[0]);
   kmer_type kmer;
   getFirstKmerFromRead(&kmer,&read[1]);
@@ -465,7 +409,9 @@ inline void traverse_read(string read, Bloom* bloo1, int j){
     if ((NbSolidKmer%10000)==0) fprintf (stderr,"%c Deblooming kmers: %lld",13,NbSolidKmer);
   }
 }
+*/
 
+/*
 inline void scan_kpomer(string kpomer, Bloom* bloo1, int j){
 //printf("Read: %s \n", &read[0]);
   kmer_type left, right;
