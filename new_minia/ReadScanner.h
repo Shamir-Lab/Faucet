@@ -36,14 +36,15 @@ private:
     bool find_next_junction(int* pos, kmer_type * kmer, string read);
     void smart_traverse_read(string read);
     void writeJunction(ofstream* jFile, junction toPrint);
-
+    void updateJunction(junction* junc, int nucExt, int lengthFor, int lengthBack);
+    void createJunction(kmer_type kmer, int nucExt);
     int j;
     Bloom* bloom;
     set<kmer_type> jcheckedSet;
     unordered_map<kmer_type,junction> junctionMap;
     set<kmer_type> nextRealSet;
-    unordered_map<kmer_type, junction>::iterator mappedIt;
-    junction * mappedInfo;
+    unordered_map<kmer_type, junction>::iterator juncIt;
+    junction * juncInfo;
 
     int readLength;
     string reads_file;
