@@ -9,8 +9,13 @@ using namespace std;
 ReadScanner::ReadScanner(string readFile, Bloom* bloo1){
   reads_file = readFile;
   bloom = bloo1;
-  last = new kmer_type[20000];
-  nextList = new kmer_type[20000];
+  lastHashes = new uint64_t*[20000];
+  nextHashes = new uint64_t*[20000];
+  for(int i = 0; i < 20000; i++){
+    lastHashes[i] = new uint64_t[2];
+    nextHashes[i] = new uint64_t[2];
+  }
+  junctionMap = {};
   j = 0; //default no j-checking
 }
 
@@ -22,6 +27,10 @@ void ReadScanner::printScanSummary(){
   printf("Number of processed kmers: %lli \n", NbProcessed);
 }
 
+unordered_map<kmer_type,junction>  ReadScanner::getJunctionMap(){
+  return junctionMap;
+}
+
 void ReadScanner::setJ(int jVal){
   j = jVal;
 }
@@ -29,7 +38,9 @@ void ReadScanner::setJ(int jVal){
 //creates a new junction with first found extension nucExt
 void ReadScanner::createJunction(kmer_type kmer, int nucExt){
     junction* junc = new junction;
-    updateJunction(junc, nucExt, 1, 0);                  
+    junc->ext[0] = 0, junc->ext[1] = 0, junc->ext[2] = 0, junc->ext[3] = 0;
+    junc->back = 0;
+    junc->ext[nucExt] = 1;                  
     junctionMap[kmer] = *junc;
 }
 
@@ -42,27 +53,31 @@ void ReadScanner::updateJunction(junction * junc, int nucExt, int lengthFor, int
 //j = 0 always returns true
 //j > 0 checks extensions up to j deep from kmer, and returns true if there is a sequence of j extensions
 //which returns all positive in the bloom filter
-inline bool ReadScanner::jcheck(kmer_type kmer, int strand){
+bool ReadScanner::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
   if(j == 0){
     return true;
   }
-  kmer_type this_kmer, nextKmer;
+  uint64_t workingHash0, workingHash1;
   int lastCount, nextCount;
   lastCount = 1;
-  last[0] = kmer;
+  lastHashes[0][0] = nextH0;
+  lastHashes[0][1] = nextH1;
 
   for(int i = 0; i < j; i++){//for each level up to j
     nextCount = 0; //have found no extensions yet
     for(int k = 0; k < lastCount; k++){ //for each kmer in the last level
-      this_kmer = last[k]; //set the working kmer
+      workingHash0 = lastHashes[k][0];
+      workingHash1 = lastHashes[k][1];
       for(int nt = 0; nt < 4; nt++){ //for each possible extension
-        nextKmer = next_kmer(this_kmer, nt, strand);//set the extension kmer
-        
-        if(bloom->contains(get_canon(nextKmer))){ //add to next level if it's in the bloom filter
+        nextHash0 = bloom->roll_hash(workingHash0, NT2int(kmerSeq[i]), nt, 0);
+        nextHash1 = bloom->roll_hash(workingHash1, NT2int(kmerSeq[i]), nt, 1);
+
+        if(bloom->contains(nextHash0, nextHash1)){ //add to next level if it's in the bloom filter
           if(i == (j-1)){
             return true;//if this is the last level return true after the first check
           }
-          nextList[nextCount] = nextKmer;
+          nextHashes[nextCount][0] = nextHash0;
+          nextHashes[nextCount][1] = nextHash1;
           nextCount++;
         }
       }
@@ -73,9 +88,10 @@ inline bool ReadScanner::jcheck(kmer_type kmer, int strand){
     }
     //reset counts and lists for next level of th search
     lastCount = nextCount;
-    temp = last; 
-    last = nextList;
-    nextList = temp;
+
+    tempor = lastHashes;
+    lastHashes = nextHashes;
+    nextHashes = tempor;
   }
 }
 
@@ -84,19 +100,22 @@ inline bool ReadScanner::jcheck(kmer_type kmer, int strand){
 //pos and kmer of the next branch point. If it returns false, no guarantee- it ran off the end and we can handle that.
 bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
   
-  for (; *pos < read.length()-sizeKmer; *pos++)//for each pos in read
+  for (; *pos < read.length()-sizeKmer; (*pos)++)//for each pos in read
   {
     kmer_type next_real = next_kmer_in_read(*kmer,*pos,&read[0], 0);//get next real kmer
   
     for(int nt=0; nt<4; nt++) {//for each extension
       kmer_type next_test = next_kmer(*kmer,nt, 0);//get possible extension
       if(next_real != next_test && next_real != *kmer && next_test != *kmer){//if the branch has 3 distinct kmers
-        if(bloom->contains(get_canon(next_test)))//if the branch checks out initially
+        nextHash0 = bloom->roll_hash(hash0, NT2int(read[*pos]), nt, 0);
+        nextHash1 = bloom->roll_hash(hash1, NT2int(read[*pos]), nt, 1);
+
+        if(bloom->contains(nextHash0, nextHash1))//if the branch checks out initially
         { 
             juncIt = junctionMap.find(*kmer);
             if(juncIt == junctionMap.end()){//if it's nnot an already found junction
               NbJCheckKmer++;
-              if(jcheck(next_test, 0)){//if it j-checks- new junction!
+              if(jcheck(&read[*pos+1],nextHash0, nextHash1)){//if it j-checks- new junction!
                   createJunction(*kmer, NT2int(read[*pos+sizeKmer]));
                   return true;
               }
@@ -107,7 +126,9 @@ bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
           }
       }
     }
-    shift_kmer(kmer, NT2int(read[*pos+sizeKmer]), 0);
+    shift_kmer(kmer, NT2int(read[*pos+sizeKmer]), 0); 
+    bloom->advance_hash(&read[0], &hash0, &hash1, *pos, *pos+1);//advance hash values
+
     NbProcessed++;
     //if ((NbProcessed % 10000)==0) fprintf (stderr,"%c Deblooming kmers: %d",13,NbProcessed);
   }
@@ -121,6 +142,8 @@ void ReadScanner::smart_traverse_read(string read){
   kmer_type kmer;
   bool noJuncs = true;
   getFirstKmerFromRead(&kmer,&read[0]);//stores current kmer throughout
+  hash0 = bloom->get_rolling_hash(kmer, 0);
+  hash1 = bloom->get_rolling_hash(kmer, 1);
 
   while(pos < read.length()-sizeKmer)
   {
@@ -143,6 +166,8 @@ void ReadScanner::smart_traverse_read(string read){
         lastJuncPos = pos; //this is now the last junc position
        
         advance_kmer(&read[0], &kmer, pos, pos + (int)lastJunc->ext[lastJuncExt]);//advance kmer to jump forward
+        bloom->advance_hash(&read[0], &hash0, &hash1, pos, pos+(int)lastJunc->ext[lastJuncExt]);//advance hash values
+
         pos += (int)lastJunc->ext[lastJuncExt]; //set new pos appropriately 
         NbProcessed++;
       }   

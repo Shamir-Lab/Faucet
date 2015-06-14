@@ -5,9 +5,10 @@
 
 #include "../Kmer.h"
 #include "../Bloom.h"
+#include "../ReadScanner.h"
 
 using std::string;
-
+extern ReadScanner* scanner;
 extern kmer_type test_kmer;
 
 void setSizeKmer(int k);

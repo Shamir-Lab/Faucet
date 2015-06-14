@@ -3,7 +3,7 @@
 
 #include "TestUtils.h"
 #include "../Bloom.h"
-#include "../Debloom.h"
+#include "../ReadScanner.h"
 
 void runJCheckTests();
 

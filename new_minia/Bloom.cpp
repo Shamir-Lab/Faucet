@@ -9,12 +9,23 @@
 #include <string.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <math.h>
 #include "Bloom.h"
 #include <set>
 
 //only relevant for a fake bloom
 bool fake = false;
+int hashSize;
+uint64_t bloomMask;
 std::set<bloom_elem> valid_set;
+
+int getHashSize(){
+    return hashSize;
+}
+
+uint64_t getBloomMask(){
+    return bloomMask;
+}
 
 Bloom::Bloom()
 {
@@ -68,7 +79,34 @@ void Bloom::generate_hash_seed()
     {
         seed_tab[i]= seed_tab[i] * seed_tab[(i+3) % NSEEDSBLOOM] + user_seed ;
     }
-    
+
+    for ( i = 0; i < 4; ++i)
+    {
+        char_hash[0][i]= rbase[i];
+    }
+    for ( i = 0; i < 4; ++i)
+    {
+         char_hash[0][i]=  char_hash[0][i] *  char_hash[0][(i+3) % 4] + user_seed ;
+    }
+    for ( i = 0; i < 4; ++i)
+    {
+        char_hash[0][i] &= bloomMask;
+       // printf("%lli \n", char_hash[0][i]); //seems random!
+    }
+
+    for ( i = 0; i < 4; ++i)
+    {
+        char_hash[1][i]= rbase[i+4];
+    }
+    for ( i = 0; i < 4; ++i)
+    {
+         char_hash[1][i]=  char_hash[1][i] *  char_hash[1][(i+3) % 4] + user_seed ;
+    }
+    for ( i = 0; i < 4; ++i)
+    {
+        char_hash[1][i] &= bloomMask;
+       // printf("%lli \n", char_hash[1][i]); //seems random
+    }
 }
 
 #ifdef _largeint
@@ -121,7 +159,6 @@ inline uint64_t Bloom::hash_func( __uint128_t elem, int num_hash)
 }
 #endif
 
-
 inline uint64_t Bloom::hash_func( uint64_t key, int num_hash)
 {
     uint64_t hash = seed_tab[num_hash];
@@ -135,7 +172,6 @@ inline uint64_t Bloom::hash_func( uint64_t key, int num_hash)
     hash = hash + (hash << 31);
     return hash;
 }
-
 
 //tai is 2^tai_bloom
 Bloom::Bloom(int tai_bloom)
@@ -155,32 +191,77 @@ Bloom::Bloom(int tai_bloom)
     this->generate_hash_seed();
 }
 
-
-
-
- Bloom::Bloom(uint64_t tai_bloom)
+ Bloom::Bloom(uint64_t tai_bloom, int kVal)
  {
      //printf("custom construc \n");
+    k = kVal;
      n_hash_func = 4 ;//def
      user_seed =0;
      nb_elem = 0;
-     tai = tai_bloom;
-     nchar = (1+tai/8LL);
+     hashSize = (int) log2(tai_bloom)+1;
+     //printf("Hash size: %d \n", hashSize);
+     tai = pow(2, hashSize);
+     //printf("Tai: %lli \n", tai);
+     if(tai == 0){
+        tai = 1;
+     }
+     bloomMask = tai-1;
+     //printf("Mask: %lli \n", bloomMask);
+     nchar = (tai/8LL);
      blooma =(unsigned char *)  malloc( nchar *sizeof(unsigned char)); // 1 bit per elem
-    printf("Allocation for filter: %lli bits. \n",nchar *sizeof(unsigned char)*8);
+     //printf("Allocation for filter: %lli bits. \n",nchar *sizeof(unsigned char)*8);
      memset(blooma,0,nchar *sizeof(unsigned char));
      //fprintf(stderr,"malloc bloom %lli MB \n",(tai/8LL)/1024LL/1024LL);
      this->generate_hash_seed();
  }
 
 
+uint64_t Bloom::getCharHash(int key, int num_hash){
+    return char_hash[num_hash][key];
+}
 
+uint64_t Bloom::getLastCharHash(uint64_t key, int num_hash){
+    return char_hash[num_hash][(int)(key & 3)];
+}
 
+//rotates kmer to the right by dist. Assume 0 < dist < hashSize
+uint64_t  Bloom::rotate_right(uint64_t  hash, int dist){
+    dist %= hashSize;
+    return ((hash >> dist) | (hash << (hashSize - dist))) & bloomMask;
+}
+
+//rotates kmer to the right by dist. Assume 0 < dist < hashSize
+uint64_t  Bloom::rotate_left(uint64_t  hash, int dist){
+    dist %= hashSize;
+    return ((hash << dist) | (hash >> (hashSize - dist))) & bloomMask;
+}
+
+//only for num_hash = 0 or 1
+uint64_t Bloom::get_rolling_hash(uint64_t key, int num_hash)
+{
+    uint64_t hash = getLastCharHash(key, num_hash);
+    for(int i = 1; i < k; i++){
+        hash = rotate_right(hash, 1);
+        key >>= 2;
+        hash ^= getLastCharHash(key, num_hash);
+    }
+    return hash;
+}
+
+uint64_t Bloom::roll_hash(uint64_t oldHash, int oldC, int newC, int num_hash){
+    return rotate_left(oldHash ^ getCharHash(oldC, num_hash), 1) ^ rotate_right(getLastCharHash(newC, num_hash), k-1);
+}
+
+void Bloom::advance_hash(char* read, uint64_t * hash0, uint64_t * hash1, int startPos, int endPos){
+    for(int i = startPos; i < endPos; i++){
+        *hash0 = roll_hash(*hash0, NT2int(read[i]), NT2int(read[i+sizeKmer]), 0);
+        *hash1 = roll_hash(*hash1, NT2int(read[i]), NT2int(read[i+sizeKmer]), 1);
+    }
+}
 
 // //tai is 2^tai_bloom
 BloomCpt::BloomCpt(int tai_bloom)
 {
-
     n_hash_func = 2;
     user_seed = 0;
     nb_elem = 0;
@@ -290,63 +371,44 @@ long Bloom::weight()
 
 void Bloom::add(bloom_elem elem)
 {
-    uint64_t hA,hB,h;
-    #if CUSTOMSIZE
-      hA= hash_func(elem,0) % tai; 
-    #else
-        hA = hash_func(elem,0) & (tai-1);
-    #endif
-     #if CUSTOMSIZE
-      hB = hash_func(elem,1) % tai; 
-    #else
-      hB = hash_func(elem,1) & (tai-1);
-    #endif
+    uint64_t hA,hB;
 
-    int i;
-    h = hA;
-    for(i=0; i<n_hash_func; i++, h += hB)
-    {
-        if(h > tai){
-            h -= tai;
-        }
-      //printf("%c \n", bit_mask[h1 & 7]);
-     // printf("%" PRIu64 "\n", h1 & 7);
-        blooma [h >> 3] |= bit_mask[h & 7];
-    }
-    
-    //nb_elem++;
-    
+    hA = get_rolling_hash(elem, 0);
+    hB = get_rolling_hash(elem, 1);
+
+    add(hA, hB);    
 }
 
 
+void Bloom::add(uint64_t h0, uint64_t h1)
+{
+    uint64_t h = h0;
+    for(int i=0; i<n_hash_func; i++, h += h1)
+    {
+        h %= tai;
+        blooma [h >> 3] |= bit_mask[h & 7];
+    }
+}
 
 int Bloom::contains(bloom_elem elem)
 {
     if(fake){
         return (valid_set.find(elem) != valid_set.end());
     }
-  uint64_t hA,hB,h;
-    #if CUSTOMSIZE
-      hA= hash_func(elem,0) % tai; 
-    #else
-        hA = hash_func(elem,0) & (tai-1);
-    #endif
-     #if CUSTOMSIZE
-      hB = hash_func(elem,1) % tai; 
-    #else
-      hB = hash_func(elem,1) & (tai-1);
-    #endif
+    uint64_t hA,hB;
 
-    int i;
-    h = hA;
-    for(i=0; i<n_hash_func; i++, h += hB)
+    hA = get_rolling_hash(elem, 0);
+    hB = get_rolling_hash(elem, 1);
+
+    return contains(hA, hB);
+}
+
+int Bloom::contains(uint64_t h0, uint64_t h1)
+{
+    uint64_t h = h0;
+    for(int i=0; i<n_hash_func; i++, h += h1)
     {
-        if(h > tai){
-            h -= tai;
-        }
-      //printf("%c \n", bit_mask[h1 & 7]);
-     // printf("%" PRIu64 "\n", h1 & 7);
-        
+        h %= tai;
         if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
             return 0;
         }

@@ -120,13 +120,18 @@ inline void load_filter_from_reads(Bloom* bloo1, const char* reads_filename){
     printf("Weight before load: %ld \n", bloo1->weight());
     while (getline(solidReads, read))
     {
-        getFirstKmerFromRead(&kmer,&read[0]);
+        for(int strand = 0; strand < 2; strand++){
+            getFirstKmerFromRead(&kmer,&read[0]);
+            uint64_t hash0 = bloo1->get_rolling_hash(kmer, 0);
+            uint64_t hash1 = bloo1->get_rolling_hash(kmer, 1);
 
-        for (int i = 0; i <= read.length() - sizeKmer ; i++, 
-          shift_kmer(&kmer, NT2int(read[i+sizeKmer-1]), 0)){
-            bloo1->add(get_canon(kmer));
-            readsProcessed++;
-            if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+            for (int i = 0; i <= read.length() - sizeKmer ; i++){
+                bloo1->add(hash0, hash1);
+                bloo1->advance_hash(&read[0], &hash0, &hash1, i, i+1);
+                readsProcessed++;
+                if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+            }
+            revcomp_sequence(&read[0], read_length);
         }
     }
 
@@ -175,7 +180,7 @@ inline Bloom* create_bloom_filter(int estimated_items, float fpRate){
     printf("Estimated bloom size: %d .\n", (int)estimated_bloom_size);
     
     printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
-    bloo1 = new Bloom(estimated_bloom_size);
+    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
 
     printf("Bits per kmer: %d \n", bits_per_item);
 

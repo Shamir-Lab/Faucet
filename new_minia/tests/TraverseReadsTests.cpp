@@ -15,24 +15,28 @@ string inserted_5mers[] = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAAC
     , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT" ,"CATAC", "ATACG", "TACGA", "ACGAT","CGATT", "ACGAC", "CGACA"};
 
 
+void printJunctionMap(){
+    printf("Size: %d \n", scanner->getJunctionMap().size());
+    for (auto& kv : scanner->getJunctionMap()){
+        printf("%s \n", print_kmer(kv.first));
+    }
+}
 void traverseReads(int j){
-    smart_traverse_read(fake_readX, bloom_fake, j);
-    smart_traverse_read(fake_readY, bloom_fake, j);
-    smart_traverse_read(fake_readZ, bloom_fake, j);
+    scanner->setJ(j);
+    scanner->smart_traverse_read(fake_readX);
+    scanner->smart_traverse_read(fake_readY);
+    scanner->smart_traverse_read(fake_readZ);
 }
 
 void testTraverseReads_J0(){
     char* testName = (char*)"testTraverseReads_J0";
-    junctionMap = {};
+    scanner = new ReadScanner("mockfile", bloom_fake);
 
     traverseReads(0);
 
-    if(junctionMap.size() != 4){
+    if(scanner->getJunctionMap().size() != 4){
         fail(testName, (char*)"junction map size was wrong.");
-        printf("Size: %d \n", junctionMap.size());
-        for (auto& kv : junctionMap){
-            printf("%s \n", print_kmer(kv.first));
-        }
+        printJunctionMap();
         return;
     }
     succeed(testName);
@@ -41,16 +45,13 @@ void testTraverseReads_J0(){
 
 void testTraverseReads_J1(){
     char* testName = (char*)"testTraverseReads_J1";
-    junctionMap = {};
+    scanner = new ReadScanner("mockfile", bloom_fake);
 
     traverseReads(1);
 
-    if(junctionMap.size() != 4){
+    if(scanner->getJunctionMap().size() != 4){
         fail(testName, (char*)"junction map size was wrong.");
-        printf("Size: %d \n", junctionMap.size());
-        for (auto& kv : junctionMap){
-            printf("%s \n", print_kmer(kv.first));
-        }
+        printJunctionMap();
         return;
     }
     succeed(testName);
@@ -59,16 +60,13 @@ void testTraverseReads_J1(){
 
 void testTraverseReads_J2(){
     char* testName = (char*)"testTraverseReads_J2";
-    junctionMap = {};
+    scanner = new ReadScanner("mockfile", bloom_fake);
 
     traverseReads(2);
 
-    if(junctionMap.size() != 3){
+    if(scanner->getJunctionMap().size() != 3){
         fail(testName, (char*)"junction map size was wrong.");
-        printf("Size: %d \n", junctionMap.size());
-        for (auto& kv : junctionMap){
-            printf("%s \n", print_kmer(kv.first));
-        }
+        printJunctionMap();
         return;
     }
     succeed(testName);
@@ -76,17 +74,14 @@ void testTraverseReads_J2(){
 
 void testTraverseReadTwice_SameJuncs(){
     char* testName = (char*)"testTraverseReadsTwice_SameJuncs";
-    junctionMap = {};
+    scanner = new ReadScanner("mockfile", bloom_fake);
 
     traverseReads(1);
     traverseReads(1);
 
-    if(junctionMap.size() != 4){
+    if(scanner->getJunctionMap().size() != 4){
         fail(testName, (char*)"junction map size was wrong.");
-        printf("Size: %d \n", junctionMap.size());
-        for (auto& kv : junctionMap){
-            printf("%s \n", print_kmer(kv.first));
-        }
+        printJunctionMap();
         return;
     }
     succeed(testName);
@@ -94,7 +89,6 @@ void testTraverseReadTwice_SameJuncs(){
 
 void runTraverseReadsTests(){
     setSizeKmer(5);
-    allocateJunctionMap(1000);
     loadBloom(bloom_fake, inserted_5mers,30);
 
     testTraverseReads_J0();

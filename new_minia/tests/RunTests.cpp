@@ -8,6 +8,7 @@ int main(int argc, char *argv[]){
     runJCheckTests();
     runFindNextJunctionTests();
     runTraverseReadsTests();
+    runRollingHashTests();
     
     return 0;
 }

@@ -15,11 +15,11 @@ string real_5mers[] = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT"
 void findNextJunction_J1_testFromStart(){
     //int* pos, kmer_type * kmer, string read, int j, Bloom* bloo1
     char* testName = (char*)"findNextJunction_J1_testFromStart";
-
     int pos = 0;
     kmer_type kmer = getKmerFromString("ACGGG");
-    
-    bool foundJunc = find_next_junction(&pos, &kmer, fake_readA, 1, bloomFake);
+    scanner->setJ(1);
+
+    bool foundJunc = scanner->find_next_junction(&pos, &kmer, fake_readA);
 
     if(!foundJunc){
         fail(testName, (char*)"didn't find a junction.");
@@ -39,11 +39,12 @@ void findNextJunction_J1_testFromStart(){
 void findNextJunction_J2_testOffEnd(){
     //int* pos, kmer_type * kmer, string read, int j, Bloom* bloo1
     char* testName = (char*)"findNextJunction_J2_testOffEnd";
+    scanner->setJ(2);
 
     int pos = 13;
     kmer_type kmer = getKmerFromString("CATAG");
     
-    bool foundJunc = find_next_junction(&pos, &kmer, fake_readA, 2, bloomFake);
+    bool foundJunc = scanner->find_next_junction(&pos, &kmer, fake_readA);
 
     if(foundJunc){
         fail(testName, (char*)"found a junction.");
@@ -55,11 +56,12 @@ void findNextJunction_J2_testOffEnd(){
 void findNextJunction_J2_Ignore2Branch(){
     //int* pos, kmer_type * kmer, string read, int j, Bloom* bloo1
     char* testName = (char*)"findNextJunction_J2_Ignore2Branch";
+    scanner->setJ(2);
 
     int pos = 6;
     kmer_type kmer = getKmerFromString("CATAC");
     
-    bool foundJunc = find_next_junction(&pos, &kmer, fake_readC, 2, bloomFake);
+    bool foundJunc = scanner->find_next_junction(&pos, &kmer, fake_readC);
 
     if(foundJunc){
         fail(testName, (char*)"found a junction.");
@@ -71,11 +73,12 @@ void findNextJunction_J2_Ignore2Branch(){
 void findNextJunction_J1_Find2Branch(){
     //int* pos, kmer_type * kmer, string read, int j, Bloom* bloo1
     char* testName = (char*)"findNextJunction_J1_Find2Branch";
+    scanner->setJ(1);
 
     int pos = 6;
     kmer_type kmer = getKmerFromString("CATAC");
     
-    bool foundJunc = find_next_junction(&pos, &kmer, fake_readC, 1, bloomFake);
+    bool foundJunc = scanner->find_next_junction(&pos, &kmer, fake_readC);
 
     if(!foundJunc){
         fail(testName, (char*)"didn't find a junction.");
@@ -94,7 +97,7 @@ void findNextJunction_J1_Find2Branch(){
 
 void runFindNextJunctionTests(){
     loadBloom(bloomFake, real_5mers,30);
-    allocateJunctionMap(1000);
+    scanner = new ReadScanner("mockFile", bloomFake);
     
    findNextJunction_J1_testFromStart();
    findNextJunction_J2_testOffEnd();

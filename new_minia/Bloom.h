@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <set>
+#include "Kmer.h"
 // not using kmer_type from Kmer.h because I don't want this class to depend on Kmer.h
 #ifdef _largeint
 #include "LargeInt.h"
@@ -164,14 +165,31 @@ protected:
     inline uint64_t hash_func(__uint128_t key, int num_hash);
 #endif
     inline uint64_t hash_func(uint64_t key, int num_hash);
-    
     inline void generate_hash_seed(); 
     uint64_t user_seed;
     uint64_t seed_tab[NSEEDSBLOOM];
+    uint64_t char_hash[2][4];
+  
+    uint64_t getCharHash(int key, int num_hash);
+    uint64_t getLastCharHash(uint64_t key, int num_hash);
+
     int n_hash_func;
     uint64_t nchar;
+    int k;
 public:
+    int getHashSize();
+    uint64_t getBloomMask();
+
     unsigned char * blooma;
+    //rotates kmer to the right by dist. Assume 0 < dist < sizeKmer
+    uint64_t  rotate_right(uint64_t  kmer, int dist);
+    //rotates kmer to the right by dist. Assume 0 < dist < sizeKmer
+    uint64_t  rotate_left(uint64_t  kmer, int dist);
+
+    //only for num_hash = 0 or 1
+    uint64_t get_rolling_hash(uint64_t key, int num_hash);
+    uint64_t roll_hash(uint64_t oldHash, int oldC, int newC, int num_hash);
+    void advance_hash(char* read, uint64_t * hash0, uint64_t * hash1, int startPos, int endPos);
     
     //makes this a fake bloom filter that returns true only on specified kmers
     void fakify(std::set<bloom_elem> valid_kmers);    
@@ -182,6 +200,8 @@ public:
     
     void add(bloom_elem elem);
     int  contains(bloom_elem elem);
+    void add(uint64_t hash0, uint64_t hash1);
+    int contains(uint64_t hash0, uint64_t hash1);
     
     uint64_t tai;
     uint64_t nb_elem;
@@ -191,6 +211,7 @@ public:
 
     long weight();
 
+    Bloom(uint64_t tai_bloom, int k);
     Bloom(int tai_bloom);
     Bloom(uint64_t tai_bloom);
 

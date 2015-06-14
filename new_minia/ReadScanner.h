@@ -32,9 +32,6 @@ class ReadScanner{
 
 private:
     void allocateJunctionMap(uint64_t size);
-    inline bool jcheck(kmer_type kmer, int strand);
-    bool find_next_junction(int* pos, kmer_type * kmer, string read);
-    void smart_traverse_read(string read);
     void writeJunction(ofstream* jFile, junction toPrint);
     void updateJunction(junction* junc, int nucExt, int lengthFor, int lengthBack);
     void createJunction(kmer_type kmer, int nucExt);
@@ -45,16 +42,24 @@ private:
     set<kmer_type> nextRealSet;
     unordered_map<kmer_type, junction>::iterator juncIt;
     junction * juncInfo;
+    uint64_t hash0, hash1, nextHash0, nextHash1;
 
     int readLength;
     string reads_file;
-    kmer_type * last ;
-    kmer_type * nextList;
-    kmer_type * temp;
+
+    uint64_t ** lastHashes;
+    uint64_t ** nextHashes;
+    uint64_t ** tempor;
+
+
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
         NbSkipped, NbProcessed, readsProcessed, NbSolidKmer;
 
 public:
+    unordered_map<kmer_type,junction>  getJunctionMap();
+    void smart_traverse_read(string read);
+    bool find_next_junction(int* pos, kmer_type * kmer, string read);
+    bool jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1);
     void setJ(int j);
     void junctionMapToFile(string filename);
     void scanReads( int genome_size);

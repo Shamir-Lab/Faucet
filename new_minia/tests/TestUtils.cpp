@@ -15,6 +15,7 @@ using std::string;
 
 using namespace std;
 int64_t nb_reads;
+ReadScanner* scanner;
 kmer_type test_kmer;
 //Note: nuc order is ACTG = 0123
 
@@ -57,7 +58,7 @@ kmer_type getKmerFromString(string kmerString){
 }
 
 void loadBloom(Bloom* fakeBloom, string list[], int numKmers){
-    fakeBloom = new Bloom((uint64_t)0);
+    fakeBloom = new Bloom((uint64_t)0, 25);
 
     std::set<kmer_type> valids;
 

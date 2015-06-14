@@ -13,8 +13,9 @@ string valid_5mers[] = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT"
 
 void jcheck_testForwardJ1NoExtension(){
     char* testName = (char*)"jcheck_testForwardJ1WithNoExtension";
+    scanner->setJ(1);
 
-    bool jchecked = jcheck(getKmerFromString("TCCAT"),1,0,fakeBloom);
+    bool jchecked = scanner->jcheck(getKmerFromString("TCCAT"));
 
     if(jchecked){
         fail(testName,(char*)"It thought there was an extension.");
@@ -25,8 +26,9 @@ void jcheck_testForwardJ1NoExtension(){
 
 void jcheck_testForwardJ1WithExtension(){
     char* testName = (char*)"jcheck_testForwardJ1WithExtension";
+    scanner->setJ(1);
 
-    bool jchecked = jcheck(getKmerFromString("GTCCA"),1,0,fakeBloom);
+    bool jchecked = scanner->jcheck(getKmerFromString("GTCCA"));
 
     if(!jchecked){
         fail(testName, (char*)"It thought there was no extension.");
@@ -37,8 +39,9 @@ void jcheck_testForwardJ1WithExtension(){
 
 void jcheck_testForwardJ2WithExtension(){
     char* testName = (char*)"jcheck_testForwardJ2WithExtension";
+    scanner->setJ(2);
 
-    bool jchecked = jcheck(getKmerFromString("GAACT"),2,0,fakeBloom);
+    bool jchecked = scanner->jcheck(getKmerFromString("GAACT"));
     
     if(!jchecked){
         fail(testName, (char*)"It thought there was no extension.");
@@ -49,8 +52,9 @@ void jcheck_testForwardJ2WithExtension(){
 
 void jcheck_testForwardJ2WithNoExtension(){
     char* testName = (char*)"jcheck_testForwardJ2WithNoExtension";
+    scanner->setJ(2);
 
-    bool jchecked = jcheck(getKmerFromString("ACGAT"),2,0,fakeBloom);
+    bool jchecked = scanner->jcheck(getKmerFromString("ACGAT"));
 
     if(jchecked){
         fail(testName, (char*)"It thought there was an extension.");
@@ -61,8 +65,9 @@ void jcheck_testForwardJ2WithNoExtension(){
 
 void jcheck_testForwardJ17WithExtension(){
     char* testName = (char*)"jcheck_testForwardJ17WithExtension";
+    scanner->setJ(17);
 
-    bool jchecked = jcheck(getKmerFromString("ACGGG"),17,0,fakeBloom);
+    bool jchecked = scanner->jcheck(getKmerFromString("ACGGG"));
 
     if(!jchecked){
         fail(testName, (char*)"It thought there was no extension.");
@@ -72,9 +77,10 @@ void jcheck_testForwardJ17WithExtension(){
 }
 
 void jcheck_testForwardJ18WithNoExtension(){
+    scanner->setJ(18);
     char* testName = (char*)"jcheck_testForwardJ18WithNoExtension";
 
-    bool jchecked = jcheck(getKmerFromString("ACGGG"),18,0,fakeBloom);
+    bool jchecked = scanner->jcheck(getKmerFromString("ACGGG"));
 
     if(jchecked){
         fail(testName, (char*)"It thought there was an extension.");
@@ -87,8 +93,8 @@ void jcheck_testForwardJ18WithNoExtension(){
 
 void runJCheckTests(){
     setSizeKmer(5);
-    
     loadBloom(fakeBloom,valid_5mers, 28);
+    scanner = new ReadScanner("mockFileName", fakeBloom);
 
     jcheck_testForwardJ1WithExtension();
     jcheck_testForwardJ1NoExtension();

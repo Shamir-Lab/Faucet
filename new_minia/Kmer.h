@@ -57,7 +57,7 @@ int code2nucleotide( kmer_type code, int which_nucleotide);
 kmer_type extractKmerFromRead(char *readSeq, int position, kmer_type *graine, kmer_type *graine_revcomp);
 kmer_type extractKmerFromRead(char *readSeq, int position, kmer_type *graine, kmer_type *graine_revcomp, bool sequential);
 kmer_type extractKmerFromRead(char *readSeq, int position, kmer_type *graine, kmer_type *graine_revcomp, bool sequential, int sizeKmer, kmer_type kmerMask);
-
+kmer_type maskKmer(kmer_type kmer);
 // compute the next kmer w.r.t forward or reverse strand, e.g. for ACTG (revcomp = CAGT)
 // it makes sure the result is the min(kmer,revcomp_kmer)
 // indicates if the result is the revcomp_kmer by setting *strand 
@@ -70,6 +70,8 @@ void shift_kmer(kmer_type *graine, int added_nt, int strand); //shifts in place
 void getFirstKmerFromRead(kmer_type* kmer, char* read);
 kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, int strand);
 kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos);
+kmer_type rotate_right(kmer_type kmer, int dist);
+kmer_type rotate_left(kmer_type kmer, int dist);
 
 void revcomp_sequence(char* s, int len);
 

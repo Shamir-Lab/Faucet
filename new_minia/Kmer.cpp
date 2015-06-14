@@ -354,6 +354,9 @@ kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, int s
     return next_kmer(kmer,NT2int(read[nucPos]), strand);
 }
 
+kmer_type maskKmer(kmer_type kmer){
+    return kmer & kmerMask;
+}
 // void revcompread(char** read, int length){
 //     char* firstChar = *read;
 //     char temp;

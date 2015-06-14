@@ -2,7 +2,7 @@
 #define TRAVERSE_READS_TESTS
 
 #include "TestUtils.h"
-#include "../Debloom.h"
+#include "../ReadScanner.h"
 
 void runTraverseReadsTests();
 

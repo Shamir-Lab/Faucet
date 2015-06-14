@@ -5,5 +5,6 @@
 #include "JCheckTests.h"
 #include "FindNextJunctionTests.h"
 #include "TraverseReadsTests.h"
+#include "RollingHashTests.h"
 
 #endif
