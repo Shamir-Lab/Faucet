@@ -22,6 +22,7 @@ bool from_kmers = true;
 int read_length;
 uint64_t genome_size;
 bool get_kmers = false;//only to initially get the kmer files so i could use them, don't want to really use this code yet
+bool TwoHash = false;
 int64_t nb_reads;
 char* kmer_filename = (char*)"solid_27mers_100k";
 #include "Bloom.h"
@@ -105,6 +106,16 @@ if(argc <  8)
         strcpy(junctions_filename,argv[8]);
         printf("Junctions file name: %s \n", junctions_filename);
     }
+
+    if(argc > 9){
+        TwoHash = atoi(argv[9]);
+    }
+    if(TwoHash){
+        printf("Using 2 hash functions.");
+    }
+    else{
+        printf("Using space-optimal hash settings.");
+    }
 }
 
 inline void load_filter_from_reads(Bloom* bloo1, const char* reads_filename){
@@ -169,11 +180,34 @@ inline void load_filter_from_kmers(Bloom* bloo1, const char* kmers_filename){
     printf("Weight after load: %ld \n", bloo1->weight()); 
 }
 
-inline Bloom* create_bloom_filter(int estimated_items, float fpRate){
+inline Bloom* create_bloom_filter_2_hash(int estimated_items, float fpRate){
+     
+    Bloom * bloo1;
+    int bits_per_item = 2*(int)(1/pow(fpRate,.5));// needed to process argv[5]
+
+    printf("Bits per kmer: %d \n", bits_per_item);
+
+    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
+    uint64_t estimated_bloom_size = (uint64_t) (genome_size*bits_per_item);
+    printf("Estimated items: %lli \n", genome_size);
+    printf("Estimated bloom size: %lli .\n", estimated_bloom_size);
+    
+    printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
+    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
+
+
+    printf("Number of hash functions: %d \n", 2);
+    bloo1->set_number_of_hash_func(2);
+
+    return bloo1;
+}
+
+inline Bloom* create_bloom_filter_optimal(int estimated_items, float fpRate){
      
     Bloom * bloo1;
     int bits_per_item = -log(fpRate)/log(2)/log(2); // needed to process argv[5]
 
+    printf("Bits per kmer: %d \n", bits_per_item);
     // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
     uint64_t estimated_bloom_size = (uint64_t) (genome_size*bits_per_item);
     printf("Estimated items: %lli \n", genome_size);
@@ -182,12 +216,11 @@ inline Bloom* create_bloom_filter(int estimated_items, float fpRate){
     printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
     bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
 
-    printf("Bits per kmer: %d \n", bits_per_item);
 
     printf("Number of hash functions: %d \n", (int)floorf(0.7*bits_per_item));
     bloo1->set_number_of_hash_func((int)floorf(0.7*bits_per_item));
 
-return bloo1;
+    return bloo1;
 }
 
 void write_kmers(const char* reads_filename){
@@ -237,12 +270,19 @@ int main(int argc, char *argv[])
     }
 
     int estimated_kmers = genome_size;
-    Bloom* bloo1 = create_bloom_filter(estimated_kmers, fpRate);
-   
-   // if(from_kmers){
-   //      load_filter_from_kmers(bloo1, solids_file);
-   //      debloom_kpomerscan(solids_file, bloo1, j);
-   //  }
+
+    Bloom* bloo1;
+
+    if(TwoHash){
+        bloo1 = create_bloom_filter_2_hash(estimated_kmers, fpRate);
+    }
+    else{
+        bloo1 = create_bloom_filter_optimal(estimated_kmers, fpRate);
+    }
+    // if(from_kmers){
+    //      load_filter_from_kmers(bloo1, solids_file);
+    //      debloom_kpomerscan(solids_file, bloo1, j);
+    //  }
     load_filter_from_reads(bloo1, solids_file);
     ReadScanner* scanner = new ReadScanner(solids_file, bloo1);
     scanner->setJ(j);

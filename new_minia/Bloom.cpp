@@ -406,9 +406,8 @@ int Bloom::contains(bloom_elem elem)
 int Bloom::contains(uint64_t h0, uint64_t h1)
 {
     uint64_t h = h0;
-    for(int i=0; i<n_hash_func; i++, h += h1)
+    for(int i=0; i<n_hash_func; i++, h = (h+h1)%tai)
     {
-        h %= tai;
         if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
             return 0;
         }
