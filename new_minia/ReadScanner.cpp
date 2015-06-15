@@ -17,13 +17,35 @@ ReadScanner::ReadScanner(string readFile, Bloom* bloo1){
   }
   junctionMap = {};
   j = 0; //default no j-checking
+  spacerDist = 30;//default.
+}
+
+int ReadScanner::numPathsOut(junction j){
+  int numPaths = 0;
+  for(int i = 0; i < 4; i++){
+    if(j.ext[i] > 0){
+      numPaths++;
+    }
+  }
+  return numPaths;
+}
+
+int ReadScanner::getNumComplexJunctions(){
+  int count = 0;
+  for(juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
+     if(numPathsOut(juncIt->second) > 1){
+        count++;
+     }  
+  }
+  return count;
 }
 
 void ReadScanner::printScanSummary(){
-  printf("\n Distinct junctions: %d \n", junctionMap.size());
+  printf("\n Distinct junctions: %lli \n", junctionMap.size());
   printf(" Number of kmers that we j-checked: %lli \n", NbJCheckKmer);
   printf (" Number of reads with no junctions: %lli \n",NbNoJuncs);
-  printf("Number of skipped kmers: %lli \n", ((readLength-sizeKmer)*readsProcessed*2) - NbProcessed);
+  printf("Number of spacers: %lli \n", NbSpacers);
+  printf("Total number of kmers: %lli \n", (uint64_t)(readLength-sizeKmer)*(uint64_t)readsProcessed*(uint64_t)2);
   printf("Number of processed kmers: %lli \n", NbProcessed);
 }
 
@@ -39,14 +61,17 @@ void ReadScanner::setJ(int jVal){
 void ReadScanner::createJunction(kmer_type kmer, int nucExt){
     junction* junc = new junction;
     junc->ext[0] = 0, junc->ext[1] = 0, junc->ext[2] = 0, junc->ext[3] = 0;
+    junc->cov[0] = 0, junc->cov[1] = 0, junc->cov[2] = 0, junc->cov[3] = 0;
     junc->back = 0;
-    junc->ext[nucExt] = 1;                  
+    junc->ext[nucExt] = 1;       
+    junc->cov[nucExt] = 1;           
     junctionMap[kmer] = *junc;
 }
 
 //Updates the junc info based on finding a path of length length from the extension nucExt
 void ReadScanner::updateJunction(junction * junc, int nucExt, int lengthFor, int lengthBack){
       junc->ext[nucExt] = max(junc->ext[nucExt],(unsigned char) lengthFor);
+      junc->cov[nucExt] = junc->cov[nucExt]+1;
       junc->back = max(junc->back, (unsigned char) lengthBack);
 }
 
@@ -100,6 +125,10 @@ bool ReadScanner::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
 //pos and kmer of the next branch point. If it returns false, no guarantee- it ran off the end and we can handle that.
 bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
   
+  int lastSpacer = *pos;
+  kmer_type potentialSpacer;
+  int spacerExt;
+
   for (; *pos < read.length()-sizeKmer; (*pos)++)//for each pos in read
   {
     kmer_type next_real = next_kmer_in_read(*kmer,*pos,&read[0], 0);//get next real kmer
@@ -126,6 +155,19 @@ bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
           }
       }
     }
+    //handle potential spacers if there's no junction.
+    if(*pos - lastSpacer == spacerDist){ //if we've scanned one spacer worth, this could be a spacer!
+        potentialSpacer = *kmer;
+        spacerExt = NT2int(read[*pos + sizeKmer]);
+    }
+    if(*pos - lastSpacer == 2*spacerDist){//make the current potential spacer, this is the new potential spacer
+        createJunction(potentialSpacer, spacerExt);
+        NbSpacers++;
+        potentialSpacer = *kmer;
+        spacerExt =NT2int(read[*pos + sizeKmer]);
+        lastSpacer = *pos;
+    }
+
     shift_kmer(kmer, NT2int(read[*pos+sizeKmer]), 0); 
     bloom->advance_hash(&read[0], &hash0, &hash1, *pos, *pos+1);//advance hash values
 
@@ -219,10 +261,16 @@ void ReadScanner::scanReads(int genome_size)
   printf("Time in seconds for read scan: %f \n", difftime(stop,start));
 }
 
+//Kmer, then "ext,ext,ext,ext" then "cov,cov,cov,cov" for each of A,C,T,G in order.
 void ReadScanner::writeJunction(ofstream*jFile, junction toPrint){
   for(int i = 0; i < 4; i++){
-    *jFile << (int)toPrint.ext[i] << " " ;
+    *jFile << (int)toPrint.ext[i] << "," ;
   }
+  *jFile << " " ;
+  for(int i = 0; i < 4; i++){
+    *jFile << (int)toPrint.cov[i] << "," ;
+  }
+  *jFile << " ";
   *jFile << (int)toPrint.back << " ";
   *jFile << "\n";
 }
@@ -232,6 +280,7 @@ void ReadScanner::junctionMapToFile(string filename){
     jFile.open(filename);
     junction toPrint;
 
+    printf("There are %d complex junctions.\n", getNumComplexJunctions());
     printf("Writing to junction file\n");
     kmer_type kmer;
     for(juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){

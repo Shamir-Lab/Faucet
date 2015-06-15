@@ -25,18 +25,22 @@ using std::ofstream;
 
 struct junction{
     unsigned char ext[4];
+    unsigned char cov[4];
     unsigned char back;
 };
 
 class ReadScanner{
 
 private:
+    int numPathsOut(junction j);
+    int getNumComplexJunctions();
     void allocateJunctionMap(uint64_t size);
     void writeJunction(ofstream* jFile, junction toPrint);
     void updateJunction(junction* junc, int nucExt, int lengthFor, int lengthBack);
     void createJunction(kmer_type kmer, int nucExt);
     int j;
     Bloom* bloom;
+    int spacerDist;
     set<kmer_type> jcheckedSet;
     unordered_map<kmer_type,junction> junctionMap;
     set<kmer_type> nextRealSet;
@@ -53,7 +57,7 @@ private:
 
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
-        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer;
+        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer, NbSpacers;
 
 public:
     unordered_map<kmer_type,junction>  getJunctionMap();
