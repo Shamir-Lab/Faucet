@@ -176,21 +176,105 @@ protected:
     int n_hash_func;
     uint64_t nchar;
     int k;
+
+    //only relevant for a fake bloom
+    bool fake;
+
+    int hashSize;
+    uint64_t bloomMask;
+    std::set<bloom_elem> valid_set;
+
 public:
     int getHashSize();
     uint64_t getBloomMask();
 
     unsigned char * blooma;
-    //rotates kmer to the right by dist. Assume 0 < dist < sizeKmer
-    uint64_t  rotate_right(uint64_t  kmer, int dist);
-    //rotates kmer to the right by dist. Assume 0 < dist < sizeKmer
-    uint64_t  rotate_left(uint64_t  kmer, int dist);
+    
+    //rotates hash to the right by dist. Assume 0 < dist < hashSize
+    inline uint64_t  rotate_right(uint64_t  hash, int dist){
+        dist %= hashSize;
+        return ((hash >> dist) | (hash << (hashSize - dist))) & bloomMask;
+    }
+
+    //rotates hash to the right by dist. Assume 0 < dist < hashSize
+    inline uint64_t  rotate_left(uint64_t  hash, int dist){
+        dist %= hashSize;
+        return ((hash << dist) | (hash >> (hashSize - dist))) & bloomMask;
+    }
 
     //only for num_hash = 0 or 1
     uint64_t get_rolling_hash(uint64_t key, int num_hash);
-    uint64_t roll_hash(uint64_t oldHash, int oldC, int newC, int num_hash);
-    void advance_hash(char* read, uint64_t * hash0, uint64_t * hash1, int startPos, int endPos);
+
+    inline uint64_t roll_hash(uint64_t oldHash, int oldC, int newC, int num_hash){
+      return rotate_left(oldHash ^ getCharHash(oldC, num_hash), 1) ^ rotate_right(getLastCharHash(newC, num_hash), k-1);
+    }
+
+    inline void advance_hash(char* read, uint64_t * hash0, uint64_t * hash1, int startPos, int endPos){
+        for(int i = startPos; i < endPos; i++){
+            *hash0 = roll_hash(*hash0, NT2int(read[i]), NT2int(read[i+sizeKmer]), 0);
+            *hash1 = roll_hash(*hash1, NT2int(read[i]), NT2int(read[i+sizeKmer]), 1);
+        }
+    }
     
+    inline void add(bloom_elem elem)
+    {
+        uint64_t hA,hB;
+
+        hA = get_rolling_hash(elem, 0);
+        hB = get_rolling_hash(elem, 1);
+
+        add(hA, hB);    
+    }
+
+
+    inline void add(uint64_t h0, uint64_t h1)
+    {
+        blooma [h0 >> 3] |= bit_mask[h0 & 7];
+        blooma [h1 >> 3] |= bit_mask[h1 & 7];
+        /*uint64_t h = h0;
+        for(int i=0; i<n_hash_func; i++, h += h1)
+        {
+            h %= tai;
+            blooma [h >> 3] |= bit_mask[h & 7];
+        }
+        */
+    }
+
+    inline int contains(bloom_elem elem)
+    {
+        if(fake){
+            return (valid_set.find(elem) != valid_set.end());
+        }
+        uint64_t hA,hB;
+
+        hA = get_rolling_hash(elem, 0);
+        hB = get_rolling_hash(elem, 1);
+
+        return contains(hA, hB);
+    }
+
+    inline int contains(uint64_t h0, uint64_t h1)
+    { 
+        if ((blooma[h0 >> 3 ] & bit_mask[h0 & 7]) != 
+            bit_mask[h0 & 7]){
+                return 0;
+        }
+        if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != 
+            bit_mask[h1 & 7]){
+                return 0;
+        }
+        return 1;
+        /*uint64_t h = h0;
+        for(int i=0; i<n_hash_func; i++, h = (h+h1)%tai)
+        {
+            if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
+                return 0;
+            }
+        }
+        return 1;
+        */
+    }
+
     //makes this a fake bloom filter that returns true only on specified kmers
     void fakify(std::set<bloom_elem> valid_kmers);    
 
@@ -198,10 +282,10 @@ public:
 
     void set_number_of_hash_func(int i) ;
     
-    void add(bloom_elem elem);
+    /*void add(bloom_elem elem);
     int  contains(bloom_elem elem);
     void add(uint64_t hash0, uint64_t hash1);
-    int contains(uint64_t hash0, uint64_t hash1);
+    int contains(uint64_t hash0, uint64_t hash1);*/
     
     uint64_t tai;
     uint64_t nb_elem;

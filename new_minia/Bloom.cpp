@@ -13,17 +13,11 @@
 #include "Bloom.h"
 #include <set>
 
-//only relevant for a fake bloom
-bool fake = false;
-int hashSize;
-uint64_t bloomMask;
-std::set<bloom_elem> valid_set;
-
-int getHashSize(){
+int Bloom::getHashSize(){
     return hashSize;
 }
 
-uint64_t getBloomMask(){
+uint64_t Bloom::getBloomMask(){
     return bloomMask;
 }
 
@@ -191,8 +185,10 @@ Bloom::Bloom(int tai_bloom)
     this->generate_hash_seed();
 }
 
+
  Bloom::Bloom(uint64_t tai_bloom, int kVal)
  {
+    fake = false;
      //printf("custom construc \n");
     k = kVal;
      n_hash_func = 4 ;//def
@@ -224,18 +220,6 @@ uint64_t Bloom::getLastCharHash(uint64_t key, int num_hash){
     return char_hash[num_hash][(int)(key & 3)];
 }
 
-//rotates kmer to the right by dist. Assume 0 < dist < hashSize
-uint64_t  Bloom::rotate_right(uint64_t  hash, int dist){
-    dist %= hashSize;
-    return ((hash >> dist) | (hash << (hashSize - dist))) & bloomMask;
-}
-
-//rotates kmer to the right by dist. Assume 0 < dist < hashSize
-uint64_t  Bloom::rotate_left(uint64_t  hash, int dist){
-    dist %= hashSize;
-    return ((hash << dist) | (hash >> (hashSize - dist))) & bloomMask;
-}
-
 //only for num_hash = 0 or 1
 uint64_t Bloom::get_rolling_hash(uint64_t key, int num_hash)
 {
@@ -246,17 +230,6 @@ uint64_t Bloom::get_rolling_hash(uint64_t key, int num_hash)
         hash ^= getLastCharHash(key, num_hash);
     }
     return hash;
-}
-
-uint64_t Bloom::roll_hash(uint64_t oldHash, int oldC, int newC, int num_hash){
-    return rotate_left(oldHash ^ getCharHash(oldC, num_hash), 1) ^ rotate_right(getLastCharHash(newC, num_hash), k-1);
-}
-
-void Bloom::advance_hash(char* read, uint64_t * hash0, uint64_t * hash1, int startPos, int endPos){
-    for(int i = startPos; i < endPos; i++){
-        *hash0 = roll_hash(*hash0, NT2int(read[i]), NT2int(read[i+sizeKmer]), 0);
-        *hash1 = roll_hash(*hash1, NT2int(read[i]), NT2int(read[i+sizeKmer]), 1);
-    }
 }
 
 // //tai is 2^tai_bloom
@@ -367,55 +340,6 @@ long Bloom::weight()
     }
     return weight;
 }
-
-
-void Bloom::add(bloom_elem elem)
-{
-    uint64_t hA,hB;
-
-    hA = get_rolling_hash(elem, 0);
-    hB = get_rolling_hash(elem, 1);
-
-    add(hA, hB);    
-}
-
-
-void Bloom::add(uint64_t h0, uint64_t h1)
-{
-    uint64_t h = h0;
-    for(int i=0; i<n_hash_func; i++, h += h1)
-    {
-        h %= tai;
-        blooma [h >> 3] |= bit_mask[h & 7];
-    }
-}
-
-int Bloom::contains(bloom_elem elem)
-{
-    if(fake){
-        return (valid_set.find(elem) != valid_set.end());
-    }
-    uint64_t hA,hB;
-
-    hA = get_rolling_hash(elem, 0);
-    hB = get_rolling_hash(elem, 1);
-
-    return contains(hA, hB);
-}
-
-int Bloom::contains(uint64_t h0, uint64_t h1)
-{
-    uint64_t h = h0;
-    for(int i=0; i<n_hash_func; i++, h = (h+h1)%tai)
-    {
-        if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
-            return 0;
-        }
-    }
-    return 1;
-}
-
-
 
 void BloomCpt::add(bloom_elem elem)
 {

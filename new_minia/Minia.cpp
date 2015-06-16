@@ -211,7 +211,7 @@ inline Bloom* create_bloom_filter_optimal(int estimated_items, float fpRate){
     // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
     uint64_t estimated_bloom_size = (uint64_t) (genome_size*bits_per_item);
     printf("Estimated items: %lli \n", genome_size);
-    printf("Estimated bloom size: %d .\n", (int)estimated_bloom_size);
+    printf("Estimated bloom size: %lli.\n", estimated_bloom_size);
     
     printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
     bloo1 = new Bloom(estimated_bloom_size, sizeKmer);

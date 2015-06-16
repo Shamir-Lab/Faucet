@@ -41,7 +41,7 @@ int ReadScanner::getNumComplexJunctions(){
 }
 
 void ReadScanner::printScanSummary(){
-  printf("\n Distinct junctions: %lli \n", junctionMap.size());
+  printf("\n Distinct junctions: %lli \n", (uint64_t)junctionMap.size());
   printf(" Number of kmers that we j-checked: %lli \n", NbJCheckKmer);
   printf (" Number of reads with no junctions: %lli \n",NbNoJuncs);
   printf("Number of spacers: %lli \n", NbSpacers);
@@ -125,9 +125,11 @@ bool ReadScanner::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
 //pos and kmer of the next branch point. If it returns false, no guarantee- it ran off the end and we can handle that.
 bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
   
+  /*
   int lastSpacer = *pos;
   kmer_type potentialSpacer;
   int spacerExt;
+  */
 
   for (; *pos < read.length()-sizeKmer; (*pos)++)//for each pos in read
   {
@@ -156,7 +158,8 @@ bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
       }
     }
     //handle potential spacers if there's no junction.
-    if(*pos - lastSpacer == spacerDist){ //if we've scanned one spacer worth, this could be a spacer!
+    
+    /*if(*pos - lastSpacer == spacerDist){ //if we've scanned one spacer worth, this could be a spacer!
         potentialSpacer = *kmer;
         spacerExt = NT2int(read[*pos + sizeKmer]);
     }
@@ -167,6 +170,7 @@ bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
         spacerExt =NT2int(read[*pos + sizeKmer]);
         lastSpacer = *pos;
     }
+    */
 
     shift_kmer(kmer, NT2int(read[*pos+sizeKmer]), 0); 
     bloom->advance_hash(&read[0], &hash0, &hash1, *pos, *pos+1);//advance hash values
