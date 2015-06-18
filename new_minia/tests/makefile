@@ -1,5 +1,5 @@
 CFLAGS+= -O4 -D_FILE_OFFSET_BITS=64 # needed to handle files > 2 GB on 32 bits systems
-SRC=../Bloom.cpp ../Kmer.cpp ../ReadScanner.cpp  TestUtils.cpp JCheckTests.cpp FindNextJunctionTests.cpp TraverseReadsTests.cpp KmerTests.cpp RollingHashTests.cpp RunTests.cpp
+SRC=../Bloom.cpp ../Kmer.cpp ../ReadScanner.cpp  TestUtils.cpp JCheckTests.cpp FindNextJunctionTests.cpp TraverseReadsTests.cpp KmerTests.cpp RollingHashTests.cpp BloomTests.cpp RunTests.cpp
 EXEC=miniaTests
 OBJ= $(SRC:.cpp=.o)
 

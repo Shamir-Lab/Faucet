@@ -96,7 +96,6 @@ bool ReadScanner::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
       for(int nt = 0; nt < 4; nt++){ //for each possible extension
         nextHash0 = bloom->roll_hash(workingHash0, NT2int(kmerSeq[i]), nt, 0);
         nextHash1 = bloom->roll_hash(workingHash1, NT2int(kmerSeq[i]), nt, 1);
-
         if(bloom->contains(nextHash0, nextHash1)){ //add to next level if it's in the bloom filter
           if(i == (j-1)){
             return true;//if this is the last level return true after the first check
@@ -140,7 +139,6 @@ bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
       if(next_real != next_test && next_real != *kmer && next_test != *kmer){//if the branch has 3 distinct kmers
         nextHash0 = bloom->roll_hash(hash0, NT2int(read[*pos]), nt, 0);
         nextHash1 = bloom->roll_hash(hash1, NT2int(read[*pos]), nt, 1);
-
         if(bloom->contains(nextHash0, nextHash1))//if the branch checks out initially
         { 
             juncIt = junctionMap.find(*kmer);
@@ -295,3 +293,4 @@ void ReadScanner::junctionMapToFile(string filename){
     printf("Done writing to junction file\n");
     jFile.close();
 }
+

@@ -5,10 +5,11 @@
 int main(int argc, char *argv[]){
 
     runKmerTests();
-    runJCheckTests();
-    runFindNextJunctionTests();
-    runTraverseReadsTests();
     runRollingHashTests();
+    runBloomTests();
+    runJCheckTests();
+    //runFindNextJunctionTests();
+    //runTraverseReadsTests();
     
     return 0;
 }

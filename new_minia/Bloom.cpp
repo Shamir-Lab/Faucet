@@ -28,17 +28,13 @@ Bloom::Bloom()
     blooma = NULL;
 }
 
-BloomCpt::BloomCpt()
-{
-    //empty default constructor
-    nb_elem = 0;
-    blooma = NULL;
-
-}
-
 void Bloom::fakify(std::set<bloom_elem> valid_kmers){
     fake = true;
     valid_set = valid_kmers;
+    for(auto it = valid_set.begin(); it != valid_set.end(); it++){
+        valid_hash0.insert(get_rolling_hash(*it,0));
+        valid_hash1.insert(get_rolling_hash(*it,1));
+    }
 }
 
 void Bloom::setSeed(uint64_t seed)
@@ -232,81 +228,12 @@ uint64_t Bloom::get_rolling_hash(uint64_t key, int num_hash)
     return hash;
 }
 
-// //tai is 2^tai_bloom
-BloomCpt::BloomCpt(int tai_bloom)
-{
-    n_hash_func = 2;
-    user_seed = 0;
-    nb_elem = 0;
-    tai = (1LL << tai_bloom);
-    blooma =(unsigned char *)  malloc( (tai/2) *sizeof(unsigned char)); //4bits per elem
-    memset(blooma,0,(tai/2) *sizeof(unsigned char));
-    
-    fprintf(stderr,"malloc bloom cpt  %lli MB \n",(tai/2LL)/1024LL/1024LL);
-    this->generate_hash_seed();
-}
-
-
-// //tai is 2^tai_bloom
-BloomCpt3::BloomCpt3(int tai_bloom)
-{
-
-    n_hash_func = 2;
-    user_seed = 0;
-    nb_elem = 0;
-    tai = (1LL << tai_bloom);
-    //blooma =(unsigned char *)  malloc( (tai/2) *sizeof(unsigned char)); //4bits per elem
-    blooma3 = (uint64_t*)  malloc( ((tai/21)+1) *sizeof(uint64_t)); //3bits per elem, 21 elem per uint64
-
-    memset(blooma3,0, ((tai/21)+1) *sizeof(uint64_t));
-    
-    fprintf(stderr,"malloc bloom cpt64 3 bits    %lli MB \n",8*(tai/21LL)/1024LL/1024LL);
-    this->generate_hash_seed();
-}
-
-
-// //tai is 2^tai_bloom
-BloomCpt2::BloomCpt2(int tai_bloom)
-{
-
-    n_hash_func = 2;
-    user_seed = 0;
-    nb_elem = 0;
-    tai = (1LL << tai_bloom);
-    //blooma =(unsigned char *)  malloc( (tai/2) *sizeof(unsigned char)); //4bits per elem
-    blooma2 = (uint64_t*)  malloc( (tai/32) *sizeof(uint64_t)); //2bits per elem, 32 elem per uint64
-
-    memset(blooma2,0, (tai/32) *sizeof(uint64_t));
-    
-    fprintf(stderr,"malloc bloom cpt64 2 bits    %lli MB \n",8*(tai/32LL)/1024LL/1024LL);
-    this->generate_hash_seed();
-}
-
-
-
-
 
 Bloom::~Bloom()
 {
   if(blooma!=NULL) 
     free(blooma);
 }
-
-BloomCpt3::~BloomCpt3()
-{
-  if(blooma3!=NULL) 
-    free(blooma3);
-}
-
-
-BloomCpt2::~BloomCpt2()
-{
-  if(blooma2!=NULL) 
-    free(blooma2);
-}
-
-
-
 
 void Bloom::dump(char * filename)
 {
@@ -341,158 +268,22 @@ long Bloom::weight()
     return weight;
 }
 
-void BloomCpt::add(bloom_elem elem)
-{
-  uint64_t h1;
-    unsigned char val,cpt_per_key;
+Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate){
+     
+    Bloom * bloo1;
+    int bits_per_item = -log(fpRate)/log(2)/log(2); // needed to process argv[5]
+
+    //printf("Bits per kmer: %d \n", bits_per_item);
+    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
+    uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
+    //printf("Estimated items: %lli \n", estimated_items);
+    //printf("Estimated bloom size: %lli.\n", estimated_bloom_size);
     
-    int i;
-    for(i=0; i<n_hash_func; i++)
-    {
-        
-        h1 = hash_func(elem,i) & (tai-1);
-        val = blooma [h1 / cpt_per_char];
-        cpt_per_key = (val & cpt_mask[h1 & 1]) >> (4* (h1 & 1)) ;
-        cpt_per_key++;
-        if(cpt_per_key==16) cpt_per_key = 15; //satur at 15
-        val  &= ~ cpt_mask[h1 & 1];
-        val  |= cpt_per_key << (4* (h1 & 1)) ; 
-        blooma [h1 / cpt_per_char] = val;
-    }
-    
-    
-}
+    //printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
+    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
 
+    //printf("Number of hash functions: %d \n", (int)floorf(0.7*bits_per_item));
+    bloo1->set_number_of_hash_func((int)floorf(0.7*bits_per_item));
 
-//9698232370296160
-int  BloomCpt::contains_n_occ(bloom_elem elem, int nks)
-{
-  uint64_t h1;
-    unsigned char cpt_per_key;
-    int i;
-
-    for(i=0; i<n_hash_func; i++)
-    {
-        h1 = hash_func(elem,i) & (tai-1);
-        
-        cpt_per_key = (blooma [h1 / cpt_per_char] & cpt_mask[h1 & 1]) >> (4* (h1 & 1));
-
-	if(cpt_per_key<nks) return 0;
-    }
-    
-    return 1;
-    
-}
-
-
-
-
-
-
-void BloomCpt3::add(bloom_elem elem)
-{
-  uint64_t h1,val;
-  uint64_t cpt_per_key;
-    
-    int i;
-    //	printf("Add elem \n");
-    // printf ("\nadd3 elem %lli \n",elem);
-
-    for(i=0; i<n_hash_func; i++)
-    {
-        
-        h1 = hash_func(elem,i) & (tai-1);
-	// printf("--h1 %lli %lli  m%016llX\n",h1, h1%21,cpt_mask21[h1 % 21]);
-        val = blooma3 [h1 / 21]; //21 elem per uint64
-	//if(elem==9698232370296160) 	printf("--%016llX\n", val);
-
-        cpt_per_key = (val & cpt_mask21[h1 % 21]) >> (3* (h1 %21)) ;
-        cpt_per_key++;
-        if(cpt_per_key==8) cpt_per_key = 7; //satur at 7
-        val  &= ~ cpt_mask21[h1 % 21];
-        val  |= cpt_per_key << (3* (h1 % 21)) ; 
-        blooma3 [h1 / 21] = val;
-	//	if(elem==9698232370296160)	printf("--%016llX  %i\n", val,cpt_per_key);
-
-    }
-    
-    
-}
-
-
-int  BloomCpt3::contains_n_occ(bloom_elem elem, int nks)
-{
-    uint64_t h1;
-    unsigned char cpt_per_key;
-    int i;
-    //	printf("--contains-- \n");
-    // if(elem==9698232370296160) printf ("\nquery3 elem %lli \n",elem);
-
-    for(i=0; i<n_hash_func; i++)
-    {
-        h1 = hash_func(elem,i) & (tai-1);
-	//  	printf("h1 %lli \n",h1);
-
-        cpt_per_key = (blooma3 [h1 / 21] & cpt_mask21[h1 % 21]) >> (3* (h1 % 21));
-
-	//printf("%016llX\n", blooma3 [h1 / 21]);
-	//printf("cpt %i \n", cpt_per_key);
-        //if(elem==9698232370296160) printf("bloocpt3 %i \n", cpt_per_key);
-
-        if(cpt_per_key<nks) return 0;
-    }
-    
-    return 1;
-    
-}
-
-
-
-
-void BloomCpt2::add(bloom_elem elem)
-{
-  uint64_t h1,val;
-  uint64_t cpt_per_key;
-    
-    int i;
-    //	printf("Add elem \n");
-    // printf ("\nadd3 elem %lli \n",elem);
-
-    for(i=0; i<n_hash_func; i++)
-    {
-        
-        h1 = hash_func(elem,i) & (tai-1);
-        val = blooma2 [h1 / 32]; //32 elem per uint64
-
-        cpt_per_key = (val & cpt_mask32[h1 & 31]) >> (2* (h1 & 31)) ;
-        cpt_per_key++;
-        if(cpt_per_key==4) cpt_per_key = 3; //satur at 3
-        val  &= ~ cpt_mask32[h1 & 31];
-        val  |= cpt_per_key << (2* (h1 & 31)) ; 
-        blooma2 [h1 / 32] = val;
-	//	if(elem==9698232370296160)	printf("--%016llX  %i\n", val,cpt_per_key);
-
-    }
-    
-    
-}
-
-int  BloomCpt2::contains_n_occ(bloom_elem elem, int nks)
-{
-    uint64_t h1;
-    unsigned char cpt_per_key;
-    int i;
-
-    for(i=0; i<n_hash_func; i++)
-    {
-        h1 = hash_func(elem,i) & (tai-1);
-
-        cpt_per_key = (blooma2 [h1 / 32] & cpt_mask32[h1 & 31]) >> (2* (h1 & 31));
-
-
-        if(cpt_per_key<nks) return 0;
-    }
-    
-    return 1;
-    
+    return bloo1;
 }

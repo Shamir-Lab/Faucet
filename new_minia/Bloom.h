@@ -183,6 +183,8 @@ protected:
     int hashSize;
     uint64_t bloomMask;
     std::set<bloom_elem> valid_set;
+    std::set<uint64_t> valid_hash0;
+    std::set<uint64_t> valid_hash1;
 
 public:
     int getHashSize();
@@ -216,6 +218,19 @@ public:
         }
     }
     
+    inline uint64_t oldHash(uint64_t key, int num_hash){
+      uint64_t hash = seed_tab[num_hash];
+      hash ^= (hash <<  7) ^  key * (hash >> 3) ^ (~((hash << 11) + (key ^ (hash >> 5))));
+      hash = (~hash) + (hash << 21); // hash = (hash << 21) - hash - 1;
+      hash = hash ^ (hash >> 24);
+      hash = (hash + (hash << 3)) + (hash << 8); // hash * 265
+      hash = hash ^ (hash >> 14);
+      hash = (hash + (hash << 2)) + (hash << 4); // hash * 21
+      hash = hash ^ (hash >> 28);
+      hash = hash + (hash << 31);
+      return hash &= bloomMask;
+    }
+
     inline void add(bloom_elem elem)
     {
         uint64_t hA,hB;
@@ -229,15 +244,25 @@ public:
 
     inline void add(uint64_t h0, uint64_t h1)
     {
-        blooma [h0 >> 3] |= bit_mask[h0 & 7];
-        blooma [h1 >> 3] |= bit_mask[h1 & 7];
-        /*uint64_t h = h0;
+        uint64_t h = h0;
         for(int i=0; i<n_hash_func; i++, h += h1)
         {
             h %= tai;
             blooma [h >> 3] |= bit_mask[h & 7];
         }
-        */
+    }
+
+    inline int oldContains(bloom_elem elem)
+    {
+        if(fake){
+            return (valid_set.find(elem) != valid_set.end());
+        }
+        uint64_t hA,hB;
+
+        hA = oldHash(elem, 0);
+        hB = oldHash(elem, 1);
+
+        return contains(hA, hB);
     }
 
     inline int contains(bloom_elem elem)
@@ -255,16 +280,11 @@ public:
 
     inline int contains(uint64_t h0, uint64_t h1)
     { 
-        if ((blooma[h0 >> 3 ] & bit_mask[h0 & 7]) != 
-            bit_mask[h0 & 7]){
-                return 0;
-        }
-        if ((blooma[h1 >> 3 ] & bit_mask[h1 & 7]) != 
-            bit_mask[h1 & 7]){
-                return 0;
-        }
-        return 1;
-        /*uint64_t h = h0;
+      if(fake){
+        return (valid_hash0.find(h0) != valid_hash0.end()) 
+          && (valid_hash1.find(h1) != valid_hash1.end());
+      }
+        uint64_t h = h0;
         for(int i=0; i<n_hash_func; i++, h = (h+h1)%tai)
         {
             if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
@@ -272,7 +292,7 @@ public:
             }
         }
         return 1;
-        */
+        
     }
 
     //makes this a fake bloom filter that returns true only on specified kmers
@@ -304,6 +324,7 @@ public:
     
     ~Bloom();
     
+    Bloom* create_bloom_filter_optimal(uint64_t estimated_items, float fpRate);
 };
 
 

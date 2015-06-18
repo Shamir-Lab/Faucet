@@ -96,7 +96,7 @@ void findNextJunction_J1_Find2Branch(){
 }
 
 void runFindNextJunctionTests(){
-    loadBloom(bloomFake, real_5mers,30);
+    bloomFake = loadBloom(real_5mers,30,5);
     scanner = new ReadScanner("mockFile", bloomFake);
     
    findNextJunction_J1_testFromStart();

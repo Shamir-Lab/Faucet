@@ -16,6 +16,19 @@ uint64_t nsolids = 0;
 kmer_type kmerMask;    
 kmer_type kmerMaskm1;
 
+void setSizeKmer(int k){
+    sizeKmer = k;
+    if (sizeKmer>((int)sizeof(kmer_type)*4))
+    {
+        printf("Max kmer size on this compiled version is %u\n",sizeof(kmer_type)*4);
+        exit(1);
+    }
+    if (sizeKmer == (int)(sizeof(kmer_type)*4))
+        kmerMask = -1;
+    else
+        kmerMask=(((kmer_type)1)<<(sizeKmer*2))-1;
+}
+
 int NT2int(char nt)
 {
     int i;

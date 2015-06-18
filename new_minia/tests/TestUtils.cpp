@@ -19,17 +19,6 @@ ReadScanner* scanner;
 kmer_type test_kmer;
 //Note: nuc order is ACTG = 0123
 
-void setSizeKmer(int k){
-    sizeKmer = k;
-    //kmer mask is correct!
-    if (sizeKmer == (int)(sizeof(kmer_type)*4))
-        kmerMask = -1;
-    else
-        kmerMask=(((kmer_type)1)<<(sizeKmer*2))-(kmer_type)1;
-    //test kmer is a reasonable nontrivial sequence.
-    test_kmer = ((uint64_t)3091834598457230) & kmerMask;
-}
-
 bool kmer_matches_readseq(char* read, kmer_type kmer, int i){
     char* kmerSeq = new char[sizeKmer];
     code2seq(kmer, kmerSeq);
@@ -57,16 +46,17 @@ kmer_type getKmerFromString(string kmerString){
     return kmer;
 }
 
-void loadBloom(Bloom* fakeBloom, string list[], int numKmers){
-    fakeBloom = new Bloom((uint64_t)0, 25);
+Bloom* loadBloom(string list[], int numKmers, int k){
+    Bloom* fakeBloom = new Bloom((uint64_t)10000, k);
 
     std::set<kmer_type> valids;
 
     kmer_type kmer;
     for(int i = 0; i < numKmers; i++){
-        valids.insert(get_canon(getKmerFromString(list[i])));
+        valids.insert(getKmerFromString(list[i]));
     }
     fakeBloom->fakify(valids);
+    return fakeBloom;
 }
 
 void fail(char* testName, char* errorMessage){

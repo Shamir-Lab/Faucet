@@ -68,17 +68,7 @@ if(argc <  8)
     printf("Reads file name: %s \n", solids_file);
 
     // 2rd arg: kmer size.
-    sizeKmer=27;
-    sizeKmer = atoi(argv[2]);
-    if (sizeKmer>((int)sizeof(kmer_type)*4))
-    {
-        printf("Max kmer size on this compiled version is %u\n",sizeof(kmer_type)*4);
-        exit(1);
-    }
-    if (sizeKmer == (int)(sizeof(kmer_type)*4))
-        kmerMask = -1;
-    else
-        kmerMask=(((kmer_type)1)<<(sizeKmer*2))-1;
+    setSizeKmer(atoi(argv[2]));
     printf("k: %d: \n", sizeKmer);
 
     //3rd arg: read length
@@ -202,27 +192,6 @@ inline Bloom* create_bloom_filter_2_hash(int estimated_items, float fpRate){
     return bloo1;
 }
 
-inline Bloom* create_bloom_filter_optimal(int estimated_items, float fpRate){
-     
-    Bloom * bloo1;
-    int bits_per_item = -log(fpRate)/log(2)/log(2); // needed to process argv[5]
-
-    printf("Bits per kmer: %d \n", bits_per_item);
-    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
-    uint64_t estimated_bloom_size = (uint64_t) (genome_size*bits_per_item);
-    printf("Estimated items: %lli \n", genome_size);
-    printf("Estimated bloom size: %lli.\n", estimated_bloom_size);
-    
-    printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
-    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
-
-
-    printf("Number of hash functions: %d \n", (int)floorf(0.7*bits_per_item));
-    bloo1->set_number_of_hash_func((int)floorf(0.7*bits_per_item));
-
-    return bloo1;
-}
-
 void write_kmers(const char* reads_filename){
     ifstream solidReads;
     solidReads.open(reads_filename);
@@ -274,7 +243,7 @@ int main(int argc, char *argv[])
     Bloom* bloo1;
 
     if(TwoHash){
-        bloo1 = create_bloom_filter_2_hash(estimated_kmers, fpRate);
+        bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
     }
     else{
         bloo1 = create_bloom_filter_optimal(estimated_kmers, fpRate);

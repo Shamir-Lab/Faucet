@@ -6,5 +6,6 @@
 #include "FindNextJunctionTests.h"
 #include "TraverseReadsTests.h"
 #include "RollingHashTests.h"
+#include "BloomTests.h"
 
 #endif

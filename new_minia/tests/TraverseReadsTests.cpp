@@ -89,7 +89,7 @@ void testTraverseReadTwice_SameJuncs(){
 
 void runTraverseReadsTests(){
     setSizeKmer(5);
-    loadBloom(bloom_fake, inserted_5mers,30);
+    bloom_fake = loadBloom(inserted_5mers,30,5);
 
     testTraverseReads_J0();
     testTraverseReads_J1();
