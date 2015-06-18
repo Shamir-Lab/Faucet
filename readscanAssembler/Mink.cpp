@@ -19,12 +19,13 @@ int j = 0;
 char* junctions_filename = new char[100];
 char* solids_file = new char[100];
 int read_length;
-uint64_t genome_size;bool TwoHash = false;
+uint64_t genome_size;
+bool TwoHash = false;
 int64_t nb_reads;
 char* kmer_filename = (char*)"solid_27mers_100k";
 #include "Bloom.h"
 #include "Kmer.h"
-#include "KpomerScanner.h"
+#include "ReadScanner.h"
 #include "JChecker.h"
 #include <iostream>
 #include <fstream>
@@ -36,13 +37,14 @@ set<kmer_type> all_kmers;
 To run the new version, type make in the directory to compile.
 
 Then, type ./minia 1 2 3 4 5 6 [7] [8], where
-1 = name of kmers file (current format is each line has a string of characters representing the kmer)
+1 = name of reads file (current format is each line has a string of characters representing the read)
 2 = k
-3 = number of distinct kmers.  This will be used to size the bloom filter so try to have a good estimate.
-4 = false positive rate (.01 is a good base rate) 
-5 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
-6 = junctions file name.  Will print out to this file. If no filename is given, no file will be printed.
-7 = TwoHash.  True if you want to use a bigger bloom filter with only two hash functions.
+3 = read length
+4 = number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
+5 = false positive rate (.01 is a good base rate) 
+6 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
+7 = junctions file name.  Will print out to this file. If no filename is given, no file will be printed.
+8 = TwoHash.  True if you want to use a bigger bloom filter with only two hash functions.
     Can only use this is you also put in something for 7.
 [] indicate optional arguments.
 
@@ -51,7 +53,7 @@ No error correction corrently, and no assembly.
 */
 
 inline int handle_arguments(int argc, char *argv[]){
-if(argc <  6)
+if(argc <  7)
     {
         fprintf (stderr,"usage:\n");
         fprintf (stderr," %s input_file kmer_size min_abundance estimated_nb_reads prefix\n",argv[0]);
@@ -62,30 +64,33 @@ if(argc <  6)
 
     //1st arg: read file name
     strcpy(solids_file,argv[1]);
-    printf("Kmers file name: %s \n", solids_file);
+    printf("Reads file name: %s \n", solids_file);
 
     // 2rd arg: kmer size.
     setSizeKmer(atoi(argv[2]));
     printf("k: %d: \n", sizeKmer);
 
+    //3rd arg: read length
+    read_length = atoi(argv[3]);
+
     //4th arg: number of reads
-    genome_size = atoll(argv[3]);
+    genome_size = atoll(argv[4]);
     printf("Genome size: %lli .\n", genome_size);
     
     //5th arg: false posiive rate
-    fpRate = atof(argv[4]);
+    fpRate = atof(argv[5]);
 
     //6th arg: j
-    j = atoi(argv[5]);
+    j = atoi(argv[6]);
     printf("j: %d \n", j);
 
-    if(argc > 5){
-        strcpy(junctions_filename,argv[6]);
+    if(argc > 6){
+        strcpy(junctions_filename,argv[7]);
         printf("Junctions file name: %s \n", junctions_filename);
     }
 
-    if(argc > 6){
-        TwoHash = atoi(argv[7]);
+    if(argc > 7){
+        TwoHash = atoi(argv[8]);
     }
     if(TwoHash){
         printf("Using 2 hash functions.");
@@ -94,43 +99,7 @@ if(argc <  6)
         printf("Using space-optimal hash settings.");
     }
 }
-
-void write_kmers(const char* reads_filename){
-    ifstream solidReads;
-    solidReads.open(reads_filename);
-    kmer_type kmer;
-    char* kmerSeq = new char[sizeKmer];
-    int readsProcessed = 0;
-    printf("Building kmer set.\n");
-    string read;
-    while (getline(solidReads, read))
-    {
-        getFirstKmerFromRead(&kmer,&read[0]);
-
-        for (int i = 0; i <= read.length() - sizeKmer ; i++, 
-            shift_kmer(&kmer, NT2int(read[i+sizeKmer-1]), 0)){
-            all_kmers.insert(kmer);
-            readsProcessed++;
-            if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
-        }
-    }
-    solidReads.close();
-    printf("Done building kmer set.\n");
-    ofstream solidKmers;
-    solidKmers.open(kmer_filename);
-    
-    printf("Writing to kmer file\n");
-    set<kmer_type>::iterator it;
-    for(it = all_kmers.begin(); it != all_kmers.end(); it++){
-        code2seq(*it, kmerSeq);
-        solidKmers << kmerSeq;
-        solidKmers << '\n';
-    }
-    printf("Done writing to kmer file.\n");
-    solidKmers.close();
-
-}
-
+ 
 int main(int argc, char *argv[])
 {
     if (handle_arguments(argc, argv) == 1){
@@ -148,11 +117,15 @@ int main(int argc, char *argv[])
         bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
     }
 
-    bloo1->load_from_kmers(solids_file);
+    bloo1->load_from_reads(solids_file);
     JChecker* jchecker = new JChecker(j, bloo1);
-    KpomerScanner* scanner = new KpomerScanner(solids_file, bloo1, jchecker);
-    //scanner->debloom_kpomerscan(solids_file, bloo1, j);
-
+    ReadScanner* scanner = new ReadScanner(solids_file, bloo1, jchecker);
+    
+    scanner->scanReads();
+    scanner->printScanSummary();
+    if(argc > 8){
+        scanner->getJunctionMap()->writeToFile(junctions_filename);
+    }   
     printf("Program reached end. \n");
     return 0;
 }

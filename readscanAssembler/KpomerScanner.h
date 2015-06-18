@@ -21,39 +21,34 @@ using std::ofstream;
 #include "Bloom.h"
 #include "Kmer.h"
 #include "JChecker.h"
-#include "JunctionMap.h"
 #include "Junction.h"
+#include "JunctionMap.h"
 
 #define DEBUGE(a)  //printf a
 
-class ReadScanner{
+struct junction{
+    unsigned char ext[4];
+    unsigned char cov[4];
+    unsigned char back;
+};
+
+class KpomerScanner{
 
 private:
-    void allocateJunctionMap(uint64_t size);
-    int j;
     Bloom* bloom;
-    int spacerDist;
-    set<kmer_type> jcheckedSet;
-    set<kmer_type> nextRealSet;
-    Junction * juncInfo;
-    uint64_t hash0, hash1, nextHash0, nextHash1;
-
-    int readLength;
-    string reads_file;
+    string kmers_file;
+    JunctionMap* junctionMap;
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
         NbSkipped, NbProcessed, readsProcessed, NbSolidKmer, NbSpacers;
 
-    JChecker* jchecker;
-    JunctionMap* junctionMap;
+        JChecker* jchecker;
+
 public:
-    JunctionMap* getJunctionMap();
-    void smart_traverse_read(string read);
-    bool find_next_junction(int* pos, kmer_type * kmer, string read);
-    void setJ(int j);
-    void scanReads();
+    JunctionMap*  getJunctionMap();
+    void scanKpomers();
     void printScanSummary();
-    ReadScanner(string readFile, Bloom* bloom, JChecker* jchecker);
+    KpomerScanner(string readFile, Bloom* bloom, JChecker * jchecker);
 
 };
 #endif

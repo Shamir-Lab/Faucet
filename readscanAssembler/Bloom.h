@@ -324,7 +324,13 @@ public:
     
     ~Bloom();
     
+    Bloom* create_bloom_filter_2_hash(uint64_t estimated_items, float fpRate);
+
     Bloom* create_bloom_filter_optimal(uint64_t estimated_items, float fpRate);
+
+    void load_from_reads(const char* reads_filename);
+
+    void load_from_kmers(const char* kmers_filename);
 };
 
 

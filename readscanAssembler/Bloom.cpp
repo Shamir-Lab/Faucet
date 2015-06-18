@@ -5,13 +5,17 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <math.h>
 #include "Bloom.h"
 #include <set>
+using std::ifstream;
+using std::string;
 
 int Bloom::getHashSize(){
     return hashSize;
@@ -268,6 +272,30 @@ long Bloom::weight()
     return weight;
 }
 
+
+Bloom* Bloom::create_bloom_filter_2_hash(uint64_t estimated_items, float fpRate){
+     
+    Bloom * bloo1;
+    int bits_per_item = 2*(int)(1/pow(fpRate,.5));// needed to process argv[5]
+
+    printf("Bits per kmer: %d \n", bits_per_item);
+
+    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
+    uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
+    printf("Estimated items: %lli \n", estimated_items);
+    printf("Estimated bloom size: %lli .\n", estimated_bloom_size);
+    
+    printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
+    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
+
+
+    printf("Number of hash functions: %d \n", 2);
+    bloo1->set_number_of_hash_func(2);
+
+    return bloo1;
+}
+
+
 Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate){
      
     Bloom * bloo1;
@@ -286,4 +314,67 @@ Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate
     bloo1->set_number_of_hash_func((int)floorf(0.7*bits_per_item));
 
     return bloo1;
+}
+
+void Bloom::load_from_reads(const char* reads_filename){
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+
+    int readsProcessed = 0;
+    kmer_type new_graine, kmer;
+    string read;
+    time_t start;
+    time_t stop;
+    time(&start);
+    printf("Weight before load: %ld \n", weight());
+    while (getline(solidReads, read))
+    {
+        for(int strand = 0; strand < 2; strand++){
+            getFirstKmerFromRead(&kmer,&read[0]);
+            uint64_t hash0 = get_rolling_hash(kmer, 0);
+            uint64_t hash1 = get_rolling_hash(kmer, 1);
+
+            for (int i = 0; i <= read.length() - sizeKmer ; i++){
+                add(hash0, hash1);
+                advance_hash(&read[0], &hash0, &hash1, i, i+1);
+                readsProcessed++;
+                if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+            }
+            revcomp_sequence(&read[0], read.length());
+        }
+    }
+
+    solidReads.close();
+    printf("\n");
+    printf("Weight after load: %ld \n", weight()); 
+    time(&stop);
+    printf("Time to load: %f \n", difftime(stop,start));
+}
+
+
+void Bloom::load_from_kmers(const char* kmers_filename){
+    ifstream solidKmers;
+    solidKmers.open(kmers_filename);
+
+    int kmersProcessed = 0;
+    kmer_type left,right;
+    string kpomer;
+
+    //printf("Weight before load: %ld \n", weight());
+    while (getline(solidKmers, kpomer))
+    {
+        //printf("kpomer %s \n", &kpomer[0]);
+        getFirstKmerFromRead(&left,&kpomer[0]);
+        right = next_kmer(left, NT2int(kpomer[sizeKmer]),0);
+        //printf("left %s \n", print_kmer(left));
+        //printf("right %s \n", print_kmer(right));
+        add(get_canon(left));
+        add(get_canon(right));
+        kmersProcessed++;
+        if ((kmersProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)kmersProcessed);
+    }
+
+    solidKmers.close();
+    printf("\n");
+    printf("Weight after load: %ld \n", weight()); 
 }
