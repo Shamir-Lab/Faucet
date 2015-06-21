@@ -258,7 +258,7 @@ void Bloom::load(char * filename)
  printf("bloom loaded\n");
 }
 
-long Bloom::weight()
+float Bloom::weight()
 {
     // return the number of 1's in the Bloom, nibble by nibble
     const unsigned char oneBits[] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
@@ -269,7 +269,7 @@ long Bloom::weight()
         weight += oneBits[current_char&0x0f];
         weight += oneBits[current_char>>4];
     }
-    return weight;
+    return (float)weight/(float)tai;
 }
 
 
@@ -326,7 +326,7 @@ void Bloom::load_from_reads(const char* reads_filename){
     time_t start;
     time_t stop;
     time(&start);
-    printf("Weight before load: %ld \n", weight());
+    printf("Weight before load: %f \n", weight());
     while (getline(solidReads, read))
     {
         for(int strand = 0; strand < 2; strand++){
@@ -346,7 +346,7 @@ void Bloom::load_from_reads(const char* reads_filename){
 
     solidReads.close();
     printf("\n");
-    printf("Weight after load: %ld \n", weight()); 
+    printf("Weight after load: %f \n", weight()); 
     time(&stop);
     printf("Time to load: %f \n", difftime(stop,start));
 }
@@ -360,21 +360,26 @@ void Bloom::load_from_kmers(const char* kmers_filename){
     kmer_type left,right;
     string kpomer;
 
-    //printf("Weight before load: %ld \n", weight());
+    printf("Weight before load: %f \n", weight());
+    int badKmerCount = 0;
     while (getline(solidKmers, kpomer))
     {
-        //printf("kpomer %s \n", &kpomer[0]);
+        if(kpomer.length() != sizeKmer+1){
+            badKmerCount++;
+            continue;
+        }
+       //printf("kpomer %s \n", &kpomer[0]);
         getFirstKmerFromRead(&left,&kpomer[0]);
         right = next_kmer(left, NT2int(kpomer[sizeKmer]),0);
         //printf("left %s \n", print_kmer(left));
         //printf("right %s \n", print_kmer(right));
-        add(get_canon(left));
-        add(get_canon(right));
+        oldAdd(get_canon(left));
+        oldAdd(get_canon(right));
         kmersProcessed++;
         if ((kmersProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)kmersProcessed);
     }
-
-    solidKmers.close();
     printf("\n");
-    printf("Weight after load: %ld \n", weight()); 
+    solidKmers.close();
+    printf("Number of wrong length kmers: %d \n", badKmerCount);
+    printf("Weight after load: %f \n", weight()); 
 }

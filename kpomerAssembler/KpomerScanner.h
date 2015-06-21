@@ -18,11 +18,11 @@ using std::ofstream;
 #ifndef READSCAN_H
 #define READSCAN_H
 
-#include "Bloom.h"
-#include "Kmer.h"
-#include "JChecker.h"
-#include "Junction.h"
-#include "JunctionMap.h"
+#include "../utils/Bloom.h"
+#include "../utils/Kmer.h"
+#include "../utils/JChecker.h"
+#include "../utils/Junction.h"
+#include "../utils/JunctionMap.h"
 
 #define DEBUGE(a)  //printf a
 
@@ -46,8 +46,10 @@ private:
 
 public:
     JunctionMap*  getJunctionMap();
-    void scanKpomers();
+    void scanKpomer();
     void printScanSummary();
+    void scan_kpomer(string kpomer);
+    int scan_all_kpomers(string kmers_file);
     KpomerScanner(string readFile, Bloom* bloom, JChecker * jchecker);
 
 };

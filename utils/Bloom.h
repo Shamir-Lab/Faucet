@@ -252,6 +252,16 @@ public:
         }
     }
 
+    inline int oldAdd(bloom_elem elem)
+    {
+        uint64_t hA,hB;
+
+        hA = oldHash(elem, 0);
+        hB = oldHash(elem, 1);
+
+        add(hA, hB);
+    }
+
     inline int oldContains(bloom_elem elem)
     {
         if(fake){
@@ -313,7 +323,7 @@ public:
     void dump(char * filename);
     void load(char * filename);
 
-    long weight();
+    float weight();
 
     Bloom(uint64_t tai_bloom, int k);
     Bloom(int tai_bloom);

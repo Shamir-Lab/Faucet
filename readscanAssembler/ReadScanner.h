@@ -18,11 +18,11 @@ using std::ofstream;
 #ifndef READSCAN_H
 #define READSCAN_H
 
-#include "Bloom.h"
-#include "Kmer.h"
-#include "JChecker.h"
-#include "JunctionMap.h"
-#include "Junction.h"
+#include "../utils/Bloom.h"
+#include "../utils/Kmer.h"
+#include "../utils/JChecker.h"
+#include "../utils/JunctionMap.h"
+#include "../utils/Junction.h"
 
 #define DEBUGE(a)  //printf a
 

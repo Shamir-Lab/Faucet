@@ -150,14 +150,14 @@ void ReadScanner::scanReads()
   string read;
 
   // write all positive extensions in disk file
-  printf("Weight before read scan: %li \n", bloom->weight());
+  printf("Weight before read scan: %f \n", bloom->weight());
   int lastSum = 0, thisSum = 0;
   while (getline(solidReads, read))
   {
     //lastSum = thisSum;
     readLength = read.length();
     smart_traverse_read(read);
-    revcomp_sequence(&read[0], readLength);
+    revcomp_sequence(&read[0], read.length());
     smart_traverse_read(read);
     if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;

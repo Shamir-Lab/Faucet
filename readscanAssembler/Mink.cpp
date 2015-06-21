@@ -23,10 +23,10 @@ uint64_t genome_size;
 bool TwoHash = false;
 int64_t nb_reads;
 char* kmer_filename = (char*)"solid_27mers_100k";
-#include "Bloom.h"
-#include "Kmer.h"
+#include "../utils/Bloom.h"
+#include "../utils/Kmer.h"
 #include "ReadScanner.h"
-#include "JChecker.h"
+#include "../utils/JChecker.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
     
     scanner->scanReads();
     scanner->printScanSummary();
-    if(argc > 8){
+    if(argc > 6){
         scanner->getJunctionMap()->writeToFile(junctions_filename);
     }   
     printf("Program reached end. \n");

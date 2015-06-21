@@ -22,10 +22,10 @@ int read_length;
 uint64_t genome_size;bool TwoHash = false;
 int64_t nb_reads;
 char* kmer_filename = (char*)"solid_27mers_100k";
-#include "Bloom.h"
-#include "Kmer.h"
+#include "../utils/Bloom.h"
+#include "../utils/Kmer.h"
 #include "KpomerScanner.h"
-#include "JChecker.h"
+#include "../utils/JChecker.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -74,24 +74,25 @@ if(argc <  6)
     
     //5th arg: false posiive rate
     fpRate = atof(argv[4]);
+    printf("Fp rate: %f \n", fpRate);
 
     //6th arg: j
     j = atoi(argv[5]);
     printf("j: %d \n", j);
 
-    if(argc > 5){
+    if(argc > 6){
         strcpy(junctions_filename,argv[6]);
         printf("Junctions file name: %s \n", junctions_filename);
     }
 
-    if(argc > 6){
+    if(argc > 7){
         TwoHash = atoi(argv[7]);
     }
     if(TwoHash){
-        printf("Using 2 hash functions.");
+        printf("Using 2 hash functions.\n");
     }
     else{
-        printf("Using space-optimal hash settings.");
+        printf("Using space-optimal hash settings.\n");
     }
 }
 
@@ -151,8 +152,12 @@ int main(int argc, char *argv[])
     bloo1->load_from_kmers(solids_file);
     JChecker* jchecker = new JChecker(j, bloo1);
     KpomerScanner* scanner = new KpomerScanner(solids_file, bloo1, jchecker);
-    //scanner->debloom_kpomerscan(solids_file, bloo1, j);
+    scanner->scan_all_kpomers(solids_file);
+    scanner->printScanSummary();
 
+    if(argc > 6){
+        scanner->getJunctionMap()->writeToFile(junctions_filename);
+    }
     printf("Program reached end. \n");
     return 0;
 }

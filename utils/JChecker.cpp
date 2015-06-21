@@ -1,4 +1,5 @@
 #include "JChecker.h"
+#include <stdio.h>
 
 //incremental version
 //j = 0 always returns true
@@ -46,8 +47,38 @@ bool JChecker::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
 }
     
 //normal version   
+//Old hash! use only for old hash!  For kpomerscanner
 bool JChecker::jcheck(kmer_type kmer){
+  printf("Jchecking %s \n", print_kmer(kmer));
+  kmer_type this_kmer, nextKmer;
+  int lastCount, nextCount;
 
+  lastCount = 1;
+  lastKmers[0] = kmer;
+
+  for(int i = 0; i < j; i++){
+    printf("Level %d. \n", i);
+    nextCount = 0;
+    for(int k = 0; k < lastCount; k++){
+      this_kmer = lastKmers[k];
+      printf("%s \n", print_kmer(this_kmer));
+      for(int nt = 0; nt < 4; nt++){
+        nextKmer = next_kmer(this_kmer, nt,0 );
+        if(bloom->oldContains(get_canon(nextKmer))){
+          nextKmers[nextCount] = nextKmer;
+          nextCount++;
+        }
+      }
+    }
+    if(nextCount == 0){
+      return false;
+    }
+    lastCount = nextCount;
+    temp = lastKmers;
+    lastKmers = nextKmers;
+    nextKmers = temp;
+  }
+  return true;
 }
 
 JChecker::JChecker(int jVal, Bloom* bloo){
@@ -59,4 +90,6 @@ JChecker::JChecker(int jVal, Bloom* bloo){
         lastHashes[i] = new uint64_t[2];
         nextHashes[i] = new uint64_t[2];
     }
+    lastKmers = new kmer_type[1000];
+    nextKmers = new kmer_type[1000];
 }
