@@ -72,6 +72,7 @@ void Bloom::generate_hash_seed()
     for ( i = 0; i < NSEEDSBLOOM; ++i)
     {
         seed_tab[i]= seed_tab[i] * seed_tab[(i+3) % NSEEDSBLOOM] + user_seed ;
+        //printf("%lli \n", seed_tab[i]);
     }
 
     for ( i = 0; i < 4; ++i)

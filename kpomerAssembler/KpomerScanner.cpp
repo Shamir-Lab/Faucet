@@ -29,24 +29,36 @@ void KpomerScanner::scan_kpomer(string kpomer){
     //printf("kpomer: %s\n", &kpomer[0]);
   for(int i = 0; i < 2; i++){
     getFirstKmerFromRead(&thisone,&kpomer[0]);
-    int ext = NT2int(kpomer[sizeKmer]);
+    int exte = NT2int(kpomer[sizeKmer]);
     //printf("%s \n", print_kmer(left));
     //printf("%s \n", print_kmer(right));
       
     //printf("Strand %d \n", i);
     //printf("This: %s \n", print_kmer(thisone));
     if(junctionMap->contains(thisone)){
-      junctionMap->getJunction(thisone)->update(ext, 1, 0);
+      Junction* j = junctionMap->getJunction(thisone);
+      // printf("Old junction: %s \n", print_kmer(thisone));
+      // printf("Existing extensions: %d %d %d %d \n", j->ext[0], j->ext[1], j->ext[2], j->ext[3]);
+      // printf("Added extension %d. \n", exte);
+      // if(j->ext[exte] == 0){
+      //   printf("%d made it complex\n", exte);
+      // }
+      j->update(exte, 1, 0);
+      //printf("After extensions: %d %d %d %d \n", j->ext[0], j->ext[1], j->ext[2], j->ext[3]);
+ 
     }
     else{
       for(int nt=0; nt<4; nt++) {
-        if(nt != ext){
+        if(nt != exte){
           next = next_kmer(thisone,nt, 0);
          // printf("Next: %s \n", print_kmer(next));
           if(bloom->oldContains(get_canon(next))){ 
               NbCandKmer++;
               if(jchecker->jcheck(next)){
-                junctionMap->createJunction(thisone, nt); 
+                //printf("New junction: %s \n", print_kmer(thisone));
+                //printf("Real extension: %d \n", exte);
+                //printf("Alternate extension: %d \n", nt);
+                junctionMap->createJunction(thisone, exte); 
               }                     
           }
           //printf("\n");
