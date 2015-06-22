@@ -1,0 +1,16 @@
+To run Mink, type make in the directory to compile.
+
+Then, type ./minia 1 2 3 4 5 6 [7] [8], where
+1 = name of reads file (current format is each line has a string of characters representing the read)
+2 = k
+3 = read length
+4 = number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
+5 = false positive rate (.01 is a good base rate) 
+6 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
+7 = junctions file name.  Will print out to this file. If no filename is given, no file will be printed.
+8 = TwoHash.  True if you want to use a bigger bloom filter with only two hash functions.
+    Can only use this is you also put in something for 7.
+[] indicate optional arguments.
+
+This will load a bloom filter with all the kmers from the reads, then scan through them inserting potential false positives.
+No error correction corrently, and no assembly.

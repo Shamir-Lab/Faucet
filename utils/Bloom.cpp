@@ -368,7 +368,7 @@ void Bloom::load_from_kmers(const char* kmers_filename){
             badKmerCount++;
             continue;
         }
-       //printf("kpomer %s \n", &kpomer[0]);
+      // printf("kpomer %s \n", &kpomer[0]);
         getFirstKmerFromRead(&left,&kpomer[0]);
         right = next_kmer(left, NT2int(kpomer[sizeKmer]),0);
         //printf("left %s \n", print_kmer(left));

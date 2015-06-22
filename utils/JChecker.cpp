@@ -49,7 +49,7 @@ bool JChecker::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
 //normal version   
 //Old hash! use only for old hash!  For kpomerscanner
 bool JChecker::jcheck(kmer_type kmer){
-  printf("Jchecking %s \n", print_kmer(kmer));
+  //printf("Jchecking %s \n", print_kmer(kmer));
   kmer_type this_kmer, nextKmer;
   int lastCount, nextCount;
 
@@ -57,11 +57,11 @@ bool JChecker::jcheck(kmer_type kmer){
   lastKmers[0] = kmer;
 
   for(int i = 0; i < j; i++){
-    printf("Level %d. \n", i);
+    //printf("Level %d. \n", i);
     nextCount = 0;
     for(int k = 0; k < lastCount; k++){
       this_kmer = lastKmers[k];
-      printf("%s \n", print_kmer(this_kmer));
+      //printf("%s \n", print_kmer(this_kmer));
       for(int nt = 0; nt < 4; nt++){
         nextKmer = next_kmer(this_kmer, nt,0 );
         if(bloom->oldContains(get_canon(nextKmer))){

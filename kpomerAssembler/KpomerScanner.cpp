@@ -26,7 +26,7 @@ JunctionMap*  KpomerScanner::getJunctionMap(){
 
 void KpomerScanner::scan_kpomer(string kpomer){
   kmer_type thisone, next;
-    printf("kpomer: %s\n", &kpomer[0]);
+    //printf("kpomer: %s\n", &kpomer[0]);
   for(int i = 0; i < 2; i++){
     getFirstKmerFromRead(&thisone,&kpomer[0]);
     int ext = NT2int(kpomer[sizeKmer]);
@@ -34,7 +34,7 @@ void KpomerScanner::scan_kpomer(string kpomer){
     //printf("%s \n", print_kmer(right));
       
     //printf("Strand %d \n", i);
-    printf("This: %s \n", print_kmer(thisone));
+    //printf("This: %s \n", print_kmer(thisone));
     if(junctionMap->contains(thisone)){
       junctionMap->getJunction(thisone)->update(ext, 1, 0);
     }
@@ -42,7 +42,7 @@ void KpomerScanner::scan_kpomer(string kpomer){
       for(int nt=0; nt<4; nt++) {
         if(nt != ext){
           next = next_kmer(thisone,nt, 0);
-          printf("Next: %s \n", print_kmer(next));
+         // printf("Next: %s \n", print_kmer(next));
           if(bloom->oldContains(get_canon(next))){ 
               NbCandKmer++;
               if(jchecker->jcheck(next)){
