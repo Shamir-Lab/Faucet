@@ -78,12 +78,17 @@ int KpomerScanner::scan_all_kpomers(string kmers_file)
 
   string kpomer;
  
+ time_t start, stop;
+ time(&start);
   // write all positive extensions in disk file
   while (getline(solidKmers, kpomer))
   {
     scan_kpomer(kpomer);
     NbProcessed++;
   }
+  time(&stop);
+  printf("Time to scan kpomers: %f", difftime(stop,start));
+
 
   solidKmers.close();
 }
