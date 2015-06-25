@@ -9,7 +9,7 @@ using std::string;
 int JunctionMap::getNumComplexJunctions(){
   int count = 0;
   for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
-     if(juncIt->second.numPathsOut() > 1){
+     if(juncIt->second.numPathsOut() != 1){
         count++;
      }  
   }
