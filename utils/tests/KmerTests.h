@@ -4,6 +4,10 @@
 #include "TestUtils.h"
 #include "../Kmer.h"
 
+namespace kmerTests{ 
+
 void runKmerTests();
+
+}
 
 #endif

@@ -15,6 +15,8 @@ int sizeKmer;
 uint64_t nsolids = 0;
 kmer_type kmerMask;    
 kmer_type kmerMaskm1;
+const bool FORWARD = true;
+const bool BACKWARD = false;
 
 void setSizeKmer(int k){
     sizeKmer = k;
@@ -322,17 +324,18 @@ kmer_type next_kmer(kmer_type graine, int added_nt, int *strand)
 
 
 //tested!
-void shift_kmer(kmer_type* graine, int added_nt, int strand){
+//Strand tell is to shift right (strand = 0) or left (strand = 1)
+void shift_kmer(kmer_type* graine, int added_nt, bool direction){
 
     assert(added_nt<4);
     assert(strand<2);
 
-    if (strand == 1){// the kmer we're extending is actually a revcomp sequence in the bidirected debruijn graph node
+    if (direction == BACKWARD){// the kmer we're extending is actually a revcomp sequence in the bidirected debruijn graph node
         *graine >>= 2 ;
         *graine += (((uint64_t)added_nt) << (2*sizeKmer-2));
         *graine &= kmerMask;
     }
-    else{
+    else {
         *graine <<= 2;
         *graine += added_nt;
         *graine &= kmerMask;
@@ -343,17 +346,17 @@ void shift_kmer(kmer_type* graine, int added_nt, int strand){
 //Tested!
 void getFirstKmerFromRead(kmer_type *kmer, char* read){
       for(int i = 0; i < sizeKmer; i++){
-        shift_kmer(kmer, NT2int(read[i]), 0);
+        shift_kmer(kmer, NT2int(read[i]), FORWARD);
       }
 }
 
 //Tested!
 //USE THIS ONE
 //preserves the orientation of the kmer, considers it as a revcomp if strand == 1, or normal if strand == 0
-kmer_type next_kmer(kmer_type graine, int added_nt, int strand)
+kmer_type next_kmer(kmer_type graine, int added_nt,  bool direction)
 {
     kmer_type new_graine = graine;
-    shift_kmer(&new_graine, added_nt, strand);
+    shift_kmer(&new_graine, added_nt, direction);
     return new_graine;
 }
 
@@ -442,7 +445,7 @@ kmer_type get_canon(kmer_type kmer){
 kmer_type get_kmer_from_read(char* read, int pos){
     kmer_type kmer = 0;
     for (int i =pos; i < pos + sizeKmer; i++){
-        shift_kmer(&kmer, NT2int(read[i]), 0);
+        shift_kmer(&kmer, NT2int(read[i]), FORWARD);
     }
     return kmer;
 }
@@ -453,7 +456,7 @@ kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos){
         printf("advance_kmer does not yet support backwards advances!\n");
     }
     for (int i = startPos + sizeKmer; i < endPos + sizeKmer; i++){
-        shift_kmer(kmer, NT2int(read[i]), 0);
+        shift_kmer(kmer, NT2int(read[i]), FORWARD);
     }
 }
 

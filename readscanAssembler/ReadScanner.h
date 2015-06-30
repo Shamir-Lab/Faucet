@@ -23,21 +23,23 @@ using std::ofstream;
 #include "../utils/JChecker.h"
 #include "../utils/JunctionMap.h"
 #include "../utils/Junction.h"
+#include "../utils/DoubleKmer.h"
+#include "../utils/Cap.h"
+#include "../utils/DoubleKmer.h"
 
 #define DEBUGE(a)  //printf a
 
 class ReadScanner{
 
 private:
-    void allocateJunctionMap(uint64_t size);
     int j;
     Bloom* bloom;
-    int spacerDist;
+    kmer_type firstReadJunc, lastReadJunc; //stores kmers of last and first junction in a read from the read scan.  For use by spacers.
+    //int spacerDist;
     set<kmer_type> jcheckedSet;
     set<kmer_type> nextRealSet;
-    Junction * juncInfo;
-    uint64_t hash0, hash1, nextHash0, nextHash1;
-
+    uint64_t hash0, hash1,
+    nextHash0, nextHash1;
     int readLength;
     string reads_file;
 
@@ -47,13 +49,16 @@ private:
     JChecker* jchecker;
     JunctionMap* junctionMap;
 public:
+    void resetHashes(kmer_type kmer);//for testing
     JunctionMap* getJunctionMap();
-    void smart_traverse_read(string read);
-    bool find_next_junction(int* pos, kmer_type * kmer, string read);
     void setJ(int j);
     void scanReads();
     void printScanSummary();
-    ReadScanner(string readFile, Bloom* bloom, JChecker* jchecker);
+    
+    bool testForJunction(DoubleKmer kmer);
+    void scan_forward(string read); 
+    bool find_next_junction(DoubleKmer * kmer);//adjusts position and kmer and returns the junction
 
+    ReadScanner(string readFile, Bloom* bloom, JChecker* jchecker);
 };
 #endif

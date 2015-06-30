@@ -4,12 +4,12 @@
 
 int main(int argc, char *argv[]){
 
-    runKmerTests();
-    runRollingHashTests();
-    runBloomTests();
-    runJCheckTests();
-    //runFindNextJunctionTests();
-    //runTraverseReadsTests();
+    kmerTests::runKmerTests();
+    rollingHashTests::runRollingHashTests();
+    jCheckTests::runJCheckTests();
+    runJunctionTests();
+    runJunctionMapTests();
+    bloomTests::runBloomTests();
     
     return 0;
 }

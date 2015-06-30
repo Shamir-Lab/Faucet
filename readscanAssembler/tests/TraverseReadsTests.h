@@ -4,6 +4,10 @@
 #include "TestUtils.h"
 #include "../ReadScanner.h"
 
+namespace traverseReadsTests{
+
 void runTraverseReadsTests();
+
+}
 
 #endif

@@ -3,25 +3,28 @@
 #include <set>
 using std::string;
 
+namespace jCheckTests{
+
 string fake_read1 = "ACGGGCGAACTTTCATAGGA";
 string fake_read2 = "GGCGAACTAGTCCAT";
 string fake_read3  = "AACTTTCATACGATT";
-Bloom* fakeBloom;
+Bloom* bloom;
 string valid_5mers[] = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT"
     ,"AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA", "AACTA","ACTAG"
     , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT" ,"CATAC", "ATACG", "TACGA", "ACGAT", "CGATT"};
+JChecker* jchecker;
 
-bool jcheck(string kmer){
-    uint64_t hash0 =  fakeBloom->get_rolling_hash(getKmerFromString(kmer),0);
-    uint64_t hash1 =  fakeBloom->get_rolling_hash(getKmerFromString(kmer),1);
-    return scanner->jcheck(&kmer[0],hash0,hash1);
+bool jcheck(string kmer, int j){
+    jchecker = new JChecker(j, bloom);
+    uint64_t hash0 =  bloom->get_rolling_hash(getKmerFromString(kmer),0);
+    uint64_t hash1 =  bloom->get_rolling_hash(getKmerFromString(kmer),1);
+    return jchecker->jcheck(&kmer[0],hash0,hash1);
 }
 
 void jcheck_testForwardJ1NoExtension(){
     char* testName = (char*)"jcheck_testForwardJ1WithNoExtension";
-    scanner->setJ(1);
 
-    bool jchecked = jcheck("TCCAT");
+    bool jchecked = jcheck("TCCAT", 1);
 
     if(jchecked){
         fail(testName,(char*)"It thought there was an extension.");
@@ -32,9 +35,8 @@ void jcheck_testForwardJ1NoExtension(){
 
 void jcheck_testForwardJ1WithExtension(){
     char* testName = (char*)"jcheck_testForwardJ1WithExtension";
-    scanner->setJ(1);
 
-    bool jchecked = jcheck("GTCCA");
+    bool jchecked = jcheck("GTCCA",1);
 
     if(!jchecked){
         fail(testName, (char*)"It thought there was no extension.");
@@ -45,9 +47,8 @@ void jcheck_testForwardJ1WithExtension(){
 
 void jcheck_testForwardJ2WithExtension(){
     char* testName = (char*)"jcheck_testForwardJ2WithExtension";
-    scanner->setJ(2);
 
-    bool jchecked = jcheck("GAACT");
+    bool jchecked = jcheck("GAACT",2);
     
     if(!jchecked){
         fail(testName, (char*)"It thought there was no extension.");
@@ -58,9 +59,8 @@ void jcheck_testForwardJ2WithExtension(){
 
 void jcheck_testForwardJ2WithNoExtension(){
     char* testName = (char*)"jcheck_testForwardJ2WithNoExtension";
-    scanner->setJ(2);
 
-    bool jchecked = jcheck("ACGAT");
+    bool jchecked = jcheck("ACGAT", 2);
 
     if(jchecked){
         fail(testName, (char*)"It thought there was an extension.");
@@ -71,8 +71,7 @@ void jcheck_testForwardJ2WithNoExtension(){
 
 void runJCheckTests(){
     setSizeKmer(5);
-    fakeBloom = loadBloom(valid_5mers, 28,5);
-    scanner = new ReadScanner("mockFileName", fakeBloom);
+    bloom = loadBloom(valid_5mers, 28,5);
 
     jcheck_testForwardJ1WithExtension();
     jcheck_testForwardJ1NoExtension();
@@ -80,3 +79,4 @@ void runJCheckTests(){
     jcheck_testForwardJ2WithNoExtension();
 }
 
+}

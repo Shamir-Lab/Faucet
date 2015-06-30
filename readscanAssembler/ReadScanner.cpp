@@ -10,9 +10,14 @@ ReadScanner::ReadScanner(string readFile, Bloom* bloo1, JChecker* checker){
   reads_file = readFile;
   bloom = bloo1;
   junctionMap = new JunctionMap();
-  spacerDist = 30;//default.
   jchecker = checker;
 }
+
+void ReadScanner::resetHashes(kmer_type kmer){
+  hash0 = bloom->get_rolling_hash(kmer,0);
+  hash1 = bloom->get_rolling_hash(kmer,1);
+}
+
 
 void ReadScanner::printScanSummary(){
   printf("\n Distinct junctions: %lli \n", (uint64_t)junctionMap->getNumJunctions());
@@ -27,113 +32,90 @@ JunctionMap* ReadScanner::getJunctionMap(){
   return junctionMap;
 }
 
-//starts at position *pos, kmer *kmer on read, and if it returns true, pos and *kmer should be the
-//pos and kmer of the next branch point. If it returns false, no guarantee- it ran off the end and we can handle that.
-bool ReadScanner::find_next_junction(int* pos, kmer_type * kmer, string read){
-  
-  /*
-  int lastSpacer = *pos;
-  kmer_type potentialSpacer;
-  int spacerExt;
-  */
-
-  for (; *pos < read.length()-sizeKmer; (*pos)++)//for each pos in read
-  {
-    kmer_type next_real = next_kmer_in_read(*kmer,*pos,&read[0], 0);//get next real kmer
-  
-    for(int nt=0; nt<4; nt++) {//for each extension
-      kmer_type next_test = next_kmer(*kmer,nt, 0);//get possible extension
-      if(next_real != next_test && next_real != *kmer && next_test != *kmer){//if the branch has 3 distinct kmers
-        nextHash0 = bloom->roll_hash(hash0, NT2int(read[*pos]), nt, 0);
-        nextHash1 = bloom->roll_hash(hash1, NT2int(read[*pos]), nt, 1);
-        if(bloom->contains(nextHash0, nextHash1))//if the branch checks out initially
-        { 
-            if(!junctionMap->contains(*kmer)){//if it's nnot an already found junction
-              NbJCheckKmer++;
-              if(jchecker->jcheck(&read[*pos+1],nextHash0, nextHash1)){//if it j-checks- new junction!
-                  junctionMap->createJunction(*kmer, NT2int(read[*pos+sizeKmer]));
-                  return true;
-              }
-            }
-            else{//if it is an already found junction
-                return true;
-            }
-          }
+//Returns true if the kmer "real" is a junction. Uses as a reference "real_ext" since it knows that's one valid path
+bool ReadScanner::testForJunction(DoubleKmer doubleKmer){
+  kmer_type real_ext = doubleKmer.getRealExtension();
+  kmer_type real = doubleKmer.getKmer();
+  for(int nt=0; nt<4; nt++) {//for each extension
+    kmer_type test_ext = doubleKmer.getExtension(nt); //get possible extension
+    if(real_ext != test_ext && real_ext != real && test_ext != real){//if the branch has 3 distinct kmers
+      if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
+      { 
+        NbJCheckKmer++;
+        if(jchecker->jcheck(test_ext)){//if it j-checks- new junction! //To make rolling, fix this to use proper jcheck!
+            return true;
+        }
       }
     }
-    //handle potential spacers if there's no junction.
-    
-    /*if(*pos - lastSpacer == spacerDist){ //if we've scanned one spacer worth, this could be a spacer!
-        potentialSpacer = *kmer;
-        spacerExt = NT2int(read[*pos + sizeKmer]);
-    }
-    if(*pos - lastSpacer == 2*spacerDist){//make the current potential spacer, this is the new potential spacer
-        junctionMap->createJunction(potentialSpacer, spacerExt);
-        NbSpacers++;
-        potentialSpacer = *kmer;
-        spacerExt =NT2int(read[*pos + sizeKmer]);
-        lastSpacer = *pos;
-    }
-    */
-
-    shift_kmer(kmer, NT2int(read[*pos+sizeKmer]), 0); 
-    bloom->advance_hash(&read[0], &hash0, &hash1, *pos, *pos+1);//advance hash values
-
-    NbProcessed++;
-    //if ((NbProcessed % 10000)==0) fprintf (stderr,"%c Deblooming kmers: %d",13,NbProcessed);
   }
+}
+
+//starts at position *pos, kmer *kmer on read, and scans till it either finds an existing junction
+//or finds a new one.  Does not modify any junctions- simply updates doubleKmer to be at a junction or off the end of the read
+//True if junction was found
+bool ReadScanner::find_next_junction(DoubleKmer * doubleKmer){
+  //Iterate forward through the read
+  for (; doubleKmer->onRead(); doubleKmer->forward())
+  {
+      //check for an oldjunciton
+      if(junctionMap->contains(doubleKmer->getKmer())){
+        return true;
+      }
+      //check for a new junction
+      if(testForJunction(*doubleKmer)){
+        return true;
+      }
+  }
+  //Didn't find a junction. Return null
   return false;
 }
 
-void ReadScanner::smart_traverse_read(string read){
-
-  int pos = 0, lastJuncPos = 0, lastJuncExt = 0; 
-  Junction * lastJunc = NULL;
+void ReadScanner::scan_forward(string read){
+  int pos = 0;
   kmer_type kmer;
-  bool noJuncs = true;
-  getFirstKmerFromRead(&kmer,&read[0]);//stores current kmer throughout
-  hash0 = bloom->get_rolling_hash(kmer, 0);
-  hash1 = bloom->get_rolling_hash(kmer, 1);
-
-  while(pos < read.length()-sizeKmer)
+  DoubleKmer* doubleKmer = new DoubleKmer(&read);//stores current kmer throughout
+  DoubleKmer* lastJunc;
+  //printf("Scanning read: %s\n", &read[0]);
+  while(find_next_junction(doubleKmer))
   {
-      //assumption: kmer is set, pos is set, lastJunc info is all set
-      juncInfo = junctionMap->getJunction(kmer);
-      if(juncInfo) // is a seen junction!
-      { 
+    //printf("Pos: %d, Dir: %s, %s \n", doubleKmer->pos,doubleKmer->directionAsString(), print_kmer(doubleKmer->getKmer()));
+    if(!junctionMap->contains(doubleKmer->getKmer())){//need to create a junction
+      junctionMap->createJunction(doubleKmer->getKmer());
+    }
+    junctionMap->getJunction(doubleKmer->getKmer())->addCoverage(doubleKmer->getRealExtensionNuc());
+    if(lastJunc){
 
-        juncInfo->update(NT2int(read[pos+sizeKmer]), 1, 0);
-
-        if(lastJunc)//update info on last junction if it exists
-        {
-          lastJunc->update(lastJuncExt, pos - lastJuncPos, 0);
-          juncInfo->update(0, 0, pos - lastJuncPos);//doesn't actually make sense
-        } 
-
-        lastJunc = juncInfo; //this is now the last junc
-        lastJuncExt = NT2int(read[pos+sizeKmer]); //the extension is at pos+k in the read
-        lastJuncPos = pos; //this is now the last junc position
-       
-        advance_kmer(&read[0], &kmer, pos, pos + (int)lastJunc->ext[lastJuncExt]);//advance kmer to jump forward
-        bloom->advance_hash(&read[0], &hash0, &hash1, pos, pos+(int)lastJunc->ext[lastJuncExt]);//advance hash values
-
-        pos += (int)lastJunc->ext[lastJuncExt]; //set new pos appropriately 
-        NbProcessed++;
-      }   
-      else// not at a seen junction, need to scan! 
-      {         
-        if(!find_next_junction(&pos, &kmer, read)) {  //scanned off the end of the read
-          pos = read.length()-sizeKmer; //pos is now = length so we'll be done after this
-          if(lastJunc){
-            lastJunc->update(lastJuncExt, pos-lastJuncPos, 0);
-          }
-          continue;
-        }
-        noJuncs = false;//found a junction, so info was updated.  Proceed.
+      int ext1 = lastJunc->getRealExtensionNuc(), ext2 = doubleKmer->getRealExtensionNuc();
+      if(lastJunc->direction == BACKWARD){
+        ext1 = 4;
       }
-  }
-  NbNoJuncs += noJuncs; //add one t
+      if(doubleKmer->direction == FORWARD){
+        ext2 = 4;
+      }
+      int dist = 2*(doubleKmer->pos - lastJunc->pos) + doubleKmer->offset() - lastJunc->offset();
+      junctionMap->linkJunctions(lastJunc->getKmer(),ext1, doubleKmer->getKmer(), ext2, dist);
+
+    }
+    else{ 
+      //LINK JUNCTION TO SPACER IF NECESSARY
+    }
+    lastJunc = new DoubleKmer(doubleKmer);
+    NbProcessed++;
+
+    int skipDist;
+    if(doubleKmer->direction == FORWARD){
+      skipDist = max(1,junctionMap->getJunction(doubleKmer->getKmer())->dist[doubleKmer->getRealExtensionNuc()]);
+    }
+    else{
+     skipDist = max(1,junctionMap->getJunction(doubleKmer->getKmer())->dist[4]);
+    } 
+    doubleKmer->advanceDist(skipDist);
+  }   
+  //LINK JUNCTION TO SPACER IF NECESSARY
+  free(doubleKmer);
+  free(lastJunc);
 }
+
 
 void ReadScanner::scanReads()
 {
@@ -156,9 +138,7 @@ void ReadScanner::scanReads()
   {
     //lastSum = thisSum;
     readLength = read.length();
-    smart_traverse_read(read);
-    revcomp_sequence(&read[0], read.length());
-    smart_traverse_read(read);
+    scan_forward(read);
     if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;
   }

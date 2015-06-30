@@ -36,7 +36,7 @@ set<kmer_type> all_kmers;
 /*
 To run the new version, type make in the directory to compile.
 
-Then, type ./minia 1 2 3 4 5 6 [7] [8], where
+Then, type ./mink 1 2 3 4 5 6 [7] [8], where
 1 = name of reads file (current format is each line has a string of characters representing the read)
 2 = k
 3 = read length
@@ -53,7 +53,7 @@ No error correction corrently, and no assembly.
 */
 
 inline int handle_arguments(int argc, char *argv[]){
-if(argc <  7)
+if(argc <  8)
     {
         fprintf (stderr,"usage:\n");
         fprintf (stderr," %s input_file kmer_size min_abundance estimated_nb_reads prefix\n",argv[0]);
@@ -84,19 +84,19 @@ if(argc <  7)
     j = atoi(argv[6]);
     printf("j: %d \n", j);
 
-    if(argc > 6){
+    if(argc > 7){
         strcpy(junctions_filename,argv[7]);
         printf("Junctions file name: %s \n", junctions_filename);
     }
 
-    if(argc > 7){
+    if(argc > 8){
         TwoHash = atoi(argv[8]);
     }
     if(TwoHash){
-        printf("Using 2 hash functions.");
+        printf("Using 2 hash functions.\n");
     }
     else{
-        printf("Using space-optimal hash settings.");
+        printf("Using space-optimal hash settings.\n");
     }
 }
  
@@ -119,13 +119,16 @@ int main(int argc, char *argv[])
 
     bloo1->load_from_reads(solids_file);
     JChecker* jchecker = new JChecker(j, bloo1);
+    
     ReadScanner* scanner = new ReadScanner(solids_file, bloo1, jchecker);
     
     scanner->scanReads();
     scanner->printScanSummary();
+
     if(argc > 6){
         scanner->getJunctionMap()->writeToFile(junctions_filename);
-    }   
+    }
+
     printf("Program reached end. \n");
     return 0;
 }

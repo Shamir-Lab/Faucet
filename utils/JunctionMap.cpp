@@ -4,8 +4,6 @@
 using std::ofstream;
 using std::string;
 
-
-
 int JunctionMap::getNumComplexJunctions(){
   int count = 0;
   for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
@@ -15,7 +13,6 @@ int JunctionMap::getNumComplexJunctions(){
   }
   return count;
 }
-
 
 //returns the junction if it exists or a null pointer otherwise
 Junction* JunctionMap::getJunction(kmer_type kmer){
@@ -28,10 +25,30 @@ Junction* JunctionMap::getJunction(kmer_type kmer){
   }
 }
 
+void JunctionMap::linkJunctions(kmer_type kmer1, int ext1, kmer_type kmer2, int ext2, int dist){
+   getJunction(kmer1)->update(ext1, dist, kmer2);
+   getJunction(kmer2)->update(ext2, dist, kmer1);
+}
+
+//returns the junction if it exists or a null pointer otherwise
+Cap* JunctionMap::getCap(kmer_type kmer){
+  auto capIt = capMap.find(kmer);
+  if(capIt == capMap.end()){
+    return NULL;
+  }
+  else{
+    return &capIt->second;
+  }
+}
+
 //creates a new junction with first found extension nucExt
-void JunctionMap::createJunction(kmer_type kmer, int nucExt){  
+void JunctionMap::createJunction(kmer_type kmer){  
     junctionMap.insert(
-      std::pair<kmer_type, Junction>(kmer, *(new Junction(nucExt)))); 
+      std::pair<kmer_type, Junction>(kmer, *(new Junction()))); 
+}
+
+void JunctionMap::addCap(kmer_type kmer, Cap cap){
+  capMap.insert(std::pair<kmer_type, Cap>(kmer, cap));
 }
 
 void JunctionMap::writeToFile(string filename){
@@ -44,7 +61,8 @@ void JunctionMap::writeToFile(string filename){
     for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
         kmer = juncIt->first;
         jFile << print_kmer(kmer) << " " ;
-        juncIt->second.writeToFile(&jFile);    
+        juncIt->second.writeToFile(&jFile);
+        jFile << "\n";    
     }
     printf("Done writing to junction file\n");
     jFile.close();
@@ -60,4 +78,5 @@ bool JunctionMap::contains(kmer_type kmer){
 
 JunctionMap::JunctionMap(){
   junctionMap = {};
+  capMap = {};
 }

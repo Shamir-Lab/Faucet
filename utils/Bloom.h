@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <set>
 #include "Kmer.h"
+#include "DoubleKmer.h"
 // not using kmer_type from Kmer.h because I don't want this class to depend on Kmer.h
 #ifdef _largeint
 #include "LargeInt.h"
@@ -210,7 +211,7 @@ public:
     inline uint64_t roll_hash(uint64_t oldHash, int oldC, int newC, int num_hash){
       return rotate_left(oldHash ^ getCharHash(oldC, num_hash), 1) ^ rotate_right(getLastCharHash(newC, num_hash), k-1);
     }
-
+    
     inline void advance_hash(char* read, uint64_t * hash0, uint64_t * hash1, int startPos, int endPos){
         for(int i = startPos; i < endPos; i++){
             *hash0 = roll_hash(*hash0, NT2int(read[i]), NT2int(read[i+sizeKmer]), 0);

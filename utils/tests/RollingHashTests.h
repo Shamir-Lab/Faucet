@@ -4,6 +4,10 @@
 #include "TestUtils.h"
 #include "../Bloom.h"
 
+namespace rollingHashTests{
+
 void runRollingHashTests();
+
+}
 
 #endif

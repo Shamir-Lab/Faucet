@@ -63,7 +63,7 @@ bool JChecker::jcheck(kmer_type kmer){
       this_kmer = lastKmers[k];
       //printf("%s \n", print_kmer(this_kmer));
       for(int nt = 0; nt < 4; nt++){
-        nextKmer = next_kmer(this_kmer, nt,0 );
+        nextKmer = next_kmer(this_kmer, nt, FORWARD);
         if(bloom->oldContains(get_canon(nextKmer))){
           nextKmers[nextCount] = nextKmer;
           nextCount++;

@@ -322,7 +322,7 @@ void Bloom::load_from_reads(const char* reads_filename){
     solidReads.open(reads_filename);
 
     int readsProcessed = 0;
-    kmer_type new_graine, kmer;
+    DoubleKmer* kmer;
     string read;
     time_t start;
     time_t stop;
@@ -330,19 +330,14 @@ void Bloom::load_from_reads(const char* reads_filename){
     printf("Weight before load: %f \n", weight());
     while (getline(solidReads, read))
     {
-        for(int strand = 0; strand < 2; strand++){
-            getFirstKmerFromRead(&kmer,&read[0]);
-            uint64_t hash0 = get_rolling_hash(kmer, 0);
-            uint64_t hash1 = get_rolling_hash(kmer, 1);
-
-            for (int i = 0; i <= read.length() - sizeKmer ; i++){
-                add(hash0, hash1);
-                advance_hash(&read[0], &hash0, &hash1, i, i+1);
-                readsProcessed++;
-                if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
-            }
-            revcomp_sequence(&read[0], read.length());
-        }
+        //printf("Read: %s\n", &read[0]);
+        for(kmer = new DoubleKmer(&read); kmer->onRead(); kmer->forward()){
+            //printf("Pos: %d, Dir: %s, %s \n", kmer->pos, kmer->directionAsString(), print_kmer(kmer->getKmer()));
+            oldAdd(kmer->getCanon());
+        }  
+        free(kmer);  
+        readsProcessed++;
+        if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
     }
 
     solidReads.close();
@@ -371,7 +366,7 @@ void Bloom::load_from_kmers(const char* kmers_filename){
         }
       // printf("kpomer %s \n", &kpomer[0]);
         getFirstKmerFromRead(&left,&kpomer[0]);
-        right = next_kmer(left, NT2int(kpomer[sizeKmer]),0);
+        right = next_kmer(left, NT2int(kpomer[sizeKmer]),FORWARD);
         //printf("left %s \n", print_kmer(left));
         //printf("right %s \n", print_kmer(right));
         oldAdd(get_canon(left));

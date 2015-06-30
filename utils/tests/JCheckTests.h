@@ -3,8 +3,12 @@
 
 #include "TestUtils.h"
 #include "../Bloom.h"
-#include "../ReadScanner.h"
+#include "../JChecker.h"
+
+namespace jCheckTests {
 
 void runJCheckTests();
+
+}
 
 #endif

@@ -3,9 +3,9 @@
 
 #include "KmerTests.h"
 #include "JCheckTests.h"
-#include "FindNextJunctionTests.h"
-#include "TraverseReadsTests.h"
 #include "RollingHashTests.h"
 #include "BloomTests.h"
+#include "JunctionTests.h"
+#include "JunctionMapTests.h"
 
 #endif

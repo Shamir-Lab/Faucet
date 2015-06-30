@@ -14,6 +14,7 @@
 
 using namespace std;
 
+namespace kmerTests{
 
 void shift_kmer_forward_testOverlap(){
     char* testName = (char*)"shift_kmer_forward_testOverlap";
@@ -223,3 +224,4 @@ void runKmerTests(){
     advanceKmer_test();
 }
 
+}

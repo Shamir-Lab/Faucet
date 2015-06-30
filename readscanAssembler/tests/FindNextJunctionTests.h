@@ -4,6 +4,10 @@
 #include "TestUtils.h"
 #include "../ReadScanner.h"
 
+namespace findNextJunctionTests{
+
 void runFindNextJunctionTests();
+
+}
 
 #endif

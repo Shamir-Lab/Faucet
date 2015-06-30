@@ -20,7 +20,8 @@ typedef uint64_t kmer_type;
 extern int sizeKmer;
 extern kmer_type kmerMask;
 extern kmer_type kmerMaskm1;
-
+extern const bool FORWARD;
+extern const bool BACKWARD;
 extern uint64_t nsolids;
 
 void setSizeKmer(int k);
@@ -65,11 +66,11 @@ kmer_type maskKmer(kmer_type kmer);
 // examples:
 // next_kmer(ACTG,A,&0)=CTGA with strand = 0 (because revcomp=TCAG); 
 // next_kmer(ACTG,A,&1)= (revcomp of ACTG + A = CAGT+A = ) AGTA with strand = 0 (because revcomp = TACT)
-kmer_type next_kmer(kmer_type graine, int added_nt, int strand);//returns shifted in a new place
+kmer_type next_kmer(kmer_type graine, int added_nt, bool strand);//returns shifted in a new place
 kmer_type next_kmer(kmer_type graine, int added_nt, int* strand);
 void shift_kmer(kmer_type *graine, int added_nt, int strand); //shifts in place
 void getFirstKmerFromRead(kmer_type* kmer, char* read);
-kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, int strand);
+kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, bool direction);
 kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos);
 kmer_type rotate_right(kmer_type kmer, int dist);
 kmer_type rotate_left(kmer_type kmer, int dist);

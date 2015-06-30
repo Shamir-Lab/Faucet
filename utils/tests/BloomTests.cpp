@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+namespace bloomTests{
+
+Bloom* bloom;
+
 char get_random_nuc(){
     return rand() % 4;
 }
@@ -19,7 +23,6 @@ kmer_type get_random_kmer(){
 void test_false_positive_rate(uint64_t bloomSize, int sampleSize, float fpRate){
     
     setSizeKmer(25);
-    Bloom* bloom;
     bloom = bloom->create_bloom_filter_optimal(bloomSize, fpRate);
     for(int i = 0; i < bloomSize; i++){
         bloom->add(get_random_kmer());
@@ -37,7 +40,6 @@ void test_false_positive_rate(uint64_t bloomSize, int sampleSize, float fpRate){
 void test_speed_raw(uint64_t bloomSize, int sampleSize, float fpRate){
     
     setSizeKmer(25);
-    Bloom* bloom;
     bloom = bloom->create_bloom_filter_optimal(bloomSize, fpRate);
     for(int i = 0; i < bloomSize; i++){
         bloom->add(get_random_kmer());
@@ -57,7 +59,6 @@ void test_speed_raw(uint64_t bloomSize, int sampleSize, float fpRate){
 void test_speed_incremental(uint64_t bloomSize, int sampleSize, float fpRate){
     
     setSizeKmer(25);
-    Bloom* bloom;
     bloom = bloom->create_bloom_filter_optimal(bloomSize, fpRate);
     kmer_type kmer = get_random_kmer();
     uint64_t hash0 = bloom->get_rolling_hash(kmer,0);
@@ -85,7 +86,6 @@ void test_speed_incremental(uint64_t bloomSize, int sampleSize, float fpRate){
 void test_speed_readscan(uint64_t bloomSize, int sampleSize, float fpRate){
     
     setSizeKmer(25);
-    Bloom* bloom;
     bloom = bloom->create_bloom_filter_optimal(bloomSize, fpRate);
     kmer_type kmer = (uint64_t)0;
     uint64_t hash0 = bloom->get_rolling_hash(kmer,0);
@@ -118,7 +118,6 @@ void test_speed_readscan(uint64_t bloomSize, int sampleSize, float fpRate){
 void test_speed_old(uint64_t bloomSize, int sampleSize, float fpRate){
     
     setSizeKmer(25);
-    Bloom* bloom;
     bloom = bloom->create_bloom_filter_optimal(bloomSize, fpRate);
     for(int i = 0; i < bloomSize; i++){
         bloom->add(get_random_kmer());
@@ -143,4 +142,6 @@ void runBloomTests(){
     test_speed_incremental(100000, 20000000, .1);
     test_speed_readscan(100000, 20000000, .1);
     test_speed_old(100000, 5000000, .1);
+}
+
 }

@@ -3,8 +3,8 @@
 #ifndef TEST_UTILS
 #define TEST_UTILS
 
-#include "../Kmer.h"
-#include "../Bloom.h"
+#include "../../utils/Kmer.h"
+#include "../../utils/Bloom.h"
 
 using std::string;
 extern kmer_type test_kmer;
