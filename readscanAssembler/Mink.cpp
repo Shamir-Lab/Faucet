@@ -98,6 +98,8 @@ if(argc <  8)
     else{
         printf("Using space-optimal hash settings.\n");
     }
+
+    printf("Size of junction: %d\n", sizeof(Junction));
 }
  
 int main(int argc, char *argv[])

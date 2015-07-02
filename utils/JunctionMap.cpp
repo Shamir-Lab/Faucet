@@ -7,11 +7,16 @@ using std::string;
 int JunctionMap::getNumComplexJunctions(){
   int count = 0;
   for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
-     if(juncIt->second.numPathsOut() > 1){
+     if(juncIt->second.numPathsOut() != 1){
         count++;
      }  
   }
   return count;
+}
+
+int JunctionMap::getSkipDist(DoubleKmer* doubleKmer, bool direction){
+    int index = doubleKmer->getExtensionIndex(direction);
+    return getJunction(doubleKmer->getKmer())->dist[index];
 }
 
 //returns the junction if it exists or a null pointer otherwise
@@ -21,34 +26,55 @@ Junction* JunctionMap::getJunction(kmer_type kmer){
     return NULL;
   }
   else{
-    return &juncIt->second;
+    return &(juncIt->second);
   }
 }
 
-void JunctionMap::linkJunctions(kmer_type kmer1, int ext1, kmer_type kmer2, int ext2, int dist){
-   getJunction(kmer1)->update(ext1, dist, kmer2);
-   getJunction(kmer2)->update(ext2, dist, kmer1);
+void JunctionMap::directLinkJunctions(DoubleKmer* kmer1, DoubleKmer* kmer2){
+    int ext1 = kmer1->getExtensionIndex(FORWARD);
+    int ext2 = kmer2->getExtensionIndex(BACKWARD);
+    
+    int dist = kmer2->getTotalPos() - kmer1->getTotalPos();
+
+    getJunction(kmer1->getKmer())->update(ext1, dist, kmer2->getKmer());
+    getJunction(kmer2->getKmer())->update(ext2, dist, kmer1->getKmer());
 }
 
-//returns the junction if it exists or a null pointer otherwise
-Cap* JunctionMap::getCap(kmer_type kmer){
-  auto capIt = capMap.find(kmer);
-  if(capIt == capMap.end()){
-    return NULL;
-  }
-  else{
-    return &capIt->second;
-  }
+void JunctionMap::extendJunctionCap(DoubleKmer* kmer, bool dir){
+    // int juncExt = kmer->getExtensionIndex(dir);
+    // Junction* junc = getJunction(kmer->getKmer());
+    // removeCap(junc->nextJunc[juncExt]);
+    
+    // kmer_type capKmer;
+    // int newDist;
+    // string read = *(kmer->read);
+    // if(dir == BACKWARD){
+    //   getFirstKmerFromRead(&capKmer, &read[0]);
+    //   capKmer = revcomp(capKmer);
+    //   newDist = kmer->getTotalPos();
+    // }
+    // else{
+    //   getFirstKmerFromRead(&capKmer,&read[read.length() - sizeKmer]);
+    //   newDist = 2*read.length()-kmer->getTotalPos()-1;
+    // }
+    // junc->nextJunc[juncExt] = capKmer;
+    // junc->dist[juncExt] = newDist;
+
+    // addCap(capKmer, new Cap(newDist, kmer->getKmer()));
 }
 
+void superLinkJunctionToCap(DoubleKmer* kmer, Cap* cap, bool dir){
+
+}
+
+void superLinkCapToCap(Cap* leftCap, Cap* rightCap){
+
+}
+  
 //creates a new junction with first found extension nucExt
+//returns it using the pointer supplied.
 void JunctionMap::createJunction(kmer_type kmer){  
-    junctionMap.insert(
-      std::pair<kmer_type, Junction>(kmer, *(new Junction()))); 
-}
-
-void JunctionMap::addCap(kmer_type kmer, Cap cap){
-  capMap.insert(std::pair<kmer_type, Cap>(kmer, cap));
+  junctionMap.insert(std::pair<kmer_type, Junction>(kmer, *(new Junction())));
 }
 
 void JunctionMap::writeToFile(string filename){

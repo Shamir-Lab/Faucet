@@ -17,7 +17,7 @@ Cap Cap::extend(int extraDistance, kmer_type juncID){
 
 //explicitly set if it's a spacer or not
 Cap::Cap(int distance, kmer_type juncID){
-    dist=dist;
+    dist=distance;
     lastJunc = juncID;
 }
 

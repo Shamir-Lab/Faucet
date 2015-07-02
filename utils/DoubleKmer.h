@@ -17,12 +17,15 @@ public:
     int pos;
     bool direction;
 
+    int getDistToEnd();
+    int getTotalPos();
     char* directionAsString();
     bool onRead();
     kmer_type getKmer();
     void forward();
     void backward();
     void advanceDist(int dist);
+    int getExtensionIndex(bool direction);
     kmer_type getExtension(int newNuc);// facing forward, for jchecking
     kmer_type getRealExtension();// facing forward, for jchecking
     int getRealExtensionNuc();

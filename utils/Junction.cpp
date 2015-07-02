@@ -38,7 +38,12 @@ void Junction::writeToFile(ofstream*jFile){
   }
   *jFile << " IDs: ";
   for(int i = 0; i < 5; i++){
-    *jFile << (long long)nextJunc[i] << "," ;
+    if(nextJunc[i] == -1){
+      *jFile << "x,";
+    }
+    else{
+      *jFile << print_kmer(nextJunc[i]) << "," ;
+    }
   }
 }
 

@@ -331,7 +331,7 @@ void Bloom::load_from_reads(const char* reads_filename){
     while (getline(solidReads, read))
     {
         //printf("Read: %s\n", &read[0]);
-        for(kmer = new DoubleKmer(&read); kmer->onRead(); kmer->forward()){
+        for(kmer = new DoubleKmer(&read); kmer->getDistToEnd() >= 0 ; kmer->forward()){
             //printf("Pos: %d, Dir: %s, %s \n", kmer->pos, kmer->directionAsString(), print_kmer(kmer->getKmer()));
             oldAdd(kmer->getCanon());
         }  
@@ -346,7 +346,6 @@ void Bloom::load_from_reads(const char* reads_filename){
     time(&stop);
     printf("Time to load: %f \n", difftime(stop,start));
 }
-
 
 void Bloom::load_from_kmers(const char* kmers_filename){
     ifstream solidKmers;

@@ -15,9 +15,16 @@ char* DoubleKmer::directionAsString(){
     }
 }
 
+int DoubleKmer::getDistToEnd(){
+ return read->length()*2- getTotalPos() - 2*sizeKmer+1;
+}
+
+int DoubleKmer::getTotalPos(){
+    return 2*pos + offset();
+}
+
 bool DoubleKmer::onRead(){
-    int totalPos = 2*pos + offset();
-    return (totalPos >= 1) && (totalPos <= (read->length()-sizeKmer)*2);
+    return (getTotalPos() >= 1) && (getDistToEnd()>=1);
 }
 
 kmer_type DoubleKmer::getKmer(){
@@ -70,21 +77,29 @@ kmer_type DoubleKmer::getCanon(){
     return std::min(kmer, revcompKmer);
 }
 
+int DoubleKmer::getExtensionIndex(bool dir){
+    if(dir != direction){
+        return 4; //backward index
+    }
+    return getRealExtensionNuc();
+}
+
 kmer_type DoubleKmer::getExtension(int newNuc){
     if(direction == FORWARD){
         return  next_kmer(kmer, newNuc, FORWARD);
     }
     else{
-        return next_kmer(revcompKmer, revcomp_int(newNuc), FORWARD); 
+        return next_kmer(revcompKmer, newNuc, FORWARD); 
     }
 }
 
+//can be used as an index for the junction
 int DoubleKmer::getRealExtensionNuc(){
     if(direction == FORWARD){
         return NT2int((*read)[sizeKmer + pos]);  
     } 
     else{
-        return NT2int((*read)[pos-1]);
+        return revcomp_int(NT2int((*read)[pos-1]));
     }
 }
 
@@ -92,13 +107,14 @@ kmer_type DoubleKmer::getRealExtension(){
     return getExtension(getRealExtensionNuc());  
 }
 
+//Starts all the way at the front- facing off the read
 DoubleKmer::DoubleKmer(string* theRead){
     read = theRead;
 
     getFirstKmerFromRead(&kmer,&((*read)[0]));
     revcompKmer = revcomp(kmer);
     pos = 0;
-    direction = FORWARD;
+    direction = BACKWARD;
 }
 
 DoubleKmer::DoubleKmer(DoubleKmer* toCopy){

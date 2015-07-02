@@ -34,8 +34,6 @@ class ReadScanner{
 private:
     int j;
     Bloom* bloom;
-    kmer_type firstReadJunc, lastReadJunc; //stores kmers of last and first junction in a read from the read scan.  For use by spacers.
-    //int spacerDist;
     set<kmer_type> jcheckedSet;
     set<kmer_type> nextRealSet;
     uint64_t hash0, hash1,
