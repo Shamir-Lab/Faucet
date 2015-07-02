@@ -62,7 +62,6 @@ bool ReadScanner::testForJunction(DoubleKmer doubleKmer){
 //True if junction was found
 bool ReadScanner::find_next_junction(DoubleKmer * doubleKmer){
   //Iterate forward through the read
-  printf("Finding next junction, starting at %s\n", print_kmer(doubleKmer->getKmer()));
   for (; doubleKmer->getDistToEnd() > 0; doubleKmer->forward())
   {
       //check for an oldjunciton
@@ -79,7 +78,6 @@ bool ReadScanner::find_next_junction(DoubleKmer * doubleKmer){
 }
 
 void ReadScanner::scan_forward(string read){
-  printf("Read: %s\n", &read[0]);
   int pos = 0;
   kmer_type kmer;
   DoubleKmer* firstJunc;
@@ -109,7 +107,6 @@ void ReadScanner::scan_forward(string read){
     NbProcessed++;
   
     int dist = max(1,junctionMap->getSkipDist(doubleKmer, FORWARD));
-    printf("Skip distance %d\n", junctionMap->getSkipDist(doubleKmer, FORWARD));
     doubleKmer->advanceDist(dist);
   }   
   free(doubleKmer);
