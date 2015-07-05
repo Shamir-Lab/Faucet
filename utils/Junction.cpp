@@ -15,6 +15,10 @@ int Junction::numPathsOut(){
   return numPaths;
 }
 
+void Junction::link(int nucExt){
+  linked[nucExt] = true;
+}
+
 void Junction::addCoverage(int nucExt){
   cov[nucExt] = cov[nucExt] + 1;
 }
@@ -35,7 +39,11 @@ void Junction::writeToFile(ofstream*jFile){
   for(int i = 0; i < 5; i++){
     *jFile << (int)cov[i] << "," ;
   }
-  *jFile << " IDs: ";
+  *jFile << " Linked: ";
+  for(int i = 0; i < 5; i++){
+    *jFile << linked[i] << "," ;
+  }
+  *jFile << "\n";
 }
 
 //explicitly set if it's a spacer or not
@@ -43,6 +51,7 @@ Junction::Junction(){
   for(int i  = 0; i < 5; i++){
     dist[i] = 0;
     cov[i] = 0;
+    linked[i] = false;
   }
 }
 

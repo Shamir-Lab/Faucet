@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <set>
 #include "Kmer.h"
-#include "DoubleKmer.h"
+#include "ReadKmer.h"
 // not using kmer_type from Kmer.h because I don't want this class to depend on Kmer.h
 #ifdef _largeint
 #include "LargeInt.h"

@@ -31,13 +31,13 @@ JunctionMap* ReadScanner::getJunctionMap(){
   return junctionMap;
 }
 
-//Returns true if the kmer represented by doubleKmer is a junction. 
+//Returns true if the kmer represented by readKmer is a junction. 
 //Uses as a reference "real_ext" since it knows that's one valid path
-bool ReadScanner::testForJunction(DoubleKmer doubleKmer){
-  kmer_type real_ext = doubleKmer.getRealExtension();
-  kmer_type real = doubleKmer.getKmer();
+bool ReadScanner::testForJunction(ReadKmer readKmer){
+  kmer_type real_ext = readKmer.getRealExtension();
+  kmer_type real = readKmer.getKmer();
   for(int nt=0; nt<4; nt++) {//for each extension
-    kmer_type test_ext = doubleKmer.getExtension(nt); //get possible extension
+    kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
     if(real_ext != test_ext && real_ext != real && test_ext != real){//if the branch has 3 distinct kmers
       if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
       { 
@@ -52,18 +52,18 @@ bool ReadScanner::testForJunction(DoubleKmer doubleKmer){
 }
 
 //starts at position *pos, kmer *kmer on read, and scans till it either finds an existing junction
-//or finds a new one.  Does not modify any junctions- simply updates doubleKmer to be at a junction or off the end of the read
+//or finds a new one.  Does not modify any junctions- simply updates readKmer to be at a junction or off the end of the read
 //True if junction was found
-bool ReadScanner::find_next_junction(DoubleKmer * doubleKmer){
+bool ReadScanner::find_next_junction(ReadKmer * readKmer){
   //Iterate forward through the read
-  for (; doubleKmer->getDistToEnd() > 0; doubleKmer->forward())
+  for (; readKmer->getDistToEnd() > 0; readKmer->forward())
   {
       //check for an already found junciton
-      if(junctionMap->contains(doubleKmer->getKmer())){
+      if(junctionMap->contains(readKmer->getKmer())){
         return true;
       }
       //check for a new junction
-      if(testForJunction(*doubleKmer)){
+      if(testForJunction(*readKmer)){
         return true;
       }
       NbProcessed++;
@@ -74,7 +74,7 @@ bool ReadScanner::find_next_junction(DoubleKmer * doubleKmer){
 //should only be called on a read with no real junctions
 //Adds a fake junction in the middle and points it to the two ends
 void ReadScanner::add_fake_junction(string read){
-  DoubleKmer* middleKmer = new DoubleKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
+  ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
   junctionMap->createJunction(middleKmer);
   Junction* junc = junctionMap->getJunction(middleKmer);
   junc->addCoverage(middleKmer->getExtensionIndex(FORWARD));
@@ -86,39 +86,39 @@ void ReadScanner::add_fake_junction(string read){
 void ReadScanner::scan_forward(string read){
   int pos = 0;
   kmer_type kmer;
-  DoubleKmer* doubleKmer = new DoubleKmer(&read);//stores current kmer throughout
-  doubleKmer->forward();//don't scan the first position- points off the read
-  DoubleKmer* lastJunc;
+  ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
+  readKmer->forward();//don't scan the first position- points off the read
+  ReadKmer* lastJunc;
   
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
-  while(find_next_junction(doubleKmer))
+  while(find_next_junction(readKmer))
   {
     //create a junction at the current spot if none exists
-    if(!junctionMap->contains(doubleKmer)){
-      junctionMap->createJunction(doubleKmer);
+    if(!junctionMap->contains(readKmer)){
+      junctionMap->createJunction(readKmer);
     }
-    junctionMap->getJunction(doubleKmer)->addCoverage(doubleKmer->getRealExtensionNuc());
+    junctionMap->getJunction(readKmer)->addCoverage(readKmer->getRealExtensionNuc());
     
     //if there was a last junction, link the two 
     if(lastJunc){
-      junctionMap->directLinkJunctions(lastJunc, doubleKmer);
+      junctionMap->directLinkJunctions(lastJunc, readKmer);
     }
 
     //If this is the first junction, link it to the beginning of the read.
     else{ 
-      junctionMap->getJunction(doubleKmer)
-        ->update(doubleKmer->getExtensionIndex(BACKWARD), doubleKmer->getTotalPos());
+      junctionMap->getJunction(readKmer)
+        ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos());
     }
 
     //bookkeeping work to advance to the next iteration of the loop
     free(lastJunc);
-    lastJunc = new DoubleKmer(doubleKmer);
-    int dist = max(1,junctionMap->getSkipDist(doubleKmer, FORWARD));
-    doubleKmer->advanceDist(dist);
+    lastJunc = new ReadKmer(readKmer);
+    int dist = max(1,junctionMap->getSkipDist(readKmer, FORWARD));
+    readKmer->advanceDist(dist);
 
     NbProcessed++,  NbSkipped += dist-1;
   }   
-  free(doubleKmer);
+  free(readKmer);
 
   //If there were no juncs- put a fake junction in the middle, point it to the ends.
   if(!lastJunc){

@@ -23,9 +23,8 @@ using std::ofstream;
 #include "../utils/JChecker.h"
 #include "../utils/JunctionMap.h"
 #include "../utils/Junction.h"
-#include "../utils/DoubleKmer.h"
+#include "../utils/ReadKmer.h"
 #include "../utils/Cap.h"
-#include "../utils/DoubleKmer.h"
 
 #define DEBUGE(a)  //printf a
 
@@ -55,9 +54,9 @@ public:
     void scanReads();
     void printScanSummary();
     
-    bool testForJunction(DoubleKmer kmer);
+    bool testForJunction(ReadKmer kmer);
     void scan_forward(string read); 
-    bool find_next_junction(DoubleKmer * kmer);//adjusts position and kmer and returns the junction
+    bool find_next_junction(ReadKmer * kmer);//adjusts position and kmer and returns the junction
 
     ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, JChecker* jchecker);
 };
