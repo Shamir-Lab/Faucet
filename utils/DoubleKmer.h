@@ -34,7 +34,11 @@ public:
 
     //initializes the DoubleKmer to refer to the first kmer in the read
     DoubleKmer(string* theRead);
+    //Creates a double kmer corresponding to the given read, the index into the read, and the direction
+    DoubleKmer(string* theRead, int index, bool dir);
     DoubleKmer(DoubleKmer* toCopy);
 };
+
+
 
 #endif

@@ -1,6 +1,6 @@
 CFLAGS+= -O4 -D_FILE_OFFSET_BITS=64 # needed to handle files > 2 GB on 32 bits systems
 SRC_UTILS =../utils/Cap.cpp ../utils/DoubleKmer.cpp ../utils/Bloom.cpp ../utils/Kmer.cpp ../utils/JChecker.cpp ../utils/JunctionMap.cpp ../utils/Junction.cpp
-SRC_MINK =ReadScanner.cpp Mink.cpp
+SRC_MINK =Graph.cpp Node.cpp ReadScanner.cpp Mink.cpp
 
 EXEC=mink
 OBJ= $(SRC_UTILS:.cpp=.o) $(SRC_MINK:.cpp=.o)

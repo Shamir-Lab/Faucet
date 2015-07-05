@@ -1,11 +1,11 @@
 #include <fstream>
-#include "Junction.h"
+#include "Node.h"
 using std::ofstream;
 using std::max;
 
 void writeToFile(ofstream* jFile);
 
-int Junction::numPathsOut(){
+int Node::numPathsOut(){
   int numPaths = 0;
   for(int i = 0; i < 4; i++){
     if(cov[i] > 0){
@@ -15,18 +15,15 @@ int Junction::numPathsOut(){
   return numPaths;
 }
 
-void Junction::addCoverage(int nucExt){
-  cov[nucExt] = cov[nucExt] + 1;
-}
-
 //Updates the junc info based on finding a path of length length from the extension nucExt
-void Junction::update(int nucExt, unsigned char lengthFor){
+void Node::update(int nucExt, int lengthFor,  kmer_type jID){
       dist[nucExt] = max(dist[nucExt], lengthFor);
+      nextJunc[nucExt] = jID;
 }
 
 
 //Kmer, then "ext,ext,ext,ext" then "cov,cov,cov,cov" for each of A,C,T,G in order.
-void Junction::writeToFile(ofstream*jFile){
+void Node::writeToFile(ofstream*jFile){
   *jFile <<"Distances: ";
   for(int i = 0; i < 5; i++){
     *jFile << (int)dist[i] << "," ;
@@ -36,13 +33,29 @@ void Junction::writeToFile(ofstream*jFile){
     *jFile << (int)cov[i] << "," ;
   }
   *jFile << " IDs: ";
+  for(int i = 0; i < 5; i++){
+    if(nextJunc[i] == -1){
+      *jFile << "x,";
+    }
+    else{
+      *jFile << print_kmer(nextJunc[i]) << "," ;
+    }
+  }
 }
 
-//explicitly set if it's a spacer or not
-Junction::Junction(){
+Node::Node(Junction junc){
+  for(int i  = 0; i < 5; i++){
+    dist[i] = junc.dist[i];
+    cov[i] = junc.cov[i];
+    nextJunc[i] = -1;
+  }
+}
+
+Node::Node(){
   for(int i  = 0; i < 5; i++){
     dist[i] = 0;
     cov[i] = 0;
+    nextJunc[i] = -1;
   }
 }
 

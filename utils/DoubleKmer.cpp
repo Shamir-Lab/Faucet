@@ -117,6 +117,15 @@ DoubleKmer::DoubleKmer(string* theRead){
     direction = BACKWARD;
 }
 
+//Creates a double kmer corresponding to the given read, the index into the read, and the direction
+DoubleKmer::DoubleKmer(string* theRead, int index, bool dir){
+    read = theRead;
+    getFirstKmerFromRead(&kmer,&((*read)[index]));
+    revcompKmer = revcomp(kmer);
+    pos = index;
+    direction = dir;
+}
+
 DoubleKmer::DoubleKmer(DoubleKmer* toCopy){
     read = toCopy->read;
     kmer = toCopy->kmer;
@@ -124,4 +133,3 @@ DoubleKmer::DoubleKmer(DoubleKmer* toCopy){
     pos = toCopy->pos;
     direction = toCopy->direction;
 }
-

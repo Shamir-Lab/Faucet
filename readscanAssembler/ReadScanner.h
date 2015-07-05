@@ -46,6 +46,8 @@ private:
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
+    void add_fake_junction(string read);
+    
 public:
     void resetHashes(kmer_type kmer);//for testing
     JunctionMap* getJunctionMap();
@@ -57,6 +59,6 @@ public:
     void scan_forward(string read); 
     bool find_next_junction(DoubleKmer * kmer);//adjusts position and kmer and returns the junction
 
-    ReadScanner(string readFile, Bloom* bloom, JChecker* jchecker);
+    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, JChecker* jchecker);
 };
 #endif

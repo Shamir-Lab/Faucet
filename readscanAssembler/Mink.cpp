@@ -10,16 +10,17 @@
 #include <vector> // for sorting_kmers
 #include <sys/time.h>
 
+
 #define NNKS 4 // default minimal abundance for solidity
 #define MIN_CONTIG_SIZE (2*sizeKmer+1)
 
 float fpRate = .01;
 int j = 0;
 
-char* junctions_filename = new char[100];
 char* solids_file = new char[100];
+
 int read_length;
-uint64_t genome_size;
+uint64_t estimated_kmers;
 bool TwoHash = false;
 int64_t nb_reads;
 char* kmer_filename = (char*)"solid_27mers_100k";
@@ -33,32 +34,32 @@ char* kmer_filename = (char*)"solid_27mers_100k";
 using namespace std;
 
 set<kmer_type> all_kmers;
+string* file_prefix;
 /*
-To run the new version, type make in the directory to compile.
+To run Mink, first type make in the directory to compile.
 
-Then, type ./mink 1 2 3 4 5 6 [7] [8], where
+Then, type ./mink 1 2 3 4 5 6 7 [8], where
 1 = name of reads file (current format is each line has a string of characters representing the read)
 2 = k
 3 = read length
 4 = number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
 5 = false positive rate (.01 is a good base rate) 
 6 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
-7 = junctions file name.  Will print out to this file. If no filename is given, no file will be printed.
+7 = File prefix. Used for junctions file and contigs file.
 8 = TwoHash.  True if you want to use a bigger bloom filter with only two hash functions.
     Can only use this is you also put in something for 7.
 [] indicate optional arguments.
 
-This will load a bloom filter with all the kmers from the reads, then scan through them inserting potential false positives.
-No error correction corrently, and no assembly.
+This will load a bloom filter with all the kmers from the reads, then scan through them to find all of the junctions.
+It will print all of the junctions to a file named file_prefix.junctions, 
+and print some summary info about the run to stdout.
 */
 
 inline int handle_arguments(int argc, char *argv[]){
 if(argc <  8)
     {
         fprintf (stderr,"usage:\n");
-        fprintf (stderr," %s input_file kmer_size min_abundance estimated_nb_reads prefix\n",argv[0]);
-        fprintf (stderr,"hints:\n min_abundance ~ 3\n estimated_nb_reads is in bp, does not need to be accurate, only controls memory usage\n prefix is any name you want the results to start with\n");
-
+        fprintf (stderr,"./mink reads_file k num_kmers fpRate j file_prefix two_hash\n");
         return 1;
     }
 
@@ -74,8 +75,8 @@ if(argc <  8)
     read_length = atoi(argv[3]);
 
     //4th arg: number of reads
-    genome_size = atoll(argv[4]);
-    printf("Genome size: %lli .\n", genome_size);
+    estimated_kmers = atoll(argv[4]);
+    printf("Genome size: %lli .\n", estimated_kmers);
     
     //5th arg: false posiive rate
     fpRate = atof(argv[5]);
@@ -84,11 +85,11 @@ if(argc <  8)
     j = atoi(argv[6]);
     printf("j: %d \n", j);
 
-    if(argc > 7){
-        strcpy(junctions_filename,argv[7]);
-        printf("Junctions file name: %s \n", junctions_filename);
-    }
+    //7th arg: file prefix
+    file_prefix = new string(argv[7]);
+    printf("File prefix: %s\n", &((*file_prefix)[0]));
 
+    //8th arg: optional, TwoHash
     if(argc > 8){
         TwoHash = atoi(argv[8]);
     }
@@ -104,33 +105,34 @@ if(argc <  8)
  
 int main(int argc, char *argv[])
 {
+    //get all parameters from arguments
     if (handle_arguments(argc, argv) == 1){
         return 1;
     }
 
-    int estimated_kmers = genome_size;
-
+    //create and load bloom filter
     Bloom* bloo1;
-
     if(TwoHash){
         bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
     }
     else{
         bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
     }
-
     bloo1->load_from_reads(solids_file);
+
+    //create ReadScanner
     JChecker* jchecker = new JChecker(j, bloo1);
+    JunctionMap* junctionMap = new JunctionMap(bloo1);
+    ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloo1, jchecker);
     
-    ReadScanner* scanner = new ReadScanner(solids_file, bloo1, jchecker);
-    
+    //scan reads
     scanner->scanReads();
     scanner->printScanSummary();
 
-    if(argc > 6){
-        scanner->getJunctionMap()->writeToFile(junctions_filename);
-    }
+    //dump junctions to file
+    scanner->getJunctionMap()->writeToFile(*file_prefix + ".junctions");
 
+    //done!
     printf("Program reached end. \n");
     return 0;
 }
