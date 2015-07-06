@@ -7,7 +7,6 @@
 class JChecker 
 {
     private:
-        int j;
         Bloom* bloom;
 
         uint64_t ** lastHashes;
@@ -20,6 +19,7 @@ class JChecker
         kmer_type* temp;
 
     public:
+        int j;
         bool jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1);//incremental version
         bool jcheck(kmer_type kmer);//normal version
         JChecker(int jVal, Bloom* bloo);

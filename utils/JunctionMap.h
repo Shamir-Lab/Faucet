@@ -9,6 +9,8 @@
 #include "Cap.h"
 #include "ReadKmer.h"
 #include "Bloom.h"
+#include "JChecker.h"
+#include "Kmer.h"
 #include <fstream>
 using std::ofstream;
 using std::unordered_map;
@@ -19,11 +21,12 @@ class JunctionMap{
 
 private: 
     Bloom* bloom;
-
+    JChecker* jchecker;    
 public:
     unordered_map<kmer_type,Junction> junctionMap;  
-    set<kmer_type> getCFPs();// returns the set of all cFPs. Destroys junctions that are no longer needed along the way.
-    set<kmer_type> getSinks(); //returns a set of all sinks as determined by scanning the bloom filter
+    int getValidJExtension(DoubleKmer kmer);
+    set<kmer_type>* getCFPs();// returns the set of all cFPs. Destroys junctions that are no longer needed along the way.
+    set<kmer_type>* getSinks(); //returns a set of all sinks as determined by scanning the bloom filter
     int getSkipDist(ReadKmer* readKmer, bool direction);
     void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2);//directly links two junctions on the same read
     int getNumComplexJunctions();
@@ -39,6 +42,6 @@ public:
     kmer_type * findSink(Junction junc, kmer_type kmer ,int i);
     void killJunction(kmer_type kmer);
     void finishGraphWriteBasicContigs();
-    JunctionMap(Bloom* bloo);
+    JunctionMap(Bloom* bloo, JChecker* jchecker);
 };
 #endif

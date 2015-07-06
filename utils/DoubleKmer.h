@@ -18,7 +18,10 @@ public:
 
     kmer_type getCanon();
 
+    void reverse();
+    
     DoubleKmer(kmer_type forwardKmer);
+
 
 
 };

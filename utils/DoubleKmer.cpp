@@ -20,6 +20,12 @@ kmer_type DoubleKmer::getCanon(){
     return std::min(kmer, revcompKmer);
 }
 
+void DoubleKmer::reverse(){
+    kmer_type temp = kmer;
+    kmer = revcompKmer;
+    revcompKmer = temp;
+}
+
 DoubleKmer::DoubleKmer(kmer_type forwardKmer){
     kmer = forwardKmer;
     revcompKmer = revcomp(kmer);

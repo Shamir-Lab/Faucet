@@ -28,6 +28,7 @@ char* kmer_filename = (char*)"solid_27mers_100k";
 #include "../utils/Kmer.h"
 #include "ReadScanner.h"
 #include "../utils/JChecker.h"
+#include "Graph.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
 
     //create ReadScanner
     JChecker* jchecker = new JChecker(j, bloo1);
-    JunctionMap* junctionMap = new JunctionMap(bloo1);
+    JunctionMap* junctionMap = new JunctionMap(bloo1, jchecker);
     ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloo1, jchecker);
     
     //scan reads
@@ -130,7 +131,12 @@ int main(int argc, char *argv[])
     scanner->printScanSummary();
 
     //dump junctions to file
-    scanner->getJunctionMap()->writeToFile(*file_prefix + ".junctions");
+    junctionMap->writeToFile(*file_prefix + ".junctions");
+
+    //build and print graph
+    Graph* graph = new Graph(bloo1);
+    graph->buildGraph(junctionMap);
+    graph->printGraph(*file_prefix + ".graph");
 
     //done!
     printf("Program reached end. \n");

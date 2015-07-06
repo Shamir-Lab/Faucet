@@ -35,6 +35,15 @@ JunctionMap* ReadScanner::getJunctionMap(){
 //Uses as a reference "real_ext" since it knows that's one valid path
 bool ReadScanner::testForJunction(ReadKmer readKmer){
   kmer_type real_ext = readKmer.getRealExtension();
+  
+  //if the real extension doesn't even j-check, not worth calling it a junction.
+  if(readKmer.getMaxGuaranteedJ() < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
+    if(!jchecker->jcheck(real_ext)){
+      return false;
+    }
+  }
+
+  //Now given that the real extension is legit, see if there's also an alternate extension
   kmer_type real = readKmer.getKmer();
   for(int nt=0; nt<4; nt++) {//for each extension
     kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
@@ -42,8 +51,8 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
       if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
       { 
         NbJCheckKmer++;
-        if(jchecker->jcheck(test_ext)){
-          return true;
+        if(jchecker->jcheck(test_ext)){//if the branch jchecks
+          return true; //its a branch!
         }
       }
     }

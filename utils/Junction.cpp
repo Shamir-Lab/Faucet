@@ -43,7 +43,6 @@ void Junction::writeToFile(ofstream*jFile){
   for(int i = 0; i < 5; i++){
     *jFile << linked[i] << "," ;
   }
-  *jFile << "\n";
 }
 
 //explicitly set if it's a spacer or not

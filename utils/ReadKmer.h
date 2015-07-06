@@ -17,6 +17,7 @@ public:
     int pos;
     bool direction;
 
+    int getMaxGuaranteedJ();//if this is the junction, the real extension definitely j-checks to at least the return value.
     int getDistToEnd();
     int getTotalPos();
     char* directionAsString();

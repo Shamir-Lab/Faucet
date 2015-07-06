@@ -55,6 +55,7 @@ __uint128_t revcomp(__uint128_t x, int size);
 int code2seq ( kmer_type code,char *seq);
 int code2seq ( kmer_type code,char *seq, int sizeKmer, kmer_type kmerMask);
 int code2nucleotide( kmer_type code, int which_nucleotide);
+int first_nucleotide(kmer_type kmer);
 
 kmer_type extractKmerFromRead(char *readSeq, int position, kmer_type *graine, kmer_type *graine_revcomp);
 kmer_type extractKmerFromRead(char *readSeq, int position, kmer_type *graine, kmer_type *graine_revcomp, bool sequential);

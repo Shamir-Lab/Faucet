@@ -1,4 +1,5 @@
 #include "Graph.h"
+#include <time.h>
 
 using std::string;
 
@@ -9,17 +10,11 @@ Graph::Graph(Bloom* bloo1){
     sinks = {};
 }
 
-
 //IMPLEMENTED
 //NOT TESTED
-//Simply replaces all of the junctions of juncMap with nodes in the graph.  After this the juncMap
-//Should be empty and cFPs, sinks, and nodes should exist everywhere they need to.
-void Graph::buildGraph(JunctionMap* juncMap){
-    //get sinks and cFPs
-    sinks = juncMap->getSinks();
-    cFPs = juncMap->getCFPs();
-
-    //After getCFPs juncMap should only contains complex junctions
+//Assumes cFPs and sinks were already handled, only complex junctions should remain
+//Gets junctions from juncMap and builds Nodes for graph. Kills junctions as it goes.
+void Graph::getNodesFromJunctions(JunctionMap* juncMap){
     kmer_type kmer;
     Junction junction;
     Node node;
@@ -35,6 +30,34 @@ void Graph::buildGraph(JunctionMap* juncMap){
             fprintf(stderr, "ERROR: found junction with one or no paths out.\n");
         }
     }
+}
+
+//IMPLEMENTED
+//NOT TESTED
+//Simply replaces all of the junctions of juncMap with nodes in the graph.  After this the juncMap
+//Should be empty and cFPs, sinks, and nodes should exist everywhere they need to.
+void Graph::buildGraph(JunctionMap* juncMap){
+    //get sinks and cFPs
+    time_t start, stop;
+
+    time(&start);
+    sinks = juncMap->getSinks();
+    time(&stop);
+
+    printf("Sinks found: %d\n", sinks->size());
+    printf("Time to find sinks: %f\n", difftime(stop,start));
+
+    time(&start);
+    cFPs = juncMap->getCFPs();
+    time(&stop);
+
+    printf("cFPs found: %d\n", cFPs->size());
+    printf("Time to find cFPs: %f\n", difftime(stop,start));
+
+    time(&start);
+    getNodesFromJunctions(juncMap);
+    time(&stop);
+    printf("Time to get nodes from junctions: %f\n", difftime(stop,start));
 }
 
 
@@ -58,5 +81,37 @@ void Graph::linkAllNodes(){
 }
 
 void Graph::printGraph(string fileName){
+    kmer_type kmer;
+    Node node;
+    ofstream jFile;
+    jFile.open(fileName);
+    printf("Writing graph to file.\n");
+    printf("Writing graph nodes to file.\n");
+    jFile << "Graph nodes: \n";
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        kmer = it->first;
+        node = it->second;
+        jFile << print_kmer(kmer) << " ";
+        node.writeToFile(&jFile);
+        jFile << "\n";
+    }
+    printf("Done writing graph nodes to file \n");
 
+    printf("Writing sinks to file.\n");
+    jFile <<"Sinks: \n";
+    for(auto it = sinks->begin(); it != sinks->end(); it++){
+        kmer = *it;
+        jFile << print_kmer(kmer) << "\n";
+    }
+    printf("Done writing sinks to file.\n");
+
+    printf("Writing cFPs to file.\n");
+    jFile <<"cFPs: \n";
+    for(auto it = cFPs->begin(); it != cFPs->end(); it++){
+        kmer = *it;
+        jFile << print_kmer(kmer) << "\n";
+    }
+    printf("Done writing cFPs to file.\n");
+    printf("Done writing graph to file.\n");
+    jFile.close();
 }

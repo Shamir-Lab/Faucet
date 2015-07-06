@@ -18,9 +18,11 @@ class Graph
 private:
 
     unordered_map<kmer_type, Node> nodeMap;
-    set<kmer_type> cFPs;
-    set<kmer_type> sinks;
+    set<kmer_type>* cFPs;
+    set<kmer_type>* sinks;
     Bloom* bloom;
+    void getNodesFromJunctions(JunctionMap* juncMap);
+
 public: 
     void buildGraph(JunctionMap* juncMap);
     void linkAllNodes();

@@ -15,6 +15,15 @@ char* ReadKmer::directionAsString(){
     }
 }
 
+int ReadKmer::getMaxGuaranteedJ(){
+    if(direction == FORWARD){
+        return getDistToEnd()/2-1;
+    }
+    else{
+        return getTotalPos()/2-1;
+    }
+}
+
 int ReadKmer::getDistToEnd(){
  return read->length()*2- getTotalPos() - 2*sizeKmer+1;
 }
