@@ -17,20 +17,10 @@
 using std::ifstream;
 using std::string;
 
-int Bloom::getHashSize(){
-    return hashSize;
-}
 
-uint64_t Bloom::getBloomMask(){
-    return bloomMask;
-}
-
-Bloom::Bloom()
-{
-    //empty default constructor
-    nb_elem = 0;
-    blooma = NULL;
-}
+/**********************************************************************************
+These are the important things that are currently being used.
+***********************************************************************************/
 
 void Bloom::fakify(std::set<bloom_elem> valid_kmers){
     fake = true;
@@ -39,6 +29,174 @@ void Bloom::fakify(std::set<bloom_elem> valid_kmers){
         valid_hash0.insert(get_rolling_hash(*it,0));
         valid_hash1.insert(get_rolling_hash(*it,1));
     }
+}
+
+
+ Bloom::Bloom(uint64_t tai_bloom, int kVal)
+ {
+    fake = false;
+     //printf("custom construc \n");
+    k = kVal;
+     n_hash_func = 4 ;//def
+     user_seed =0;
+     nb_elem = 0;
+     hashSize = (int) log2(tai_bloom)+1;
+     //printf("Hash size: %d \n", hashSize);
+     tai = pow(2, hashSize);
+     //printf("Tai: %lli \n", tai);
+     if(tai == 0){
+        tai = 1;
+     }
+     bloomMask = tai-1;
+     //printf("Mask: %lli \n", bloomMask);
+     nchar = (tai/8LL);
+     blooma =(unsigned char *)  malloc( nchar *sizeof(unsigned char)); // 1 bit per elem
+     //printf("Allocation for filter: %lli bits. \n",nchar *sizeof(unsigned char)*8);
+     memset(blooma,0,nchar *sizeof(unsigned char));
+     //fprintf(stderr,"malloc bloom %lli MB \n",(tai/8LL)/1024LL/1024LL);
+     this->generate_hash_seed();
+ }
+
+
+float Bloom::weight()
+{
+    // return the number of 1's in the Bloom, nibble by nibble
+    const unsigned char oneBits[] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
+    long weight = 0;
+    for(uint64_t index = 0; index < nchar; index++)
+    {
+        unsigned char current_char = blooma[index];
+        weight += oneBits[current_char&0x0f];
+        weight += oneBits[current_char>>4];
+    }
+    return (float)weight/(float)tai;
+}
+
+
+Bloom* Bloom::create_bloom_filter_2_hash(uint64_t estimated_items, float fpRate){
+     
+    Bloom * bloo1;
+    int bits_per_item = 2*(int)(1/pow(fpRate,.5));// needed to process argv[5]
+
+    printf("Bits per kmer: %d \n", bits_per_item);
+
+    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
+    uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
+    printf("Estimated items: %lli \n", estimated_items);
+    printf("Estimated bloom size: %lli .\n", estimated_bloom_size);
+    
+    printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
+    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
+
+
+    printf("Number of hash functions: %d \n", 2);
+    bloo1->set_number_of_hash_func(2);
+
+    return bloo1;
+}
+
+
+Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate){
+     
+    Bloom * bloo1;
+    int bits_per_item = -log(fpRate)/log(2)/log(2); // needed to process argv[5]
+
+    //printf("Bits per kmer: %d \n", bits_per_item);
+    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
+    uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
+    //printf("Estimated items: %lli \n", estimated_items);
+    //printf("Estimated bloom size: %lli.\n", estimated_bloom_size);
+    
+    //printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
+    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
+
+    //printf("Number of hash functions: %d \n", (int)floorf(0.7*bits_per_item));
+    bloo1->set_number_of_hash_func((int)floorf(0.7*bits_per_item));
+
+    return bloo1;
+}
+
+void Bloom::load_from_reads(const char* reads_filename){
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+
+    int readsProcessed = 0;
+
+    //should fix this.. just because right now there's no empty constructor
+    string fake = "FAKE";
+    ReadKmer kmer(&fake);
+
+    string read;
+    time_t start, stop;
+    time(&start);
+    printf("Weight before load: %f \n", weight());
+    while (getline(solidReads, read))
+    {
+        for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward()){
+            oldAdd(kmer.getCanon());
+        }    
+        readsProcessed++;
+        if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+    }
+
+    solidReads.close();
+    printf("\n");
+    printf("Weight after load: %f \n", weight()); 
+    time(&stop);
+    printf("Time to load: %f \n", difftime(stop,start));
+}
+
+void Bloom::load_from_kmers(const char* kmers_filename){
+    ifstream solidKmers;
+    solidKmers.open(kmers_filename);
+
+    int kmersProcessed = 0;
+    kmer_type left,right;
+    string kpomer;
+
+    printf("Weight before load: %f \n", weight());
+    int badKmerCount = 0;
+    while (getline(solidKmers, kpomer))
+    {
+        if(kpomer.length() != sizeKmer+1){
+            badKmerCount++;
+            continue;
+        }
+      // printf("kpomer %s \n", &kpomer[0]);
+        getFirstKmerFromRead(&left,&kpomer[0]);
+        right = next_kmer(left, NT2int(kpomer[sizeKmer]),FORWARD);
+        //printf("left %s \n", print_kmer(left));
+        //printf("right %s \n", print_kmer(right));
+        oldAdd(get_canon(left));
+        oldAdd(get_canon(right));
+        kmersProcessed++;
+        if ((kmersProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)kmersProcessed);
+    }
+    printf("\n");
+    solidKmers.close();
+    printf("Number of wrong length kmers: %d \n", badKmerCount);
+    printf("Weight after load: %f \n", weight()); 
+}
+
+
+int Bloom::getHashSize(){
+    return hashSize;
+}
+
+uint64_t Bloom::getBloomMask(){
+    return bloomMask;
+}
+
+/**********************************************************************************
+Most of the below is not currently used, or has to do with generating hash seeds.  
+Also much of it is for incremental hashing.
+***********************************************************************************/
+
+Bloom::Bloom()
+{
+    //empty default constructor
+    nb_elem = 0;
+    blooma = NULL;
 }
 
 void Bloom::setSeed(uint64_t seed)
@@ -104,114 +262,6 @@ void Bloom::generate_hash_seed()
     }
 }
 
-#ifdef _largeint
-inline uint64_t Bloom::hash_func(LargeInt<KMER_PRECISION> elem, int num_hash)
-{
-    // hash = XOR_of_series[hash(i-th chunk iof 64 bits)]
-    uint64_t result = 0, chunk, mask = ~0;
-    LargeInt<KMER_PRECISION> intermediate = elem;
-    int i;
-    for (i=0;i<KMER_PRECISION;i++)
-    {
-        chunk = (intermediate & mask).toInt();
-        intermediate = intermediate >> 64;
-   
-        result ^= hash_func(chunk,num_hash);
-    }
-    return result;
-}
-#endif
-
-#ifdef _ttmath
-inline uint64_t Bloom::hash_func(ttmath::UInt<KMER_PRECISION> elem, int num_hash)
-{
-    // hash = XOR_of_series[hash(i-th chunk iof 64 bits)]
-    uint64_t result = 0, to_hash;
-    ttmath::UInt<KMER_PRECISION> intermediate = elem;
-    uint32_t mask=~0, chunk;
-    int i;
-    for (i=0;i<KMER_PRECISION/2;i++)
-    {
-        // retrieve a 64 bits part to hash 
-        (intermediate & mask).ToInt(chunk);
-        to_hash = chunk;
-        intermediate >>= 32;
-        (intermediate & mask).ToInt(chunk);
-        to_hash |= ((uint64_t)chunk) << 32 ;
-        intermediate >>= 32;
-
-        result ^= hash_func(to_hash,num_hash);
-    }
-    return result;
-}
-#endif
-
-#ifdef _LP64
-inline uint64_t Bloom::hash_func( __uint128_t elem, int num_hash)
-{
-    // hash(uint128) = ( hash(upper 64 bits) xor hash(lower 64 bits))
-    return hash_func((uint64_t)(elem>>64),num_hash) ^ hash_func((uint64_t)(elem&((((__uint128_t)1)<<64)-1)),num_hash);
-}
-#endif
-
-inline uint64_t Bloom::hash_func( uint64_t key, int num_hash)
-{
-    uint64_t hash = seed_tab[num_hash];
-    hash ^= (hash <<  7) ^  key * (hash >> 3) ^ (~((hash << 11) + (key ^ (hash >> 5))));
-    hash = (~hash) + (hash << 21); // hash = (hash << 21) - hash - 1;
-    hash = hash ^ (hash >> 24);
-    hash = (hash + (hash << 3)) + (hash << 8); // hash * 265
-    hash = hash ^ (hash >> 14);
-    hash = (hash + (hash << 2)) + (hash << 4); // hash * 21
-    hash = hash ^ (hash >> 28);
-    hash = hash + (hash << 31);
-    return hash;
-}
-
-//tai is 2^tai_bloom
-Bloom::Bloom(int tai_bloom)
-{
-
-    printf("tai_bloom: %d \n", tai_bloom);
-    n_hash_func = 4 ;//def
-    user_seed =0;
-    nb_elem = 0;
-    //tai = (1LL << tai_bloom);
-
-   // printf("tai: %d \n", tai);
-    nchar = tai_bloom/8LL;
-    blooma =(unsigned char *)  malloc( nchar *sizeof(unsigned char)); // 1 bit per elem
-    memset(blooma,0,nchar *sizeof(unsigned char));
-    //fprintf(stderr,"malloc Power-of-two bloom %lli MB nchar %llu %llu\n",(long long)((tai/8LL)/1024LL/1024LL),(unsigned long long)nchar,(unsigned long long)(tai/8));
-    this->generate_hash_seed();
-}
-
-
- Bloom::Bloom(uint64_t tai_bloom, int kVal)
- {
-    fake = false;
-     //printf("custom construc \n");
-    k = kVal;
-     n_hash_func = 4 ;//def
-     user_seed =0;
-     nb_elem = 0;
-     hashSize = (int) log2(tai_bloom)+1;
-     //printf("Hash size: %d \n", hashSize);
-     tai = pow(2, hashSize);
-     //printf("Tai: %lli \n", tai);
-     if(tai == 0){
-        tai = 1;
-     }
-     bloomMask = tai-1;
-     //printf("Mask: %lli \n", bloomMask);
-     nchar = (tai/8LL);
-     blooma =(unsigned char *)  malloc( nchar *sizeof(unsigned char)); // 1 bit per elem
-     //printf("Allocation for filter: %lli bits. \n",nchar *sizeof(unsigned char)*8);
-     memset(blooma,0,nchar *sizeof(unsigned char));
-     //fprintf(stderr,"malloc bloom %lli MB \n",(tai/8LL)/1024LL/1024LL);
-     this->generate_hash_seed();
- }
-
 
 uint64_t Bloom::getCharHash(int key, int num_hash){
     return char_hash[num_hash][key];
@@ -249,7 +299,6 @@ void Bloom::dump(char * filename)
 
 }
 
-
 void Bloom::load(char * filename)
 {
  FILE *file_data;
@@ -257,124 +306,4 @@ void Bloom::load(char * filename)
  printf("loading bloom filter from file, nelem %lli \n",nchar);
  int a = fread(blooma, sizeof(unsigned char), nchar, file_data);// go away warning..
  printf("bloom loaded\n");
-}
-
-float Bloom::weight()
-{
-    // return the number of 1's in the Bloom, nibble by nibble
-    const unsigned char oneBits[] = {0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4};
-    long weight = 0;
-    for(uint64_t index = 0; index < nchar; index++)
-    {
-        unsigned char current_char = blooma[index];
-        weight += oneBits[current_char&0x0f];
-        weight += oneBits[current_char>>4];
-    }
-    return (float)weight/(float)tai;
-}
-
-
-Bloom* Bloom::create_bloom_filter_2_hash(uint64_t estimated_items, float fpRate){
-     
-    Bloom * bloo1;
-    int bits_per_item = 2*(int)(1/pow(fpRate,.5));// needed to process argv[5]
-
-    printf("Bits per kmer: %d \n", bits_per_item);
-
-    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
-    uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
-    printf("Estimated items: %lli \n", estimated_items);
-    printf("Estimated bloom size: %lli .\n", estimated_bloom_size);
-    
-    printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
-    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
-
-
-    printf("Number of hash functions: %d \n", 2);
-    bloo1->set_number_of_hash_func(2);
-
-    return bloo1;
-}
-
-
-Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate){
-     
-    Bloom * bloo1;
-    int bits_per_item = -log(fpRate)/log(2)/log(2); // needed to process argv[5]
-
-    //printf("Bits per kmer: %d \n", bits_per_item);
-    // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
-    uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
-    //printf("Estimated items: %lli \n", estimated_items);
-    //printf("Estimated bloom size: %lli.\n", estimated_bloom_size);
-    
-    //printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
-    bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
-
-    //printf("Number of hash functions: %d \n", (int)floorf(0.7*bits_per_item));
-    bloo1->set_number_of_hash_func((int)floorf(0.7*bits_per_item));
-
-    return bloo1;
-}
-
-void Bloom::load_from_reads(const char* reads_filename){
-    ifstream solidReads;
-    solidReads.open(reads_filename);
-
-    int readsProcessed = 0;
-    ReadKmer* kmer;
-    string read;
-    time_t start;
-    time_t stop;
-    time(&start);
-    printf("Weight before load: %f \n", weight());
-    while (getline(solidReads, read))
-    {
-        //printf("Read: %s\n", &read[0]);
-        for(kmer = new ReadKmer(&read); kmer->getDistToEnd() >= 0 ; kmer->forward()){
-            //printf("Pos: %d, Dir: %s, %s \n", kmer->pos, kmer->directionAsString(), print_kmer(kmer->getKmer()));
-            oldAdd(kmer->getCanon());
-        }  
-        free(kmer);  
-        readsProcessed++;
-        if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
-    }
-
-    solidReads.close();
-    printf("\n");
-    printf("Weight after load: %f \n", weight()); 
-    time(&stop);
-    printf("Time to load: %f \n", difftime(stop,start));
-}
-
-void Bloom::load_from_kmers(const char* kmers_filename){
-    ifstream solidKmers;
-    solidKmers.open(kmers_filename);
-
-    int kmersProcessed = 0;
-    kmer_type left,right;
-    string kpomer;
-
-    printf("Weight before load: %f \n", weight());
-    int badKmerCount = 0;
-    while (getline(solidKmers, kpomer))
-    {
-        if(kpomer.length() != sizeKmer+1){
-            badKmerCount++;
-            continue;
-        }
-      // printf("kpomer %s \n", &kpomer[0]);
-        getFirstKmerFromRead(&left,&kpomer[0]);
-        right = next_kmer(left, NT2int(kpomer[sizeKmer]),FORWARD);
-        //printf("left %s \n", print_kmer(left));
-        //printf("right %s \n", print_kmer(right));
-        oldAdd(get_canon(left));
-        oldAdd(get_canon(right));
-        kmersProcessed++;
-        if ((kmersProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)kmersProcessed);
-    }
-    printf("\n");
-    solidKmers.close();
-    printf("Number of wrong length kmers: %d \n", badKmerCount);
-    printf("Weight after load: %f \n", weight()); 
 }

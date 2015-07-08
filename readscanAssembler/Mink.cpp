@@ -42,7 +42,7 @@ To run Mink, first type make in the directory to compile.
 Then, type ./mink 1 2 3 4 5 6 7 [8], where
 1 = name of reads file (current format is each line has a string of characters representing the read)
 2 = k
-3 = read length
+3 = maximal read length
 4 = number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
 5 = false positive rate (.01 is a good base rate) 
 6 = j.  j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc.
@@ -60,7 +60,7 @@ inline int handle_arguments(int argc, char *argv[]){
 if(argc <  8)
     {
         fprintf (stderr,"usage:\n");
-        fprintf (stderr,"./mink reads_file k read_length num_kmers fpRate j file_prefix two_hash\n");
+        fprintf (stderr,"./mink reads_file k max_read_length num_kmers fpRate j file_prefix two_hash\n");
         return 1;
     }
 
@@ -74,13 +74,15 @@ if(argc <  8)
 
     //3rd arg: read length
     read_length = atoi(argv[3]);
+    printf("Maximal read length: %d\n", read_length);
 
     //4th arg: number of reads
     estimated_kmers = atoll(argv[4]);
-    printf("Genome size: %lli .\n", estimated_kmers);
+    printf("Estimated number of distinct kmers, for sizing bloom filter: %lli .\n", estimated_kmers);
     
     //5th arg: false posiive rate
     fpRate = atof(argv[5]);
+    printf("False positive rate: %f\n", fpRate);
 
     //6th arg: j
     j = atoi(argv[6]);
@@ -102,6 +104,7 @@ if(argc <  8)
     }
 
     printf("Size of junction: %d\n", sizeof(Junction));
+    printf("Size of node: %d\n", sizeof(Node));
 }
  
 int main(int argc, char *argv[])
@@ -121,19 +124,19 @@ int main(int argc, char *argv[])
     }
     bloo1->load_from_reads(solids_file);
 
-    //create ReadScanner
+    //create JChecker, JunctionMap, and ReadScanner
     JChecker* jchecker = new JChecker(j, bloo1);
-    JunctionMap* junctionMap = new JunctionMap(bloo1, jchecker);
+    JunctionMap* junctionMap = new JunctionMap(bloo1, jchecker, read_length);
     ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloo1, jchecker);
     
-    //scan reads
+    //scan reads, print summary
     scanner->scanReads();
     scanner->printScanSummary();
 
     //dump junctions to file
     junctionMap->writeToFile(*file_prefix + ".junctions");
 
-    //build and print graph
+    //build graph, dump graph and contigs to file
     Graph* graph = new Graph(bloo1, jchecker);
     graph->buildGraph(junctionMap);
     graph->linkNodesPrintContigs(*file_prefix + ".contigs");

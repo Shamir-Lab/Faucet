@@ -138,3 +138,4 @@ ReadKmer::ReadKmer(ReadKmer* toCopy): doubleKmer(toCopy->doubleKmer){
     pos = toCopy->pos;
     direction = toCopy->direction;
 }
+

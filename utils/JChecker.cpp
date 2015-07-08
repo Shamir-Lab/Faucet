@@ -46,34 +46,32 @@ bool JChecker::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
   }
 }
     
-//normal version   
+//Normal version of jchecking, without rolling hash.  
 //Old hash! use only for old hash!  For kpomerscanner
 bool JChecker::jcheck(kmer_type kmer){
-  //printf("Jchecking %s \n", print_kmer(kmer));
   kmer_type this_kmer, nextKmer;
   int lastCount, nextCount;
 
   lastCount = 1;
   lastKmers[0] = kmer;
 
-  for(int i = 0; i < j; i++){
-    //printf("Level %d. \n", i);
+  for(int i = 0; i < j; i++){ //for up to j levels
     nextCount = 0;
-    for(int k = 0; k < lastCount; k++){
+    for(int k = 0; k < lastCount; k++){ //for every kmer in the last level
       this_kmer = lastKmers[k];
-      //printf("%s \n", print_kmer(this_kmer));
-      for(int nt = 0; nt < 4; nt++){
+      for(int nt = 0; nt < 4; nt++){ //for every possible extension
         nextKmer = next_kmer(this_kmer, nt, FORWARD);
-        if(bloom->oldContains(get_canon(nextKmer))){
+        if(bloom->oldContains(get_canon(nextKmer))){//add any positive extensions to the next level
           nextKmers[nextCount] = nextKmer;
           nextCount++;
         }
       }
     }
     if(nextCount == 0){
-      return false;
+      return false; //if there are ever no valid kmers in the next level, the kmer does not jcheck
     }
     lastCount = nextCount;
+    //switch the pointers to the "last" and "next" arrays so we can use the current "next" one as the next "last" one
     temp = lastKmers;
     lastKmers = nextKmers;
     nextKmers = temp;
@@ -84,6 +82,8 @@ bool JChecker::jcheck(kmer_type kmer){
 JChecker::JChecker(int jVal, Bloom* bloo){
     j = jVal;
     bloom = bloo;
+
+    //all this is for rolling hash function.. not relevant now
     lastHashes = new uint64_t*[20000];
     nextHashes = new uint64_t*[20000];
     for(int i = 0; i < 20000; i++){

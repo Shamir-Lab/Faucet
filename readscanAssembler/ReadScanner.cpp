@@ -13,16 +13,10 @@ ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, JC
   jchecker = checker;
 }
 
-void ReadScanner::resetHashes(kmer_type kmer){
-  hash0 = bloom->get_rolling_hash(kmer,0);
-  hash1 = bloom->get_rolling_hash(kmer,1);
-}
-
 void ReadScanner::printScanSummary(){
   printf("\n Distinct junctions: %lli \n", (uint64_t)junctionMap->getNumJunctions());
   printf("Number of kmers that we j-checked: %lli \n", NbJCheckKmer);
   printf ("Number of reads with no junctions: %lli \n",NbNoJuncs);
-  printf("Number of spacers: %lli \n", NbSpacers);
   printf("Number of processed kmers: %lli \n", NbProcessed);
   printf("Number of skipped kmers: %lli \n", NbSkipped);
 }
@@ -36,21 +30,23 @@ JunctionMap* ReadScanner::getJunctionMap(){
 bool ReadScanner::testForJunction(ReadKmer readKmer){
   kmer_type real_ext = readKmer.getRealExtension();
   
-  int branchCount = 1;
-  //if thejunction kmer doesn't even j-check backwards, not worth calling it a junction.
+  int branchCount = 1; //keeps track of the number of valid forward branches
+  
+  //if thejunction kmer doesn't even j-check backwards, return false.
   if(readKmer.getMaxGuaranteedJ(!readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
     if(!jchecker->jcheck(readKmer.getRevCompKmer())){
       return false;
     }
   }
-  //if the real extension doesn't j-check forwards,start count at 0
+
+  //if the real extension doesn't j-check forwards, the real extension is NOT a valid branch.
   if(readKmer.getMaxGuaranteedJ(readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
     if(!jchecker->jcheck(real_ext)){
       branchCount = 0;
     }
   }
 
-  //Now given that the real extension is legit, see if there's also an alternate extension
+  //Now, check alternate extensions, and if the total valid extension count is greater than 1, return true. 
   kmer_type real = readKmer.getKmer();
   for(int nt=0; nt<4; nt++) {//for each extension
     kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
@@ -67,34 +63,32 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
       }
     }
   }
-  return false;
+  return false;  
 }
 
-//starts at position *pos, kmer *kmer on read, and scans till it either finds an existing junction
-//or finds a new one.  Does not modify any junctions- simply updates readKmer to be at a junction or off the end of the read
-//True if junction was found
+//starts at the given ReadKmer, and scans till it either finds an existing junction, finds a new junction, or hits the end of the read.
+//Does not modify any junctions- simply updates ReadKmer to be at a junction or off the end of the read
+//Returns true if junction was found
 bool ReadScanner::find_next_junction(ReadKmer * readKmer){
-  //Iterate forward through the read
+  //Iterate forward to the end of the read
   for (; readKmer->getDistToEnd() > 0; readKmer->forward())
   {
       //check for an already found junciton
-      if(junctionMap->contains(readKmer->getKmer())){
+      if(junctionMap->isJunction(readKmer->getKmer())){
         return true;
       }
       //check for a new junction
       if(testForJunction(*readKmer)){
         return true;
       }
-    if(strcmp(print_kmer(readKmer->getKmer()), "TCACCTTGGCCTCCCAAAGTGCTGGGA")==0){
-      printf("Kmer %s is not a junction =(\n", "TCACCTTGGCCTCCCAAAGTGCTGGGA");
-    }
       NbProcessed++;
   }
   return false;
 }
 
-//should only be called on a read with no real junctions
-//Adds a fake junction in the middle and points it to the two ends
+//Should only be called on a read with no real junctions
+//Adds a fake junction in the middle and points it to the two ends.  This ensures we have coverage of long linear regions, and that we capture
+//sinks at the end of such regions.
 void ReadScanner::add_fake_junction(string read){
   ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
   junctionMap->createJunction(middleKmer);
@@ -105,10 +99,14 @@ void ReadScanner::add_fake_junction(string read){
   free(middleKmer);
 }
 
+
+//Scans a read. 
+//Identifies all junctions on the read, and links adjacent junctions to each other.
+//Also updates the relevant distance field on the first junction to point to the start of the read, and on the last
+//Junction to point to the end of the read.
+//If there are no junctions, add_fake_junction is called
 void ReadScanner::scan_forward(string read){
 
-  int pos = 0;
-  kmer_type kmer;
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
   readKmer->forward();//don't scan the first position- points off the read
   ReadKmer* lastJunc;
@@ -117,10 +115,10 @@ void ReadScanner::scan_forward(string read){
   while(find_next_junction(readKmer))
   {
     //create a junction at the current spot if none exists
-    if(!junctionMap->contains(readKmer)){
+    if(!junctionMap->isJunction(readKmer)){
       junctionMap->createJunction(readKmer);
     }
-    junctionMap->getJunction(readKmer)->addCoverage(readKmer->getRealExtensionNuc());
+    junctionMap->getJunction(readKmer)->addCoverage(readKmer->getRealExtensionNuc()); //add coverage of the junction
     
     //if there was a last junction, link the two 
     if(lastJunc){
@@ -131,25 +129,23 @@ void ReadScanner::scan_forward(string read){
     else{ 
       junctionMap->getJunction(readKmer)
         ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos());
-        //2*j because we don't know for sure there isn't a junction 
     }
 
-    //bookkeeping work to advance to the next iteration of the loop
     free(lastJunc);
     lastJunc = new ReadKmer(readKmer);
+
     int dist = max(1,junctionMap->getSkipDist(readKmer, FORWARD));
-    readKmer->advanceDist(dist); //CHANGE BACK TO DIST 
+    readKmer->advanceDist(dist); 
 
     NbProcessed++,  NbSkipped += dist-1;
   }   
   free(readKmer);
 
-  //If there were no juncs- put a fake junction in the middle, point it to the ends.
+  //If there were no junctions on the read, add a fake junction
   if(!lastJunc){
       NbNoJuncs++;
       add_fake_junction(read);
   }
-
   //If there was at least one junction, point the last junction found to the end of the read
   else {
     Junction* junc = junctionMap->getJunction(lastJunc->getKmer());

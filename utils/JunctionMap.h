@@ -21,27 +21,54 @@ class JunctionMap{
 
 private: 
     Bloom* bloom;
-    JChecker* jchecker;    
+    JChecker* jchecker; 
+    int maxReadLength; //needed for finding sinks properly- tells you when to stop scanning   
+
 public:
-    unordered_map<kmer_type,Junction> junctionMap;  
+    unordered_map<kmer_type,Junction> junctionMap;  //stores the junctions themselves
+
+    //Does bloom scans from the junctions that are not linked to other junctions.  
+    //This identifies all the sinks in the graph and returns them as a set.
+    set<kmer_type>* getSinks(); 
+
+    //Assumes sinks were already found.
+    //For each junction that has only one real extension, replace it with a marker that stores only the base kmer of that junction
+    //and the one valid extension.  This serves the purpose of the cFP set for Minia.
+    unordered_map<kmer_type, int>* getRealExtensions();
+
+    //Scans forward from a junction at the specified index i.
+    //If a sink is found, it is returned.  Otherwise, returns NULL
+    kmer_type * findSink(Junction junc, kmer_type kmer ,int i);
+
+    //Gets the valid extension of the given kmer based on the bloom filter and cFPs.  Uses JChecking! so this cuts off tips
+    //Assume the given kmer is not a junction
+    //Returns -1 if there is no valid extension
+    //Returns -2 if there are multiple
+    //ASSUMES NO CFP SET- since this is only done in findSinks, BEFORE the cFPs are found
     int getValidJExtension(DoubleKmer kmer);
-    unordered_map<kmer_type, int>* getRealExtensions();// returns the set of real extensions- serves purpose of CFPS. Destroys junctions that are no longer needed along the way.
-    set<kmer_type>* getSinks(); //returns a set of all sinks as determined by scanning the bloom filter
+
+
+    //File format:
+    //One line for each junction.  On each line, the kmer is printed as a string, then the junction is printed.  
+    //See Junction.h for junction print documentation.
+    void writeToFile(string filename); 
+
+    //Finds the junction associated with the given kmer and returns how far we can skip in the given direction from that junction
     int getSkipDist(ReadKmer* readKmer, bool direction);
-    void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2);//directly links two junctions on the same read
-    int getNumComplexJunctions();
-    int getNumCaps();
+    //Directly links two adjacent junctions from the same read
+    void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2);
+
+    int getNumComplexJunctions(); //Gets the number of junctions with more than one valid extension
+    int getNumJunctions();
+
     void createJunction(kmer_type kmer);
     void createJunction(ReadKmer* readKmer);
-    void writeToFile(string filename);
-    int getNumJunctions();
-    bool contains(kmer_type kmer);
-    bool contains(ReadKmer* readKmer);
-    Junction* getJunction(ReadKmer kmer);
-    Junction* getJunction(kmer_type kmer);
-    kmer_type * findSink(Junction junc, kmer_type kmer ,int i);
-    void killJunction(kmer_type kmer);
-    void finishGraphWriteBasicContigs();
-    JunctionMap(Bloom* bloo, JChecker* jchecker);
+    bool isJunction(kmer_type kmer); //returns true if there is a junction at the given kmer
+    bool isJunction(ReadKmer* readKmer); //same as above
+    Junction* getJunction(ReadKmer kmer); //returns the junction located at the given kmer, or NULL if there is none
+    Junction* getJunction(kmer_type kmer); //same as above
+    void killJunction(kmer_type kmer); //removes the junction at the specified kmer, if there is one
+
+    JunctionMap(Bloom* bloo, JChecker* jchecker, int maxReadLength);
 };
 #endif

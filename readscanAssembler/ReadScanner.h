@@ -31,7 +31,6 @@ using std::ofstream;
 class ReadScanner{
 
 private:
-    int j;
     Bloom* bloom;
     set<kmer_type> jcheckedSet;
     set<kmer_type> nextRealSet;
@@ -41,22 +40,39 @@ private:
     string reads_file;
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
-        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer, NbSpacers;
+        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer;
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
+
+    //Should only be called on a read with no real junctions
+    //Adds a fake junction in the middle and points it to the two ends.  This ensures we have coverage of long linear regions, and that we capture
+    //sinks at the end of such regions.
     void add_fake_junction(string read);
     
 public:
-    void resetHashes(kmer_type kmer);//for testing
     JunctionMap* getJunctionMap();
-    void setJ(int j);
-    void scanReads();
-    void printScanSummary();
+
+    void scanReads(); //scans all the reads
+    void printScanSummary(); //prints statistics from the readscan
     
+    //Determines if the given ReadKmer is a junction.
+    //If it's on the middle of the read, just verifies alternate extensions.
+    //Special logic is needed to handle kmers that are near the ends, if j is not 0, to ensure that 
+    //the real extension seen on the read represents a valid, jcheckable option, and not a tip shorter than j.
     bool testForJunction(ReadKmer kmer);
+
+    //Starting from the given kmer, scans forward until a junction is found or the end of the read is hit.
+    //Returns true if a junction was found.  The supplied ReadKmer is also adjusted to the position of the new junction,\
+    //or to the end of the read.
+    bool find_next_junction(ReadKmer * kmer);
+
+    //Scans a read. 
+    //Identifies all junctions on the read, and links adjacent junctions to each other.
+    //Also updates the relevant distance field on the first junction to point to the start of the read, and on the last
+    //Junction to point to the end of the read.
+    //If there are no junctions, add_fake_junction is called
     void scan_forward(string read); 
-    bool find_next_junction(ReadKmer * kmer);//adjusts position and kmer and returns the junction
 
     ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, JChecker* jchecker);
 };
