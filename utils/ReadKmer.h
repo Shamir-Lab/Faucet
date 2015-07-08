@@ -17,12 +17,13 @@ public:
     int pos;
     bool direction;
 
-    int getMaxGuaranteedJ();//if this is the junction, the real extension definitely j-checks to at least the return value.
+    int getMaxGuaranteedJ(bool dir);//if this is the junction, the real extension definitely j-checks to at least the return value.
     int getDistToEnd();
     int getTotalPos();
     char* directionAsString();
     bool onRead();
     kmer_type getKmer();
+    kmer_type getRevCompKmer();
     void forward();
     void advanceDist(int dist);
     int getExtensionIndex(bool direction);

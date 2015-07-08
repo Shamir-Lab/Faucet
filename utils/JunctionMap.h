@@ -25,7 +25,7 @@ private:
 public:
     unordered_map<kmer_type,Junction> junctionMap;  
     int getValidJExtension(DoubleKmer kmer);
-    set<kmer_type>* getCFPs();// returns the set of all cFPs. Destroys junctions that are no longer needed along the way.
+    unordered_map<kmer_type, int>* getRealExtensions();// returns the set of real extensions- serves purpose of CFPS. Destroys junctions that are no longer needed along the way.
     set<kmer_type>* getSinks(); //returns a set of all sinks as determined by scanning the bloom filter
     int getSkipDist(ReadKmer* readKmer, bool direction);
     void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2);//directly links two junctions on the same read

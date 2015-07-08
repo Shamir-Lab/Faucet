@@ -17,6 +17,11 @@ kmer_type kmerMask;
 kmer_type kmerMaskm1;
 const bool FORWARD = true;
 const bool BACKWARD = false;
+char bin2NT[4] = {'A','C','T','G'};
+
+char getNucChar(int nucIndex){
+    return bin2NT[nucIndex];
+}
 
 void setSizeKmer(int k){
     sizeKmer = k;
@@ -139,6 +144,7 @@ kmer_type extractKmerFromRead(char *readSeq, int position, kmer_type *graine, km
 }
 
 
+//return the rightmost nucleotide of the kmer
 int first_nucleotide(kmer_type kmer)
 {
     int result;
@@ -178,6 +184,7 @@ int code2seq (kmer_type code, char *seq, int sizeKmer, kmer_type kmerMask)
 }
 
 // return the i-th nucleotide of the kmer_type kmer
+// i = 0 corresponds to the leftmost nucleotide
 int code2nucleotide( kmer_type code, int which_nucleotide)
 {
     kmer_type temp = code;

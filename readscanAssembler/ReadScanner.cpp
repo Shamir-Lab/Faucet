@@ -36,10 +36,17 @@ JunctionMap* ReadScanner::getJunctionMap(){
 bool ReadScanner::testForJunction(ReadKmer readKmer){
   kmer_type real_ext = readKmer.getRealExtension();
   
-  //if the real extension doesn't even j-check, not worth calling it a junction.
-  if(readKmer.getMaxGuaranteedJ() < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
-    if(!jchecker->jcheck(real_ext)){
+  int branchCount = 1;
+  //if thejunction kmer doesn't even j-check backwards, not worth calling it a junction.
+  if(readKmer.getMaxGuaranteedJ(!readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
+    if(!jchecker->jcheck(readKmer.getRevCompKmer())){
       return false;
+    }
+  }
+  //if the real extension doesn't j-check forwards,start count at 0
+  if(readKmer.getMaxGuaranteedJ(readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
+    if(!jchecker->jcheck(real_ext)){
+      branchCount = 0;
     }
   }
 
@@ -52,7 +59,10 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
       { 
         NbJCheckKmer++;
         if(jchecker->jcheck(test_ext)){//if the branch jchecks
-          return true; //its a branch!
+          branchCount++;
+          if(branchCount > 1){
+            return true;
+          }
         }
       }
     }
@@ -75,6 +85,9 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer){
       if(testForJunction(*readKmer)){
         return true;
       }
+    if(strcmp(print_kmer(readKmer->getKmer()), "TCACCTTGGCCTCCCAAAGTGCTGGGA")==0){
+      printf("Kmer %s is not a junction =(\n", "TCACCTTGGCCTCCCAAAGTGCTGGGA");
+    }
       NbProcessed++;
   }
   return false;
@@ -93,6 +106,7 @@ void ReadScanner::add_fake_junction(string read){
 }
 
 void ReadScanner::scan_forward(string read){
+
   int pos = 0;
   kmer_type kmer;
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
@@ -117,13 +131,14 @@ void ReadScanner::scan_forward(string read){
     else{ 
       junctionMap->getJunction(readKmer)
         ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos());
+        //2*j because we don't know for sure there isn't a junction 
     }
 
     //bookkeeping work to advance to the next iteration of the loop
     free(lastJunc);
     lastJunc = new ReadKmer(readKmer);
     int dist = max(1,junctionMap->getSkipDist(readKmer, FORWARD));
-    readKmer->advanceDist(dist);
+    readKmer->advanceDist(dist); //CHANGE BACK TO DIST 
 
     NbProcessed++,  NbSkipped += dist-1;
   }   

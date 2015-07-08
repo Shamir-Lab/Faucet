@@ -5,29 +5,35 @@ using std::ofstream;
 using std::string;
 
 //IMPLEMENTED
-//NOT TESTED
+//TESTED
 //Gets the valid extension of the given kmer based on the bloom filter and cFPs.  Must JCheck! so this cuts off tips
 //Assume its not a junction
 //Returns -1 if there is no valid extension
+//Returns -2 if there are multiple
 //ASSUMES NO CFP SET- since this is only done in findSinks, BEFORE the cFPs are found
 int JunctionMap::getValidJExtension(DoubleKmer kmer){
     //printf("Getting valid extension of %s\n", print_kmer(kmer.kmer));
     kmer_type nextKmer;
+    int answer = -1;
     for(int i = 0; i < 4; i++){
         nextKmer = kmer.getExtension(i, FORWARD);
         //printf("Testing extension %s\n", print_kmer(nextKmer));
         if(bloom->oldContains(get_canon(nextKmer))){
             if(jchecker->jcheck(nextKmer)){
-                return i;
+                if(answer != -1){
+                    //Found multiple valid extensions!
+                    return -2;
+                }
+                answer = i;
             }
         }
     }
     //No extension found!
-    return -1;
+    return answer;
 }
 
 //IMPLEMENTED
-//NOT TESTED
+//TESTED
 //Scans forward from junction junc at index i with bloom filter
 //If it hits another junction at or before the distance specified by the given junction, it returns null
 //If it does not, it keeps scanning until it hits another junction or an actual sink
@@ -39,7 +45,6 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
     kmer_type kmer;
     int scanDist;
     int maxDist = junc.dist[index];
-
     //get to the first kmer from which we need to bloom scan.  This is different for forwards and backward extensions
     if(index == 4){
         //in this case that's the reverse kmer 
@@ -65,7 +70,7 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
 
     kmer_type sinkKmer = -1;
     //if we're at the position where the sink would be, record the value for later use
-    if(scanDist == maxDist){
+    if(scanDist >= maxDist - 2 * jchecker->j){
         sinkKmer = doubleKmer.kmer;
     }
 
@@ -75,9 +80,15 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
         int validExtension = getValidJExtension(doubleKmer);
         if(validExtension == -1){
             if(sinkKmer == -1){
+                    printf("ERROR: no sink found by %d/%d on index %d.\n", scanDist, maxDist, index);
+                
                 return new kmer_type(doubleKmer.kmer);
             }
             return new kmer_type(sinkKmer);
+        }
+        if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions- but it's still a sink!
+            //printf("AMBIGUOUS at %s\n", print_kmer(doubleKmer.kmer));
+            return new kmer_type(doubleKmer.kmer);
         }
         doubleKmer.forward(validExtension); 
         scanDist++;
@@ -100,7 +111,7 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
         }
 
         //if we're at the position where the sink would be, record the value for later use
-        if(scanDist == maxDist){
+        if(scanDist == maxDist-2*jchecker->j){
             sinkKmer = doubleKmer.kmer;
         }
         lastNuc = first_nucleotide(doubleKmer.revcompKmer);
@@ -119,7 +130,7 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
 }
 
 //IMPLEMENTED
-//NOT TESTED
+//TESTED
 //Iterates through all of the junctions
 //For each, bloom scans in every direction till another junction is hit or the stored distance is reached
 //If there is no junction within that distance, a sink has been reached, and is added to the set of sinks.
@@ -137,9 +148,9 @@ set<kmer_type>* JunctionMap::getSinks(){
             if( !junction.linked[i] && (i == 4 || junction.cov[i] > 0) ){
                 kmer_type* sink = findSink(junction, kmer, i);
                 if(sink){
-                    sinks->insert(*sink);
-                }
-                else{
+                    kmer_type copy = *sink;
+                    sinks->insert(copy);
+                    free(sink);
                 }
             }
         }
@@ -153,8 +164,8 @@ set<kmer_type>* JunctionMap::getSinks(){
 //Iterates through all of the junctions, cleaning the non-complex ones.
 //Every time a non-complex junction is found, the relevant cFPs are added to the cFP set and the junction is destroyed
 //To be used AFTER findSinks
-set<kmer_type>* JunctionMap::getCFPs(){
-    set<kmer_type>* cFPs = new set<kmer_type>({});
+unordered_map<kmer_type,int>* JunctionMap::getRealExtensions(){
+    unordered_map<kmer_type,int>* realExtensions = new unordered_map<kmer_type,int>({});
     kmer_type kmer;
     Junction junction;
     int juncsTested = 0;
@@ -164,20 +175,15 @@ set<kmer_type>* JunctionMap::getCFPs(){
         junction = it->second;
         if (junction.numPathsOut() == 1){
             for(int i = 0; i < 4; i++){
-                if(junction.cov[i] == 0){
-                    kmer_type nextKmer = next_kmer(kmer, i, FORWARD);
-                    if(bloom->oldContains(get_canon(nextKmer))){
-                        if(jchecker->jcheck(nextKmer)){
-                            cFPs->insert(nextKmer);
-                        }
-                    }
+                if(junction.cov[i] > 0){
+                    (*realExtensions)[kmer] = i;
                 }
             }
             killJunction(kmer);
         }
         if(juncsTested % 10000 == 0) printf("Tested %d/%d junctions for cFPs.\n", juncsTested, juncSize);
     }
-    return cFPs;
+    return realExtensions;
 }
 
 int JunctionMap::getNumComplexJunctions(){

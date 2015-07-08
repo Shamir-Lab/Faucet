@@ -15,8 +15,8 @@ char* ReadKmer::directionAsString(){
     }
 }
 
-int ReadKmer::getMaxGuaranteedJ(){
-    if(direction == FORWARD){
+int ReadKmer::getMaxGuaranteedJ(bool dir){
+    if(dir == FORWARD){
         return getDistToEnd()/2-1;
     }
     else{
@@ -34,6 +34,15 @@ int ReadKmer::getTotalPos(){
 
 bool ReadKmer::onRead(){
     return (getTotalPos() >= 1) && (getDistToEnd()>=1);
+}
+
+kmer_type ReadKmer::getRevCompKmer(){
+    if(direction == FORWARD){
+        return doubleKmer.revcompKmer;
+    }
+    else{
+        return doubleKmer.kmer;
+    }
 }
 
 kmer_type ReadKmer::getKmer(){

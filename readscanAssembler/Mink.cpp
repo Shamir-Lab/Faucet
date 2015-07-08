@@ -60,7 +60,7 @@ inline int handle_arguments(int argc, char *argv[]){
 if(argc <  8)
     {
         fprintf (stderr,"usage:\n");
-        fprintf (stderr,"./mink reads_file k num_kmers fpRate j file_prefix two_hash\n");
+        fprintf (stderr,"./mink reads_file k read_length num_kmers fpRate j file_prefix two_hash\n");
         return 1;
     }
 
@@ -134,8 +134,9 @@ int main(int argc, char *argv[])
     junctionMap->writeToFile(*file_prefix + ".junctions");
 
     //build and print graph
-    Graph* graph = new Graph(bloo1);
+    Graph* graph = new Graph(bloo1, jchecker);
     graph->buildGraph(junctionMap);
+    graph->linkNodesPrintContigs(*file_prefix + ".contigs");
     graph->printGraph(*file_prefix + ".graph");
 
     //done!

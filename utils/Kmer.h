@@ -25,6 +25,7 @@ extern const bool BACKWARD;
 extern uint64_t nsolids;
 
 void setSizeKmer(int k);
+char getNucChar(int nucIndex);
 int NT2int(char nt);
 int revcomp_int(int nt_int);
 kmer_type  codeSeed(char *seq, int sizeKmer, kmer_type kmerMask);
