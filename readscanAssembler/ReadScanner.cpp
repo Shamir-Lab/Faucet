@@ -30,21 +30,20 @@ JunctionMap* ReadScanner::getJunctionMap(){
 bool ReadScanner::testForJunction(ReadKmer readKmer){
   kmer_type real_ext = readKmer.getRealExtension();
   
-  int branchCount = 1; //keeps track of the number of valid forward branches
-  
+  int branchCount = 1; //keeps track of the number of valid forward branches  
   //if thejunction kmer doesn't even j-check backwards, return false.
-  if(readKmer.getMaxGuaranteedJ(!readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
-    if(!jchecker->jcheck(readKmer.getRevCompKmer())){
-      return false;
-    }
-  }
+  // if(readKmer.getMaxGuaranteedJ(!readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
+  //   if(!jchecker->jcheck(readKmer.getRevCompKmer())){
+  //     return false;
+  //   }
+  // }
 
   //if the real extension doesn't j-check forwards, the real extension is NOT a valid branch.
-  if(readKmer.getMaxGuaranteedJ(readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
-    if(!jchecker->jcheck(real_ext)){
-      branchCount = 0;
-    }
-  }
+  // if(readKmer.getMaxGuaranteedJ(readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
+  //   if(!jchecker->jcheck(real_ext)){
+  //     branchCount = 0;
+  //   }
+  // }
 
   //Now, check alternate extensions, and if the total valid extension count is greater than 1, return true. 
   kmer_type real = readKmer.getKmer();
@@ -71,7 +70,7 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
 //Returns true if junction was found
 bool ReadScanner::find_next_junction(ReadKmer * readKmer){
   //Iterate forward to the end of the read
-  for (; readKmer->getDistToEnd() > 0; readKmer->forward())
+  for (; readKmer->getDistToEnd() > 2*jchecker->j; readKmer->forward()) //CHANGED TO 2*j from 0
   {
       //check for an already found junciton
       if(junctionMap->isJunction(readKmer->getKmer())){
@@ -94,8 +93,8 @@ void ReadScanner::add_fake_junction(string read){
   junctionMap->createJunction(middleKmer);
   Junction* junc = junctionMap->getJunction(middleKmer);
   junc->addCoverage(middleKmer->getExtensionIndex(FORWARD));
-  junc->update(middleKmer->getExtensionIndex(BACKWARD), middleKmer->getTotalPos());
-  junc->update(middleKmer->getExtensionIndex(FORWARD), middleKmer->getDistToEnd());
+  junc->update(middleKmer->getExtensionIndex(BACKWARD), middleKmer->getTotalPos()-2*jchecker->j);
+  junc->update(middleKmer->getExtensionIndex(FORWARD), middleKmer->getDistToEnd()-2*jchecker->j);
   free(middleKmer);
 }
 
@@ -108,7 +107,12 @@ void ReadScanner::add_fake_junction(string read){
 void ReadScanner::scan_forward(string read){
 
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
-  readKmer->forward();//don't scan the first position- points off the read
+
+  //ADDED- skip first j positions on read.  used to just do this once
+  for(int i = 0; i < 2*jchecker->j + 1; i++){
+    readKmer->forward();  
+  }
+
   ReadKmer* lastJunc;
   
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
@@ -128,7 +132,7 @@ void ReadScanner::scan_forward(string read){
     //If this is the first junction, link it to the beginning of the read.
     else{ 
       junctionMap->getJunction(readKmer)
-        ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos());
+        ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos()-2*jchecker->j);//-2*j ADDED
     }
 
     free(lastJunc);
@@ -149,7 +153,7 @@ void ReadScanner::scan_forward(string read){
   //If there was at least one junction, point the last junction found to the end of the read
   else {
     Junction* junc = junctionMap->getJunction(lastJunc->getKmer());
-    junc->update(lastJunc->getExtensionIndex(FORWARD), lastJunc->getDistToEnd());
+    junc->update(lastJunc->getExtensionIndex(FORWARD), lastJunc->getDistToEnd()-2*jchecker->j); //2*j ADDED
   }
 
   free(lastJunc);

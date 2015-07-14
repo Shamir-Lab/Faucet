@@ -24,10 +24,12 @@ int ReadKmer::getMaxGuaranteedJ(bool dir){
     }
 }
 
+//Returns number of forward operations needed to move to the last kmer on the read
 int ReadKmer::getDistToEnd(){
  return read->length()*2- getTotalPos() - 2*sizeKmer+1;
 }
 
+//Returns the number of forward operations needed to go from the beginning of the read to this ReadKmer
 int ReadKmer::getTotalPos(){
     return 2*pos + offset();
 }

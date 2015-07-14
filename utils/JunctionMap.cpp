@@ -67,7 +67,10 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
 
     kmer_type sinkKmer;
     //if we're at or past the position where the sink would be, record the value for later use
-    if(scanDist >= maxDist - 2 * jchecker->j){
+    if(scanDist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
+        if(scanDist > maxDist){
+            printf("Error: scanDist %d is greater than maxDist %d.\n", scanDist, maxDist);
+        }
         sinkKmer = doubleKmer.kmer;
     }
 
@@ -104,7 +107,8 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
         }
 
         //if we're at the position where the sink would be, record the value for later use
-        if(scanDist == maxDist-2*jchecker->j){ //subtract 2*j (which corresponds to j positions in the forward direction) to ensure jchecking works
+        //REMOVED THE -2*jchecker->j
+        if(scanDist == maxDist){ //subtract 2*j (which corresponds to j positions in the forward direction) to ensure jchecking works
             sinkKmer = doubleKmer.kmer;
         }
     }
