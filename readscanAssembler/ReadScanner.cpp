@@ -27,6 +27,7 @@ JunctionMap* ReadScanner::getJunctionMap(){
 
 //Returns true if the kmer represented by readKmer is a junction. 
 //Uses as a reference "real_ext" since it knows that's one valid path
+//Should only be called on a kmer at least j away from the end of the read
 bool ReadScanner::testForJunction(ReadKmer readKmer){
   kmer_type real_ext = readKmer.getRealExtension();
   
@@ -92,7 +93,7 @@ void ReadScanner::add_fake_junction(string read){
   ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
   junctionMap->createJunction(middleKmer);
   Junction* junc = junctionMap->getJunction(middleKmer);
-  junc->addCoverage(middleKmer->getExtensionIndex(FORWARD));
+  junc->addCoverage(middleKmer->getRealExtensionNuc());
   junc->update(middleKmer->getExtensionIndex(BACKWARD), middleKmer->getTotalPos()-2*jchecker->j);
   junc->update(middleKmer->getExtensionIndex(FORWARD), middleKmer->getDistToEnd()-2*jchecker->j);
   free(middleKmer);
@@ -122,13 +123,13 @@ void ReadScanner::scan_forward(string read){
     if(!junctionMap->isJunction(readKmer)){
       junctionMap->createJunction(readKmer);
     }
+
     junctionMap->getJunction(readKmer)->addCoverage(readKmer->getRealExtensionNuc()); //add coverage of the junction
     
     //if there was a last junction, link the two 
     if(lastJunc){
       junctionMap->directLinkJunctions(lastJunc, readKmer);
     }
-
     //If this is the first junction, link it to the beginning of the read.
     else{ 
       junctionMap->getJunction(readKmer)

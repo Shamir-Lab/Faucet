@@ -1,5 +1,7 @@
-#include <fstream>
 #include "Junction.h"
+#include <fstream>
+#include <limits.h>
+
 using std::ofstream;
 using std::max;
 
@@ -21,6 +23,11 @@ void Junction::link(int nucExt){
 
 void Junction::addCoverage(int nucExt){
   cov[nucExt] = cov[nucExt] + 1;
+
+  //handle overflow
+  if(cov[nucExt] == 0){
+    cov[nucExt] = UCHAR_MAX; 
+  }
 }
 
 //Updates the junc info based on finding a path of length length from the extension nucExt
