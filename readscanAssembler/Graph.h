@@ -2,7 +2,7 @@
 #define GRAPH
 
 #include <unordered_map>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include "../utils/Kmer.h"
 #include "../utils/Junction.h"
@@ -11,7 +11,7 @@
 #include "../utils/JChecker.h"
 #include "Node.h"
 using std::unordered_map;
-using std::set;
+using std::unordered_set;
 using std::string;
 
 class Graph
@@ -20,7 +20,7 @@ private:
 
     unordered_map<kmer_type, Node> nodeMap;
     unordered_map<kmer_type, int>* realExtensions;
-    set<kmer_type>* sinks;
+    unordered_set<kmer_type>* sinks;
     Bloom* bloom;
     JChecker* jchecker;
     Node * getNode(kmer_type kmer);

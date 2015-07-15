@@ -131,9 +131,9 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
 //For each, bloom scans in every direction till another junction is hit or the stored distance is reached
 //If there is no junction within that distance, a sink has been reached, and is added to the set of sinks.
 //To be used FIRST after read scan
-set<kmer_type>* JunctionMap::getSinks(){
+unordered_set<kmer_type>* JunctionMap::getSinks(){
     printf("Getting sinks.\n");
-    set<kmer_type>* sinks = new set<kmer_type>({});
+    unordered_set<kmer_type>* sinks = new unordered_set<kmer_type>({});
     kmer_type kmer;
     Junction junction;
     int juncsTested = 0;
@@ -146,7 +146,7 @@ set<kmer_type>* JunctionMap::getSinks(){
                 if(sink){
                     kmer_type copy = *sink;
                     sinks->insert(copy);
-                    free(sink);
+                    delete(sink);
                 }
             }
         }
@@ -164,9 +164,10 @@ unordered_map<kmer_type,int>* JunctionMap::getRealExtensions(){
     Junction junction;
     int juncsTested = 0;
     int juncSize = junctionMap.size();
-    for(auto it = junctionMap.begin(); it != junctionMap.end(); it++,  juncsTested++){
+    for(auto it = junctionMap.begin(); it != junctionMap.end(); juncsTested++){
         kmer = it->first;
         junction = it->second;
+        it++; //must do this before potentially erasing the element
         if (junction.numPathsOut() == 1){
             for(int i = 0; i < 4; i++){
                 if(junction.cov[i] > 0){
@@ -175,7 +176,7 @@ unordered_map<kmer_type,int>* JunctionMap::getRealExtensions(){
                     (*realExtensions)[kmer] = i; 
                 }
             }
-            killJunction(kmer);
+            junctionMap.erase(kmer); 
         }
         if(juncsTested % 10000 == 0) printf("Tested %d/%d junctions for cFPs.\n", juncsTested, juncSize);
     }
@@ -186,6 +187,16 @@ int JunctionMap::getNumComplexJunctions(){
   int count = 0;
   for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
      if(juncIt->second.numPathsOut() != 1){
+        count++;
+     }  
+  }
+  return count;
+}
+
+int JunctionMap::getNumSolidJunctions(){
+  int count = 0;
+  for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
+     if(juncIt->second.isSolid(3)){
         count++;
      }  
   }
@@ -235,9 +246,9 @@ void JunctionMap::createJunction(ReadKmer* readKmer){
 }
 
 void JunctionMap::createJunction(kmer_type kmer){  
-  junctionMap.insert(std::pair<kmer_type, Junction>(kmer, *(new Junction())));
+  Junction newJunc;
+  junctionMap.insert(std::pair<kmer_type, Junction>(kmer, newJunc));
 }
-
 
 void JunctionMap::killJunction(kmer_type kmer){
   junctionMap.erase(kmer);
@@ -251,6 +262,7 @@ void JunctionMap::writeToFile(string filename){
     jFile.open(filename);
 
     printf("There are %d complex junctions.\n", getNumComplexJunctions());
+    printf("There are %d solid junctions.\n", getNumSolidJunctions());
     printf("Writing to junction file\n");
     kmer_type kmer;
     for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){

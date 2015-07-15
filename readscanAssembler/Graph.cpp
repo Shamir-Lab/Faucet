@@ -72,9 +72,10 @@ void Graph::getNodesFromJunctions(JunctionMap* juncMap){
     kmer_type kmer;
     Junction junction;
     Node node;
-    for(auto it = juncMap->junctionMap.begin(); it != juncMap->junctionMap.end(); it++){
+    for(auto it = juncMap->junctionMap.begin(); it != juncMap->junctionMap.end(); ){
         kmer = it->first;
         junction = it->second;
+        it++; //must update iterator before killing the kmer
         if(junction.numPathsOut()>1){
             node = Node(junction);
             nodeMap.insert(std::pair<kmer_type, Node>(kmer, node));

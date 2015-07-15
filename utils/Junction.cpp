@@ -21,6 +21,16 @@ void Junction::link(int nucExt){
   linked[nucExt] = true;
 }
 
+bool Junction::isSolid(int threshold){
+  int pathsOut = 0;
+  for(int i = 0; i < 4; i++){
+    if(cov[i] >= threshold){
+      pathsOut++;
+    }
+  }
+  return pathsOut > 1;
+}
+
 void Junction::addCoverage(int nucExt){
   cov[nucExt] = cov[nucExt] + 1;
 

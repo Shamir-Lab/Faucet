@@ -14,7 +14,8 @@ public:
     bool linked[5]; //whether or not we found another junction along this extension
 
     int numPathsOut(); //Returns the number of forward paths out of the junction with positive coverage
-
+    bool isSolid(int threshold); //Returns true if at least 2 paths out of the junction have at least a threshold coverage.  
+    
     //Format:
     //One line for the whole junction.
     //"Distances: 0,1,2,3,4, Coverages: 0,1,2,3,4, Linked: 0,1,2,3,4," 

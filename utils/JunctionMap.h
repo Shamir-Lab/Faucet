@@ -2,7 +2,7 @@
 #define JUNCTION_MAP
 
 #include <unordered_map>
-#include <set>
+#include <unordered_set>
 #include <string>
 #include "Kmer.h"
 #include "Junction.h"
@@ -15,7 +15,7 @@
 using std::ofstream;
 using std::unordered_map;
 using std::string;
-using std::set;
+using std::unordered_set;
 
 class JunctionMap{
 
@@ -29,7 +29,7 @@ public:
 
     //Does bloom scans from the junctions that are not linked to other junctions.  
     //This identifies all the sinks in the graph and returns them as a set.
-    set<kmer_type>* getSinks(); 
+    unordered_set<kmer_type>* getSinks(); 
 
     //Assumes sinks were already found.
     //For each junction that has only one real extension, replace it with a marker that stores only the base kmer of that junction
@@ -59,6 +59,7 @@ public:
     void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2);
 
     int getNumComplexJunctions(); //Gets the number of junctions with more than one valid extension
+    int getNumSolidJunctions(); //Gets the number of solid complex junctions, multiple valid extensions of coverage at least 3
     int getNumJunctions();
 
     void createJunction(kmer_type kmer);

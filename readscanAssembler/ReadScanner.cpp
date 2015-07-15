@@ -96,7 +96,7 @@ void ReadScanner::add_fake_junction(string read){
   junc->addCoverage(middleKmer->getRealExtensionNuc());
   junc->update(middleKmer->getExtensionIndex(BACKWARD), middleKmer->getTotalPos()-2*jchecker->j);
   junc->update(middleKmer->getExtensionIndex(FORWARD), middleKmer->getDistToEnd()-2*jchecker->j);
-  free(middleKmer);
+  delete(middleKmer);
 }
 
 
@@ -136,7 +136,7 @@ void ReadScanner::scan_forward(string read){
         ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos()-2*jchecker->j);//-2*j ADDED
     }
 
-    free(lastJunc);
+    delete(lastJunc);
     lastJunc = new ReadKmer(readKmer);
 
     int dist = max(1,junctionMap->getSkipDist(readKmer, FORWARD));
@@ -144,7 +144,7 @@ void ReadScanner::scan_forward(string read){
 
     NbProcessed++,  NbSkipped += dist-1;
   }   
-  free(readKmer);
+  delete(readKmer);
 
   //If there were no junctions on the read, add a fake junction
   if(!lastJunc){
@@ -157,7 +157,7 @@ void ReadScanner::scan_forward(string read){
     junc->update(lastJunc->getExtensionIndex(FORWARD), lastJunc->getDistToEnd()-2*jchecker->j); //2*j ADDED
   }
 
-  free(lastJunc);
+  delete(lastJunc);
 }
 
 
