@@ -40,7 +40,7 @@ private:
     string reads_file;
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
-        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer;
+        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer,readsNoErrors;
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
@@ -66,6 +66,10 @@ public:
     //Returns true if a junction was found.  The supplied ReadKmer is also adjusted to the position of the new junction,\
     //or to the end of the read.
     bool find_next_junction(ReadKmer * kmer);
+
+    //Returns true if the entire read is in the bloom filter.  Otherweise returns false, implying we should
+    //simply discard the read rather than try to scan it.
+    bool containsNoErrors(string read);
 
     //Scans a read. 
     //Identifies all junctions on the read, and links adjacent junctions to each other.

@@ -116,6 +116,45 @@ Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate
     return bloo1;
 }
 
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, const char* reads_filename){
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+
+    int readsProcessed = 0;
+
+    //should fix this.. just because right now there's no empty constructor
+    string fake = "FAKE";
+    ReadKmer kmer(&fake);
+
+    string read;
+    time_t start, stop;
+    time(&start);
+    printf("Weights before load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    uint64_t hashA, hashB;
+    while (getline(solidReads, read))
+    {
+        for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
+            hashA = bloo2->oldHash(kmer.getCanon(), 0);
+            hashB = bloo2->oldHash(kmer.getCanon(), 1);
+            if(bloo1->contains(hashA, hashB)){
+                bloo2->add(hashA, hashB);
+            }
+            else{
+                bloo1->add(hashA, hashB);
+            }
+        }    
+        readsProcessed++;
+        if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+    }
+
+    solidReads.close();
+    printf("\n");
+    printf("Weights after load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    time(&stop);
+    printf("Time to load: %f \n", difftime(stop,start));
+}
+
+
 void Bloom::load_from_reads(const char* reads_filename){
     ifstream solidReads;
     solidReads.open(reads_filename);
@@ -132,7 +171,7 @@ void Bloom::load_from_reads(const char* reads_filename){
     printf("Weight before load: %f \n", weight());
     while (getline(solidReads, read))
     {
-        for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward()){
+        for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
             oldAdd(kmer.getCanon());
         }    
         readsProcessed++;

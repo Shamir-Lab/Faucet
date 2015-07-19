@@ -59,6 +59,7 @@ static const uint64_t rbase[NSEEDSBLOOM] =
     0x33663366CC99CC99ULL
 };
 
+
 class Bloom{
     
 protected:
@@ -273,5 +274,8 @@ public:
     
     ~Bloom();
 };
+
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, const char* reads_filename);
+
 #endif
 

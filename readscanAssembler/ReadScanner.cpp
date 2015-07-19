@@ -19,6 +19,7 @@ void ReadScanner::printScanSummary(){
   printf ("Number of reads with no junctions: %lli \n",NbNoJuncs);
   printf("Number of processed kmers: %lli \n", NbProcessed);
   printf("Number of skipped kmers: %lli \n", NbSkipped);
+  printf("Reads without errors: %lli\n", readsNoErrors);
 }
 
 JunctionMap* ReadScanner::getJunctionMap(){
@@ -91,7 +92,6 @@ void ReadScanner::scan_forward(string read){
 
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
 
-  //ADDED- skip first j positions on read.  used to just do this once
   for(int i = 0; i < 2*jchecker->j + 1; i++){
     readKmer->forward();  
   }
@@ -142,11 +142,23 @@ void ReadScanner::scan_forward(string read){
   delete(lastJunc);
 }
 
+bool ReadScanner::containsNoErrors(string read){
+  ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
+
+  //Move to the first valid kmer
+  for(ReadKmer kmer = new ReadKmer(&read); readKmer->getDistToEnd()>= 0; readKmer->forward(), readKmer->forward()){
+    if(!bloom->oldContains(readKmer->getCanon())){
+      return false;
+    } 
+  }
+
+  return true;
+}
 
 void ReadScanner::scanReads()
 {
   NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, 
-  NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0;
+  NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0, readsNoErrors = 0;
 
   time_t start;
   time_t stop;
@@ -164,7 +176,12 @@ void ReadScanner::scanReads()
   {
     //lastSum = thisSum;
     readLength = read.length();
-    scan_forward(read);
+    //printf("Checking for errors.\n");
+    if(containsNoErrors(read)){
+      //printf("None! Scanning\n");
+      scan_forward(read);
+      readsNoErrors++;
+    }
     if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;
   }

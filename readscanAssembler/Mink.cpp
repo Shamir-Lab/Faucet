@@ -116,18 +116,24 @@ int main(int argc, char *argv[])
 
     //create and load bloom filter
     Bloom* bloo1;
+    Bloom* bloo2;
     if(TwoHash){
         bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+        bloo2 = bloo2->create_bloom_filter_2_hash(estimated_kmers, fpRate);
     }
     else{
         bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
+        bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, fpRate);
     }
-    bloo1->load_from_reads(solids_file);
+
+    load_two_filters(bloo1, bloo2, solids_file);
+
+    Bloom* bloom = bloo2;
 
     //create JChecker, JunctionMap, and ReadScanner
-    JChecker* jchecker = new JChecker(j, bloo1);
-    JunctionMap* junctionMap = new JunctionMap(bloo1, jchecker, read_length);
-    ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloo1, jchecker);
+    JChecker* jchecker = new JChecker(j, bloom);
+    JunctionMap* junctionMap = new JunctionMap(bloom, jchecker, read_length);
+    ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloom, jchecker);
     
     //scan reads, print summary
     scanner->scanReads();
@@ -137,7 +143,7 @@ int main(int argc, char *argv[])
     junctionMap->writeToFile(*file_prefix + ".junctions");
 
     //build graph, dump graph and contigs to file
-    Graph* graph = new Graph(bloo1, jchecker);
+    Graph* graph = new Graph(bloom, jchecker);
     graph->buildGraph(junctionMap);
     graph->linkNodesPrintContigs(*file_prefix + ".contigs");
     graph->printGraph(*file_prefix + ".graph");
