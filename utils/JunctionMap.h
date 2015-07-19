@@ -59,7 +59,7 @@ public:
     void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2);
 
     int getNumComplexJunctions(); //Gets the number of junctions with more than one valid extension
-    int getNumSolidJunctions(); //Gets the number of solid complex junctions, multiple valid extensions of coverage at least 3
+    int getNumSolidJunctions(int i); //Gets the number of solid complex junctions, multiple valid extensions of coverage at least i
     int getNumJunctions();
 
     void createJunction(kmer_type kmer);

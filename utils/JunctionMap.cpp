@@ -193,10 +193,10 @@ int JunctionMap::getNumComplexJunctions(){
   return count;
 }
 
-int JunctionMap::getNumSolidJunctions(){
+int JunctionMap::getNumSolidJunctions(int i){
   int count = 0;
   for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
-     if(juncIt->second.isSolid(3)){
+     if(juncIt->second.isSolid(i)){
         count++;
      }  
   }
@@ -261,8 +261,9 @@ void JunctionMap::writeToFile(string filename){
     ofstream jFile;
     jFile.open(filename);
 
-    printf("There are %d complex junctions.\n", getNumComplexJunctions());
-    printf("There are %d solid junctions.\n", getNumSolidJunctions());
+    for(int i = 0; i < 5; i++){
+        printf("There are %d junctions with solidity at least %d.\n", getNumSolidJunctions(i), i);
+    }
     printf("Writing to junction file\n");
     kmer_type kmer;
     for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
