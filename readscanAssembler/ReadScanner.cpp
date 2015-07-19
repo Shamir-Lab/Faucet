@@ -31,34 +31,16 @@ JunctionMap* ReadScanner::getJunctionMap(){
 bool ReadScanner::testForJunction(ReadKmer readKmer){
   kmer_type real_ext = readKmer.getRealExtension();
   
-  int branchCount = 1; //keeps track of the number of valid forward branches  
-  //if thejunction kmer doesn't even j-check backwards, return false.
-  // if(readKmer.getMaxGuaranteedJ(!readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
-  //   if(!jchecker->jcheck(readKmer.getRevCompKmer())){
-  //     return false;
-  //   }
-  // }
-
-  //if the real extension doesn't j-check forwards, the real extension is NOT a valid branch.
-  // if(readKmer.getMaxGuaranteedJ(readKmer.direction) < jchecker->j){ //but we should only do the jcheck if the position on the read doesn't already guarantee it'll be fine
-  //   if(!jchecker->jcheck(real_ext)){
-  //     branchCount = 0;
-  //   }
-  // }
-
-  //Now, check alternate extensions, and if the total valid extension count is greater than 1, return true. 
+  //Check alternate extensions, and if the total valid extension count is greater than 1, return true. 
   kmer_type real = readKmer.getKmer();
   for(int nt=0; nt<4; nt++) {//for each extension
     kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
-    if(real_ext != test_ext && real_ext != real && test_ext != real){//if the branch has 3 distinct kmers
+    if(real_ext != test_ext){//if the alternate and real extensions are different- note that I took out the other two distinction checks
       if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
       { 
         NbJCheckKmer++;
         if(jchecker->jcheck(test_ext)){//if the branch jchecks
-          branchCount++;
-          if(branchCount > 1){
             return true;
-          }
         }
       }
     }
