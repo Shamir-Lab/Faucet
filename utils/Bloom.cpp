@@ -134,10 +134,11 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, const char* reads_filename){
     while (getline(solidReads, read))
     {
         for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
-            hashA = bloo2->oldHash(kmer.getCanon(), 0);
-            hashB = bloo2->oldHash(kmer.getCanon(), 1);
+            kmer_type canonKmer = kmer.getCanon();
+            hashA = bloo1->oldHash(canonKmer, 0);
+            hashB = bloo1->oldHash(canonKmer, 1);
             if(bloo1->contains(hashA, hashB)){
-                bloo2->add(hashA, hashB);
+                bloo2->oldAdd(canonKmer);
             }
             else{
                 bloo1->add(hashA, hashB);

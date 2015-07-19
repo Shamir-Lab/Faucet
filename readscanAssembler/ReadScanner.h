@@ -69,7 +69,7 @@ public:
 
     //Returns true if the entire read is in the bloom filter.  Otherweise returns false, implying we should
     //simply discard the read rather than try to scan it.
-    bool containsNoErrors(string read);
+    bool isValidRead(string read);
 
     //Scans a read. 
     //Identifies all junctions on the read, and links adjacent junctions to each other.

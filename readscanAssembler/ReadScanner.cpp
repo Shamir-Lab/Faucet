@@ -142,12 +142,10 @@ void ReadScanner::scan_forward(string read){
   delete(lastJunc);
 }
 
-bool ReadScanner::containsNoErrors(string read){
-  ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
-
+bool ReadScanner::isValidRead(string read){
   //Move to the first valid kmer
-  for(ReadKmer kmer = new ReadKmer(&read); readKmer->getDistToEnd()>= 0; readKmer->forward(), readKmer->forward()){
-    if(!bloom->oldContains(readKmer->getCanon())){
+  for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd()>= 0; kmer.forward(), kmer.forward()){
+    if(!bloom->oldContains(kmer.getCanon())){
       return false;
     } 
   }
@@ -177,7 +175,7 @@ void ReadScanner::scanReads()
     //lastSum = thisSum;
     readLength = read.length();
     //printf("Checking for errors.\n");
-    if(containsNoErrors(read)){
+    if(isValidRead(read)){
       //printf("None! Scanning\n");
       scan_forward(read);
       readsNoErrors++;
