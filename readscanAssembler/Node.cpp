@@ -5,6 +5,12 @@ using std::max;
 
 void writeToFile(ofstream* jFile);
 
+void Node::deletePath(int index){
+  dist[index] = 0;
+  cov[index] = 0;
+  nextJunc[index] = -1;
+}
+
 int Node::numPathsOut(){
   int numPaths = 0;
   for(int i = 0; i < 4; i++){

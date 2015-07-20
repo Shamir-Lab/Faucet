@@ -12,6 +12,7 @@ public:
     unsigned char cov[5];
     kmer_type nextJunc[5];
 
+    void deletePath(int index);
     int numPathsOut();
     void writeToFile(ofstream* jFile);
     void update(int nucExt, int length, kmer_type jID); //if lengthFor is greater than the distance to the next junction bad things will happen
