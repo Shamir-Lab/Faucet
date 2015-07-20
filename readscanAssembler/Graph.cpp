@@ -1,9 +1,12 @@
 #include "Graph.h"
 #include <time.h>
 #include <fstream>
+#include <iostream> 
+#include <sstream>
 
 using std::ofstream;
 using std::string;
+using std::stringbuf;
 
 Graph::Graph(Bloom* bloo1, JChecker* jcheck){
     bloom = bloo1;
@@ -127,28 +130,36 @@ void Graph::linkNodeToSink(kmer_type nodeKmer, int index, kmer_type sinkKmer, in
     node->update(index, distance, sinkKmer);
 }
 
+void Graph::linkNeighbor(Node node, kmer_type startKmer, int index, SearchResult result){
+    if(result.isNode){
+        directLinkNodes(startKmer, index, result.kmer, result.index, result.distance);
+    }
+    else{
+        linkNodeToSink(startKmer, index, result.kmer, result.kmer);
+    }
+}
+
 //Finds the neighbor of the given node on the given extension, if it exists.
 //If it does exist, the two are linked with references to each other and the appropriate distance.
 //Also, the resulting contig is printed to the cFile, with no new line
-void Graph::findAndLinkNeighbor(Node node, kmer_type startKmer , int index, ofstream* cFile){
+SearchResult Graph::findNeighbor(Node node, kmer_type startKmer, int index){
     DoubleKmer doubleKmer(startKmer);
-    int dist = 0;
+    int dist = 1;
     int lastNuc;//stores the last nuc so we know which extension we came from
+    stringbuf contig;
 
     //First, get to the first kmer from which we can do a proper bloom scan.  This is different for forwards and backward extensions
     if(index == 4){
         //in this case that's the reverse kmer 
         doubleKmer.reverse(); 
         for(int i = 0; i < sizeKmer; i++){
-            *cFile << getNucChar(code2nucleotide(doubleKmer.kmer, i));
+            contig.sputc(getNucChar(code2nucleotide(doubleKmer.kmer, i)));
         }
         if(isNode(doubleKmer.kmer)){
-            directLinkNodes(startKmer, index, doubleKmer.kmer, 4, 1);
-            return;
+            return SearchResult { doubleKmer.kmer, true, 4, 1, contig.str() };
         }
         if(isSink(doubleKmer.kmer)){
-            linkNodeToSink(startKmer, index, doubleKmer.kmer, 1);
-            return;
+            return SearchResult { doubleKmer.kmer, false, -1, 1, contig.str() } ;
         }
         dist = 2;//set it up for second position scan below
     }
@@ -157,19 +168,18 @@ void Graph::findAndLinkNeighbor(Node node, kmer_type startKmer , int index, ofst
         lastNuc =first_nucleotide(doubleKmer.revcompKmer); 
         doubleKmer.forward(index);
         for(int i = 0; i < sizeKmer; i++){
-            *cFile << getNucChar(code2nucleotide(doubleKmer.kmer, i));
+            contig.sputc(getNucChar(code2nucleotide(doubleKmer.kmer, i)));
         }
         if(isNode(doubleKmer.revcompKmer)){
-            directLinkNodes(startKmer, index, doubleKmer.revcompKmer, lastNuc, 1);
-            return;
+            return SearchResult { doubleKmer.revcompKmer, true, lastNuc, 1, contig.str() };
         }
+        dist = 2;
         if(isNode(doubleKmer.kmer)){
             directLinkNodes(startKmer, index, doubleKmer.kmer, 4, 2);
-            return;
+            return SearchResult { doubleKmer.kmer, true, 4, 2, contig.str() };
         }
         if(isSink(doubleKmer.kmer)){
-            linkNodeToSink(startKmer, index, doubleKmer.kmer, 2);
-            return;
+            return SearchResult { doubleKmer.kmer, false, -1, 2, contig.str() };
         }
         dist = 3;//set it up for third position scan below
     }
@@ -182,8 +192,8 @@ void Graph::findAndLinkNeighbor(Node node, kmer_type startKmer , int index, ofst
             //Note: tested, never at a sink
             printf("ERROR: No valid extension of %s while searching from ",  print_kmer(doubleKmer.kmer));
             printf("%s on index %d at dist %d/%d\n",  print_kmer(startKmer), index, dist, getNode(startKmer)->dist[index]);
-            *cFile << " SINKERROR";
-            return;
+            contig.sputn("SINKERROR", 9);
+            return SearchResult { -1, false, -1, -1, contig.str() };
             //should not happen since we checked for sinks already
         }
         lastNuc = first_nucleotide(doubleKmer.revcompKmer);
@@ -191,50 +201,74 @@ void Graph::findAndLinkNeighbor(Node node, kmer_type startKmer , int index, ofst
 
         //handle backward junction case
         if(isNode(doubleKmer.revcompKmer)){
-            directLinkNodes(startKmer, index, doubleKmer.revcompKmer, lastNuc, dist);
-            return;
+            return SearchResult { doubleKmer.revcompKmer, true, lastNuc, dist, contig.str() };
         }
         dist++;
 
         //this happens in the middle of rev and forward directions since we don't want to include 
         //this nuc in the contig if the other junction is facing backward
-        *cFile << getNucChar(validExtension);
+        contig.sputc(getNucChar(validExtension));
 
         //handle forward junction case
         if(isNode(doubleKmer.kmer)){
-            directLinkNodes(startKmer, index, doubleKmer.kmer, 4, dist);
-            return; 
+            return SearchResult { doubleKmer.kmer, true, 4, dist, contig.str() };
         }
         if(isSink(doubleKmer.kmer)){
-            linkNodeToSink(startKmer, index, doubleKmer.kmer, dist);
-            return;
+            return SearchResult { doubleKmer.kmer, false, -1, dist, contig.str() };
         }
-
         dist++;
     }
 }
 
-//Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
-//Iterates through the nodes and links all adjacent nodes and sinks.
-void Graph::linkNodesPrintContigs(string fileName){
-    time_t start,stop;
-    time(&start);
-    printf("Linking nodes and printing contigs.\n");
+//private utility for doing a BF traversal and either printing contigs or linking nodes or both
+void Graph::traverseContigs(bool linkNodes, bool printContigs){
     kmer_type kmer;
     Node node;
-    ofstream cFile(fileName);
+    SearchResult result;
+    ofstream cFile(contigFile);
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer = it->first;
         node = it->second;
         for(int i = 0; i < 5; i++){
-            if((node.cov[i]  > 0 || i == 4) && node.nextJunc[i] == -1){ //if there is coverage but not yet a link
-                findAndLinkNeighbor(node, kmer, i, &cFile);
-                cFile << "\n";
+            if(node.cov[i]  > 0 || i == 4){ //if there is coverage but not yet a link
+                result = findNeighbor(node, kmer, i);
+                if(linkNodes && node.nextJunc[i] == -1){
+                    linkNeighbor(node, kmer, i, result);
+                }
+                if(printContigs){
+                    cFile << result.contig << "\n";
+                }
             }
         }
     }
     cFile.close();
-    printf("Done linking nodes and printing contigs.\n");
+}
+
+//Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
+//Iterates through the nodes and prints every contig path
+void Graph::printContigs(string filename){
+    contigFile = filename;
+    time_t start,stop;
+    time(&start);
+    printf("Printing contigs.\n");
+
+    traverseContigs(false, true);
+    
+    printf("Done printing contigs.\n");
+    time(&stop);
+    printf("Time: %f\n", difftime(stop, start));
+}
+
+//Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
+//Iterates through the nodes and links all adjacent nodes and sinks.
+void Graph::linkNodes(){
+    time_t start,stop;
+    time(&start);
+    printf("Linking nodes.\n");
+
+    traverseContigs(true, false);
+
+    printf("Done linking nodes.\n");
     time(&stop);
     printf("Time: %f\n", difftime(stop, start));
 }

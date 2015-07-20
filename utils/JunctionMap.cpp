@@ -226,12 +226,11 @@ Junction* JunctionMap::getJunction(ReadKmer kmer){
 }
 
 //Assumes the two kmers are adjacent junctions on the same read.
+//Assumes kmer1 corresponds to junc1, and kmer2 to junc2
 //Links them!
-void JunctionMap::directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2){
+void JunctionMap::directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2, Junction* junc1, Junction* junc2){
     int ext1 = kmer1->getExtensionIndex(FORWARD);
     int ext2 = kmer2->getExtensionIndex(BACKWARD);
-    Junction* junc1 = getJunction(kmer1);
-    Junction* junc2 = getJunction(kmer2);
     
     int dist = kmer2->getTotalPos() - kmer1->getTotalPos();
 

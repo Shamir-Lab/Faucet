@@ -138,7 +138,7 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, const char* reads_filename){
             hashA = bloo1->oldHash(canonKmer, 0);
             hashB = bloo1->oldHash(canonKmer, 1);
             if(bloo1->contains(hashA, hashB)){
-                bloo2->oldAdd(canonKmer);
+                bloo2->add(hashA, hashB);
             }
             else{
                 bloo1->add(hashA, hashB);

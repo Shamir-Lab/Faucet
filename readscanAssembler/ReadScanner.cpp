@@ -15,6 +15,7 @@ ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, JC
 
 void ReadScanner::printScanSummary(){
   printf("\n Distinct junctions: %lli \n", (uint64_t)junctionMap->getNumJunctions());
+  printf("Number of junction pairs that exist on reads: %d\n", juncPairSet.size());
   printf("Number of kmers that we j-checked: %lli \n", NbJCheckKmer);
   printf ("Number of reads with no junctions: %lli \n",NbNoJuncs);
   printf("Number of processed kmers: %lli \n", NbProcessed);
@@ -91,55 +92,89 @@ void ReadScanner::add_fake_junction(string read){
 void ReadScanner::scan_forward(string read){
 
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
+  backwardSet = {};
 
   for(int i = 0; i < 2*jchecker->j + 1; i++){
     readKmer->forward();  
   }
 
-  ReadKmer* lastJunc;
-  
+  ReadKmer* firstBackJunc;
+  ReadKmer* lastForJunc;
+
+  ReadKmer* lastKmer;
+  Junction* lastJunc;
+  Junction* junc;
+  int numBackward = 0;
+
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
   while(find_next_junction(readKmer))
   {
-    //create a junction at the current spot if none exists
-    if(!junctionMap->isJunction(readKmer)){
-      junctionMap->createJunction(readKmer);
+    if(readKmer->direction == BACKWARD){
+      if(!firstBackJunc){
+        firstBackJunc = new ReadKmer(readKmer);
+      }
+    }
+    else{
+      if(firstBackJunc){
+        delete(lastForJunc);
+        lastForJunc = new ReadKmer(readKmer);
+      }
     }
 
-    junctionMap->getJunction(readKmer)->addCoverage(readKmer->getRealExtensionNuc()); //add coverage of the junction
+    // else{
+    //   for(auto backIt = backwardSet.begin(); backIt != backwardSet.end(); backIt++){
+    //     juncPairSet.insert(std::pair<kmer_type, kmer_type>(readKmer->getKmer(), *backIt));
+    //   }
+    // }
+    
+    junc = junctionMap->getJunction(readKmer);
+    //create a junction at the current spot if none exists
+    if(!junc){
+      junctionMap->createJunction(readKmer);
+      junc = junctionMap->getJunction(readKmer);
+    }
+
+    junc->addCoverage(readKmer->getRealExtensionNuc()); //add coverage of the junction
     
     //if there was a last junction, link the two 
-    if(lastJunc){
-      junctionMap->directLinkJunctions(lastJunc, readKmer);
+    if(lastKmer){
+      junctionMap->directLinkJunctions(lastKmer, readKmer, lastJunc, junc);
     }
     //If this is the first junction, link it to the beginning of the read.
     else{ 
-      junctionMap->getJunction(readKmer)
+      lastKmer = new ReadKmer(readKmer);
+      junc
         ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos()-2*jchecker->j);//-2*j ADDED
     }
 
-    delete(lastJunc);
-    lastJunc = new ReadKmer(readKmer);
+    *lastKmer = *readKmer;
+    lastJunc = junc;
 
-    int dist = max(1,junctionMap->getSkipDist(readKmer, FORWARD));
+    int index = readKmer->getExtensionIndex(FORWARD);
+    int dist = max(1, (int)(junc->dist[index]));
+
     readKmer->advanceDist(dist); 
 
     NbProcessed++,  NbSkipped += dist-1;
   }   
-  delete(readKmer);
 
+  if(lastForJunc && firstBackJunc){
+    juncPairSet.insert(std::pair<kmer_type, kmer_type>(lastForJunc->getKmer(), firstBackJunc->getKmer()));
+  }
+  delete(firstBackJunc), delete(lastForJunc);
+  
   //If there were no junctions on the read, add a fake junction
-  if(!lastJunc){
+  if(!lastKmer){
       NbNoJuncs++;
       add_fake_junction(read);
   }
   //If there was at least one junction, point the last junction found to the end of the read
   else {
-    Junction* junc = junctionMap->getJunction(lastJunc->getKmer());
-    junc->update(lastJunc->getExtensionIndex(FORWARD), lastJunc->getDistToEnd()-2*jchecker->j); //2*j ADDED
+    lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
   }
 
-  delete(lastJunc);
+  delete(lastKmer);
+  delete(readKmer);
 }
 
 bool ReadScanner::isValidRead(string read){
@@ -156,7 +191,8 @@ bool ReadScanner::isValidRead(string read){
 void ReadScanner::scanReads()
 {
   NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, 
-  NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0, readsNoErrors = 0;
+  NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0, 
+  readsNoErrors = 0,  NbJuncPairs = 0;
 
   time_t start;
   time_t stop;

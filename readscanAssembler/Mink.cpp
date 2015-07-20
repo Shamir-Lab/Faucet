@@ -145,7 +145,8 @@ int main(int argc, char *argv[])
     //build graph, dump graph and contigs to file
     Graph* graph = new Graph(bloom, jchecker);
     graph->buildGraph(junctionMap);
-    graph->linkNodesPrintContigs(*file_prefix + ".contigs");
+    graph->linkNodes();
+    graph->printContigs(*file_prefix + ".contigs");
     graph->printGraph(*file_prefix + ".graph");
 
     //done!

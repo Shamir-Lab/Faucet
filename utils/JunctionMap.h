@@ -55,8 +55,9 @@ public:
 
     //Finds the junction associated with the given kmer and returns how far we can skip in the given direction from that junction
     int getSkipDist(ReadKmer* readKmer, bool direction);
+
     //Directly links two adjacent junctions from the same read
-    void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2);
+    void directLinkJunctions(ReadKmer* kmer1, ReadKmer* kmer2, Junction* junc1, Junction* junc2);
 
     int getNumComplexJunctions(); //Gets the number of junctions with more than one valid extension
     int getNumSolidJunctions(int i); //Gets the number of solid complex junctions, multiple valid extensions of coverage at least i

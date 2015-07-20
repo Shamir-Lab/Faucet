@@ -14,10 +14,18 @@ using std::unordered_map;
 using std::unordered_set;
 using std::string;
 
+struct SearchResult{
+    kmer_type kmer;
+    bool isNode; //either node or sink
+    int index; //index from it that points back to the start point
+    int distance; //how far away it was
+    string contig; //the contig!
+};
+
 class Graph
 {
 private:
-
+    string contigFile;
     unordered_map<kmer_type, Node> nodeMap;
     unordered_map<kmer_type, int>* realExtensions;
     unordered_set<kmer_type>* sinks;
@@ -25,15 +33,20 @@ private:
     JChecker* jchecker;
     Node * getNode(kmer_type kmer);
     void getNodesFromJunctions(JunctionMap* juncMap);
-    void findAndLinkNeighbor(Node node, kmer_type startKmer , int index, ofstream* cFile);
+    SearchResult findNeighbor(Node node, kmer_type startKmer , int index);
     bool isSink(kmer_type kmer);
     bool isNode(kmer_type kmer);
     bool isRealExtension(kmer_type kmer, int ext);
     int getValidJExtension(DoubleKmer kmer, int dist, int max);
     void directLinkNodes(kmer_type kmer1, int index1, kmer_type kmer2, int index2, int distance);
     void linkNodeToSink(kmer_type nodeKmer, int index, kmer_type sinkKmer, int distance);
+    void linkNeighbor(Node node, kmer_type startKmer, int index, SearchResult result);
+    void traverseContigs(bool linkNodes, bool printContigs);
 
 public: 
+    void linkNodes();
+    void printContigs(string filename);
+    void setContigFile(string filename);
     void buildGraph(JunctionMap* juncMap);
     void linkNodesPrintContigs(string fileName);
     void printGraph(string fileName);

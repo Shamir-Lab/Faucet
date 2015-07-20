@@ -34,13 +34,16 @@ private:
     Bloom* bloom;
     set<kmer_type> jcheckedSet;
     set<kmer_type> nextRealSet;
+    set<std::pair<kmer_type, kmer_type>> juncPairSet;
+    set<kmer_type> backwardSet;
     uint64_t hash0, hash1,
     nextHash0, nextHash1;
     int readLength;
     string reads_file;
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
-        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer,readsNoErrors;
+        NbSkipped, NbProcessed, readsProcessed, NbSolidKmer,readsNoErrors,
+         NbJuncPairs;
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
