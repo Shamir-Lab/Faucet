@@ -256,7 +256,9 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
                     linkNeighbor(node, kmer, i, result);
                 }
                 if(printContigs){
-                    cFile << result.contig << "\n";
+                    if(result.contig <= revcomp_string(result.contig)){
+                        cFile << result.contig << "\n";
+                    }
                 }
             }
         }

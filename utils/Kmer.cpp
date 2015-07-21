@@ -283,6 +283,30 @@ __uint128_t revcomp(__uint128_t x) {
 }
 #endif
 
+char revcomp_char(char c){
+    switch(c){
+        case 'A':
+            return 'T';
+        case 'C': 
+            return 'G';
+        case 'T':
+            return 'A';
+        case 'G':
+            return 'C';
+        default:
+            printf("ERROR: tried to revcomp an invalid char\n");
+            return 'X';
+    }
+}
+
+std::string revcomp_string(std::string s){
+    string revcomp = "";
+    for(int i = 0; i < s.length(); i++){
+        revcomp += revcomp_char(s[s.length()-1-i]);
+    }
+    return revcomp;
+}
+
 // will be used by assemble()
 void revcomp_sequence(char * s, int len)
 {
