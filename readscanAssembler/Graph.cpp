@@ -166,20 +166,20 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
     DoubleKmer doubleKmer(startKmer);
     int dist = 1;
     int lastNuc;//stores the last nuc so we know which extension we came from
-    stringbuf contig;
+    string contig = "";
 
     //First, get to the first kmer from which we can do a proper bloom scan.  This is different for forwards and backward extensions
     if(index == 4){
         //in this case that's the reverse kmer 
         doubleKmer.reverse(); 
         for(int i = 0; i < sizeKmer; i++){
-            contig.sputc(getNucChar(code2nucleotide(doubleKmer.kmer, i)));
+            contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
         }
         if(isNode(doubleKmer.kmer)){
-            return BfSearchResult { doubleKmer.kmer, true, 4, 1, contig.str() };
+            return BfSearchResult { doubleKmer.kmer, true, 4, 1, contig };
         }
         if(isSink(doubleKmer.kmer)){
-            return BfSearchResult { doubleKmer.kmer, false, -1, 1, contig.str() } ;
+            return BfSearchResult { doubleKmer.kmer, false, -1, 1, contig } ;
         }
         dist = 2;//set it up for second position scan below
     }
@@ -188,18 +188,18 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
         lastNuc =first_nucleotide(doubleKmer.revcompKmer); 
         doubleKmer.forward(index);
         for(int i = 0; i < sizeKmer; i++){
-            contig.sputc(getNucChar(code2nucleotide(doubleKmer.kmer, i)));
+            contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
         }
         if(isNode(doubleKmer.revcompKmer)){
-            return BfSearchResult { doubleKmer.revcompKmer, true, lastNuc, 1, contig.str() };
+            return BfSearchResult { doubleKmer.revcompKmer, true, lastNuc, 1, contig };
         }
         dist = 2;
         if(isNode(doubleKmer.kmer)){
             directLinkNodes(startKmer, index, doubleKmer.kmer, 4, 2);
-            return BfSearchResult { doubleKmer.kmer, true, 4, 2, contig.str() };
+            return BfSearchResult { doubleKmer.kmer, true, 4, 2, contig };
         }
         if(isSink(doubleKmer.kmer)){
-            return BfSearchResult { doubleKmer.kmer, false, -1, 2, contig.str() };
+            return BfSearchResult { doubleKmer.kmer, false, -1, 2, contig };
         }
         dist = 3;//set it up for third position scan below
     }
@@ -212,8 +212,8 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
             //Note: tested, never at a sink
             printf("ERROR: No valid extension of %s while searching from ",  print_kmer(doubleKmer.kmer));
             printf("%s on index %d at dist %d/%d\n",  print_kmer(startKmer), index, dist, getNode(startKmer)->dist[index]);
-            contig.sputn("SINKERROR", 9);
-            return BfSearchResult { -1, false, -1, -1, contig.str() };
+            contig += "SINKERROR";
+            return BfSearchResult { -1, false, -1, -1, contig };
             //should not happen since we checked for sinks already
         }
         lastNuc = first_nucleotide(doubleKmer.revcompKmer);
@@ -221,20 +221,20 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
 
         //handle backward junction case
         if(isNode(doubleKmer.revcompKmer)){
-            return BfSearchResult { doubleKmer.revcompKmer, true, lastNuc, dist, contig.str() };
+            return BfSearchResult { doubleKmer.revcompKmer, true, lastNuc, dist, contig };
         }
         dist++;
 
         //this happens in the middle of rev and forward directions since we don't want to include 
         //this nuc in the contig if the other junction is facing backward
-        contig.sputc(getNucChar(validExtension));
+        contig += getNucChar(validExtension);
 
         //handle forward junction case
         if(isNode(doubleKmer.kmer)){
-            return BfSearchResult { doubleKmer.kmer, true, 4, dist, contig.str() };
+            return BfSearchResult { doubleKmer.kmer, true, 4, dist, contig };
         }
         if(isSink(doubleKmer.kmer)){
-            return BfSearchResult { doubleKmer.kmer, false, -1, dist, contig.str() };
+            return BfSearchResult { doubleKmer.kmer, false, -1, dist, contig };
         }
         dist++;
     }
@@ -294,7 +294,7 @@ void Graph::linkNodes(){
 }
 
 bool Graph::isTip(Node node, int index, int maxTipLength){
-    return sinks->find(node.nextJunc[index]) != sinks->end() && node.dist[index] <= maxTipLength;
+    return node.cov[index] > 0 && sinks->find(node.nextJunc[index]) != sinks->end() && node.dist[index] <= maxTipLength;
 }
 
 int Graph::getNumTips(Node node, int maxTipLength){
@@ -340,7 +340,6 @@ void Graph::cutTips(int maxTipLength){
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         kmer = it->first;
         node = &it->second;
-
         int numTips = getNumTips(*node, maxTipLength);
         if(numTips > 0 && numTips < node->numPathsOut()){
             for(int i = 0; i < 4; i++){
@@ -360,19 +359,20 @@ void Graph::cutTips(int maxTipLength){
                 for(int i = 0; i < 4; i++){
                     if(node->cov[i] > 0){
                         next = findNeighborGraph(*node, kmer, i);
-                        if(!next.isNode){
-                            printf("ERROR: only remaining path doesn't point to a node.");
-                        }
                     }
                 }
                 last = findNeighborGraph(*node, kmer, 4);
 
-                if(last.isNode){ //back kmer is a node!
+                if(last.isNode && next.isNode){ //back kmer is a node!
                     directLinkNodes(last.kmer, last.index, next.kmer, next.index, last.distance + next.distance);
                 }
-                else{
+                else if (!last.isNode && next.isNode){
                     linkNodeToSink(next.kmer, next.index, last.kmer, last.distance + next.distance);
-                }
+                }   
+                else if (last.isNode && !next.isNode){
+                    linkNodeToSink(last.kmer, last.index, next.kmer, last.distance + next.distance);
+                }          
+
                 deleteNode(kmer);
                 numNodesRemoved++;
                 it++;
