@@ -6,9 +6,10 @@
 #include <time.h>
 using namespace std;
 
-ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, JChecker* checker){
+ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* junc_bloom, JChecker* checker){
   reads_file = readFile;
   bloom = bloo1;
+  junc_bloom = junc_bloom;
   junctionMap = juncMap;
   jchecker = checker;
 }

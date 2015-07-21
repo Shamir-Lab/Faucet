@@ -117,6 +117,8 @@ int main(int argc, char *argv[])
     //create and load bloom filter
     Bloom* bloo1;
     Bloom* bloo2;
+    Bloom* junc_bloom;
+
     if(TwoHash){
         bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
         bloo2 = bloo2->create_bloom_filter_2_hash(estimated_kmers, fpRate);
@@ -129,11 +131,12 @@ int main(int argc, char *argv[])
     load_two_filters(bloo1, bloo2, solids_file);
 
     Bloom* bloom = bloo2;
+    junc_bloom = junc_bloom->create_bloom_filter_optimal(estimated_kmers * 0.2, fpRate); // arbitrary sizing
 
     //create JChecker, JunctionMap, and ReadScanner
     JChecker* jchecker = new JChecker(j, bloom);
     JunctionMap* junctionMap = new JunctionMap(bloom, jchecker, read_length);
-    ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloom, jchecker);
+    ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloom, junc_bloom, jchecker);
     
     //scan reads, print summary
     scanner->scanReads();
