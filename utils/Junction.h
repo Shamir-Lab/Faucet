@@ -8,7 +8,7 @@ using std::ofstream;
 class Junction{
 public:
     //The following three fields are indexed by a value from 0-4.  If the value is from 0-3, it indicates the forward extension from adding
-    //A, C, T, or G, respectively. If the index is 4, it referes to the backwards direction.
+    //A, C, T, or G, respectively. If the index is 4, it refers to the backwards direction.
     unsigned char dist[5]; //the distance to the next adjacent junction, or the farthest scanned as of yet without hitting another junction
     unsigned char cov[5]; //the number of reads along this extension
     bool linked[5]; //whether or not we found another junction along this extension
