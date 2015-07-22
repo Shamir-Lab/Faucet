@@ -53,6 +53,8 @@ public:
     //See Junction.h for junction print documentation.
     void writeToFile(string filename); 
 
+    void buildFromFile(string junction_file);
+    
     //Finds the junction associated with the given kmer and returns how far we can skip in the given direction from that junction
     int getSkipDist(ReadKmer* readKmer, bool direction);
 

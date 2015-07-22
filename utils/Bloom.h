@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <set>
+#include <string>
 #include "Kmer.h"
 #include "ReadKmer.h"
 // not using kmer_type from Kmer.h because I don't want this class to depend on Kmer.h
@@ -275,7 +276,7 @@ public:
     ~Bloom();
 };
 
-void load_two_filters(Bloom* bloo1, Bloom* bloo2, const char* reads_filename);
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, std::string reads_filename);
 
 #endif
 

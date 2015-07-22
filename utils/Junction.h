@@ -2,7 +2,9 @@
 #define JUNCTION
 
 #include <iostream>
+#include <string>
 #include "Kmer.h"
+using std::string;
 using std::ofstream;
 
 class Junction{
@@ -16,10 +18,9 @@ public:
     int numPathsOut(); //Returns the number of forward paths out of the junction with positive coverage
     bool isSolid(int threshold); //Returns true if at least 2 paths out of the junction have at least a threshold coverage.  
     
-    //Format:
-    //One line for the whole junction.
-    //"Distances: 0,1,2,3,4, Coverages: 0,1,2,3,4, Linked: 0,1,2,3,4," 
-    void writeToFile(ofstream* jFile); 
+    
+    //"dist dist dist dist dist  cov cov cov cov cov  linked linked linked linked linked " for each of A,C,T,G,Back, in order.
+    string toString();
  
     //Updates the junction to point to given distance, if it's greater than the current distance stored.
     void update(int nucExt, unsigned char length);
@@ -32,6 +33,9 @@ public:
 
     //Initializes with 0 coverage, 0 distance, and linked false.
     Junction();
+
+    //Get junction from string printout
+    Junction(string juncString);
 };
 
 #endif

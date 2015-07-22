@@ -11,19 +11,24 @@
 #include <sys/time.h>
 
 
+using namespace std;
+
 #define NNKS 4 // default minimal abundance for solidity
 #define MIN_CONTIG_SIZE (2*sizeKmer+1)
 
 float fpRate = .01;
 int j = 1;
 
-char* solids_file = new char[100];
+string reads_file;
+string bloom_input_file;
+string junctions_input_file;
 
 int read_length;
 uint64_t estimated_kmers;
-bool TwoHash = false;
+bool two_hash = false;
+bool from_bloom = false;
+bool from_junctions = false;
 int64_t nb_reads;
-char* kmer_filename = (char*)"solid_27mers_100k";
 
 #include "../utils/Bloom.h"
 #include "../utils/Kmer.h"
@@ -33,10 +38,9 @@ char* kmer_filename = (char*)"solid_27mers_100k";
 #include <iostream>
 #include <fstream>
 #include <string>
-using namespace std;
 
 set<kmer_type> all_kmers;
-string* file_prefix;
+string file_prefix;
 /*
 To run Mink, first type make in the directory to compile.
 
@@ -57,7 +61,13 @@ It will then build a graph from the junction map, clean tips from the graph, and
 file_prefix.contigs, file_prefix.graph.
 */
 
-inline int handle_arguments(int argc, char *argv[]){
+void argumentError(){
+    fprintf (stderr,"usage:\n");
+    fprintf (stderr,"./mink -read_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers -file_prefix prefix");
+    fprintf(stderr, "Optional arguments: -fp rate -j j  --two_hash -bloom_file filename -junctions_file filename\n");
+}
+
+int handle_arguments(int argc, char *argv[]){
     if(argc <  8)
     {
         fprintf (stderr,"usage:\n");
@@ -67,7 +77,7 @@ inline int handle_arguments(int argc, char *argv[]){
 
     for(int i = 1; i < argc; i++){
         if(0 == strcmp(argv[i] , "-read_file")) //1st arg: read file name
-                strcpy(solids_file,argv[i+1]), i++;
+                reads_file = string(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-size_kmer")) // 2rd arg: kmer size.
                 setSizeKmer(atoi(argv[i+1])), i++;
         else if(0 == strcmp(argv[i], "-max_read_length")) //3rd arg: read length
@@ -79,18 +89,38 @@ inline int handle_arguments(int argc, char *argv[]){
         else if(0 == strcmp(argv[i] , "-j")) //value of j for jchecking
                 j = atoi(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-file_prefix")) //file prefix used for output files
-                file_prefix = new string(argv[i+1]), i++;
+                file_prefix = string(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "--two_hash")) //use two hash function BF instead of optimal size BF
-                TwoHash = true; 
+                two_hash = true; 
+        else if(0 == strcmp(argv[i] , "-bloom_file")){
+                bloom_input_file = string(argv[i+1]);
+                from_bloom = true, i++;
+        }  
+        else if(0 == strcmp(argv[i] , "-junctions_file")){
+                junctions_input_file = string(argv[i+1]);
+                from_junctions = true, i++;
+        }
         else {
                 fprintf (stderr, "Cannot parse tag %s\n", argv[i]);
-                fprintf (stderr,"usage:\n");
-                fprintf (stderr,"./mink -read_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers [-fp rate] [-j j] -file_prefix prefix [--two_hash]\n");
+                argumentError();
                 return 1; }
         
     }
-    
-    printf("Reads file name: %s \n", solids_file);
+
+    if(from_junctions && !from_bloom){
+        fprintf(stderr, "Cannot start from junctions without a bloom file.\n");
+        argumentError();
+        return 1;
+    }
+
+    if(from_junctions && from_bloom)
+        printf("Starting from after read scan based on bloom and junction files.\n");
+    else if(from_bloom)
+        printf("Starting from after bloom load based on bloom file.\n");
+    else
+        printf("Starting at the beginning: will load bloom and find junctions from the read set.");
+
+    std::cout << "Reads file name: " << reads_file << "\n";
 
     printf("k: %d: \n", sizeKmer);
 
@@ -102,9 +132,9 @@ inline int handle_arguments(int argc, char *argv[]){
 
     printf("j: %d \n", j);
     
-    printf("File prefix: %s\n", &((*file_prefix)[0]));
+    printf("File prefix: %s\n", &file_prefix[0]);
     
-    if(TwoHash){
+    if(two_hash){
         printf("Using 2 hash functions.\n");
     }
     else{
@@ -115,17 +145,23 @@ inline int handle_arguments(int argc, char *argv[]){
     printf("Size of node: %d\n", sizeof(Node));
 }
  
-int main(int argc, char *argv[])
-{
-    //get all parameters from arguments
-    if (handle_arguments(argc, argv) == 1){
-        return 1;
-    }
+//create and load bloom filter
+Bloom* getBloomFilterFromFile(){
+    Bloom* bloom;
+        if(two_hash){
+            bloom = bloom->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+        }
+        else{
+            bloom = bloom->create_bloom_filter_optimal(estimated_kmers, fpRate);
+        }
+        bloom->load(&bloom_input_file[0]);
+        return bloom;
+}
 
-    //create and load bloom filter
+Bloom* getBloomFilterFromReads(){ //handles loading from reads
     Bloom* bloo1;
     Bloom* bloo2;
-    if(TwoHash){
+    if(two_hash){
         bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
         bloo2 = bloo2->create_bloom_filter_2_hash(estimated_kmers, fpRate);
     }
@@ -133,30 +169,58 @@ int main(int argc, char *argv[])
         bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
         bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, fpRate);
     }
+    load_two_filters(bloo1, bloo2, reads_file);
+    delete(bloo1);
+    return bloo2;
+}
 
-    load_two_filters(bloo1, bloo2, solids_file);
-
-    Bloom* bloom = bloo2;
-
-    //create JChecker, JunctionMap, and ReadScanner
-    JChecker* jchecker = new JChecker(j, bloom);
-    JunctionMap* junctionMap = new JunctionMap(bloom, jchecker, read_length);
-    ReadScanner* scanner = new ReadScanner(junctionMap, solids_file, bloom, jchecker);
-    
+//Builds the junction map from either a file or the readscan
+void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, JChecker* jchecker){
+    ReadScanner* scanner = new ReadScanner(junctionMap, reads_file, bloom, jchecker);
+     
     //scan reads, print summary
     scanner->scanReads();
     scanner->printScanSummary();
+}
 
+int main(int argc, char *argv[])
+{
+    //get all parameters from arguments
+    if (handle_arguments(argc, argv) == 1){
+        return 1;
+    }
+
+    //Build bloom filter from reads or file, and dump to file
+    Bloom* bloom;
+    if(from_bloom){
+        bloom = getBloomFilterFromFile();
+    }
+    else{
+        bloom = getBloomFilterFromReads();
+    }
+    bloom->dump(&(file_prefix + ".bloom")[0]);
+
+    //create JChecker
+    JChecker* jchecker = new JChecker(j, bloom);
+
+    //Build junction map from either reads or file
+    JunctionMap* junctionMap = new JunctionMap(bloom, jchecker, read_length);
+    if(from_junctions){
+        junctionMap->buildFromFile(junctions_input_file);
+    }
+    else{
+        buildJunctionMapFromReads(junctionMap, bloom, jchecker);
+    }
     //dump junctions to file
-    junctionMap->writeToFile(*file_prefix + ".junctions");
+    junctionMap->writeToFile(file_prefix + ".junctions");
 
     //build graph, dump graph and contigs to file
     Graph* graph = new Graph(bloom, jchecker);
     graph->buildGraph(junctionMap);
     graph->linkNodes();
     graph->cutTips(read_length);
-    graph->printContigs(*file_prefix + ".contigs");
-    graph->printGraph(*file_prefix + ".graph");
+    graph->printContigs(file_prefix + ".contigs");
+    graph->printGraph(file_prefix + ".graph");
 
     //done!
     printf("Program reached end. \n");

@@ -116,7 +116,7 @@ Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate
     return bloo1;
 }
 
-void load_two_filters(Bloom* bloo1, Bloom* bloo2, const char* reads_filename){
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename){
     ifstream solidReads;
     solidReads.open(reads_filename);
 

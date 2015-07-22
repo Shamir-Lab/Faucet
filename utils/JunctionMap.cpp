@@ -1,7 +1,10 @@
 #include "JunctionMap.h"
 #include <string>
 #include <fstream>
+#include <sstream>
 using std::ofstream;
+using std::ifstream;
+using std::istringstream;
 using std::string;
 
 //Gets the valid extension of the given kmer based on the bloom filter and cFPs.  Uses JChecking! so this cuts off tips
@@ -268,7 +271,7 @@ void JunctionMap::writeToFile(string filename){
     for(auto juncIt = junctionMap.begin(); juncIt != junctionMap.end(); juncIt++){
         kmer = juncIt->first;
         jFile << print_kmer(kmer) << " " ;
-        juncIt->second.writeToFile(&jFile);
+        jFile << juncIt->second.toString();
         jFile << "\n";    
     }
     printf("Done writing to junction file\n");
@@ -292,4 +295,28 @@ JunctionMap::JunctionMap(Bloom* bloo1, JChecker* jcheck, int read_length){
   bloom = bloo1;
   jchecker = jcheck;
   maxReadLength = read_length;
+}
+
+//builds junction map from junction map file.
+//Assumes JunctionMap was just initialized
+void JunctionMap::buildFromFile(string junction_file){
+    junctionMap = {};
+    ifstream jFile(junction_file);
+
+    printf("Reading from Junction file to build junction map.\n");
+    kmer_type kmer;
+    Junction junc;
+    string word, line;
+    while(getline(jFile, line)){
+        istringstream iss(line);
+
+        iss >> word;
+        getFirstKmerFromRead(&kmer, &word[0]);
+
+        getline(iss, word);
+        junc = Junction(word);
+
+        junctionMap[kmer] = junc;
+    }
+    jFile.close();
 }

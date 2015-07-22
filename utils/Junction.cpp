@@ -1,9 +1,12 @@
 #include "Junction.h"
 #include <fstream>
 #include <limits.h>
-
+#include <sstream>
+#include <iostream>
 using std::ofstream;
 using std::max;
+using std::istringstream;
+using std::stringstream;
 
 void writeToFile(ofstream* jFile);
 
@@ -45,21 +48,21 @@ void Junction::update(int nucExt, unsigned char lengthFor){
       dist[nucExt] = max(dist[nucExt], lengthFor);
 }
 
-
-//Kmer, then "ext,ext,ext,ext" then "cov,cov,cov,cov" for each of A,C,T,G in order.
-void Junction::writeToFile(ofstream*jFile){
-  *jFile <<"Distances: ";
+//"dist dist dist dist dist  cov cov cov cov cov  linked linked linked linked linked " for each of A,C,T,G,Back, in order.
+string Junction::toString(){
+  stringstream stream;
   for(int i = 0; i < 5; i++){
-    *jFile << (int)dist[i] << "," ;
+    stream << (int)dist[i] << " " ;
   }
-  *jFile << " Coverages: " ;
+  stream << " ";
   for(int i = 0; i < 5; i++){
-    *jFile << (int)cov[i] << "," ;
+    stream << (int)cov[i] << " " ;
   }
-  *jFile << " Linked: ";
+  stream << " ";
   for(int i = 0; i < 5; i++){
-    *jFile << linked[i] << "," ;
+    stream << linked[i] << " " ;
   }
+  return stream.str();
 }
 
 //explicitly set if it's a spacer or not
@@ -68,6 +71,24 @@ Junction::Junction(){
     dist[i] = 0;
     cov[i] = 0;
     linked[i] = false;
+  }
+}
+
+//Get junction from string printout
+Junction::Junction(string juncString){
+  istringstream iss(juncString);
+  string val;
+  for(int i = 0; i < 5; i++){
+    iss >> val;
+    dist[i] = stoi(val);
+  }
+  for(int i = 0; i < 5; i++){
+    iss >> val;
+    cov[i] = stoi(val);
+  }
+  for(int i = 0; i < 5; i++){
+    iss >> val;
+    linked[i] = stoi(val);
   }
 }
 
