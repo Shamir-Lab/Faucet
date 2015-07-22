@@ -101,16 +101,16 @@ Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate
     Bloom * bloo1;
     int bits_per_item = -log(fpRate)/log(2)/log(2); // needed to process argv[5]
 
-    //printf("Bits per kmer: %d \n", bits_per_item);
+    printf("Bits per kmer: %d \n", bits_per_item);
     // int estimated_bloom_size = max( (int)ceilf(log2f(nb_reads * NBITS_PER_KMER )), 1);
     uint64_t estimated_bloom_size = (uint64_t) (estimated_items*bits_per_item);
     //printf("Estimated items: %lli \n", estimated_items);
     //printf("Estimated bloom size: %lli.\n", estimated_bloom_size);
     
-    //printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
+    printf("BF memory: %f MB\n", (float)(estimated_bloom_size/8LL /1024LL)/1024);
     bloo1 = new Bloom(estimated_bloom_size, sizeKmer);
 
-    //printf("Number of hash functions: %d \n", (int)floorf(0.7*bits_per_item));
+    printf("Number of hash functions: %d \n", (int)floorf(0.7*bits_per_item));
     bloo1->set_number_of_hash_func((int)floorf(0.7*bits_per_item));
 
     return bloo1;
@@ -131,10 +131,11 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, const char* reads_filename){
     time(&start);
     printf("Weights before load: %f, %f \n", bloo1->weight(), bloo2->weight());
     uint64_t hashA, hashB;
+    kmer_type canonKmer;
     while (getline(solidReads, read))
     {
         for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
-            kmer_type canonKmer = kmer.getCanon();
+            canonKmer = kmer.getCanon();
             hashA = bloo1->oldHash(canonKmer, 0);
             hashB = bloo1->oldHash(canonKmer, 1);
             if(bloo1->contains(hashA, hashB)){

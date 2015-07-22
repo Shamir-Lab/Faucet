@@ -2,6 +2,7 @@
 #define Kmer64_h
 
 #include <stdint.h>
+#include <string>
 
 #ifdef _largeint
 #include "LargeInt.h"
@@ -28,6 +29,7 @@ void setSizeKmer(int k);
 char getNucChar(int nucIndex);
 int NT2int(char nt);
 int revcomp_int(int nt_int);
+char revcomp_char(char c);
 kmer_type  codeSeed(char *seq, int sizeKmer, kmer_type kmerMask);
 kmer_type  codeSeed(char *seq);
 kmer_type  codeSeedRight(char *seq, kmer_type  val_seed, bool new_read);
@@ -77,6 +79,7 @@ kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos);
 kmer_type rotate_right(kmer_type kmer, int dist);
 kmer_type rotate_left(kmer_type kmer, int dist);
 
+std::string revcomp_string(std::string s);
 void revcomp_sequence(char* s, int len);
 
 kmer_type  codeSeed_bin(char *seq);
