@@ -11,6 +11,10 @@ Then, type ./mink, followed by the following arguments:
 -j j, j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc. Default value 1
 -file_prefix <>, used for junctions file and contigs file and graph file
 --two_hash, if this option is selected a bigger bloom filter with only two hash functions is used
+-bloom_file <>, used to shortcut loading the filter if you already have it on file
+-junctions_file <>, used to shortcut the readscan if you have access to a junctions file
+
+Note: cannot use junctions_file option without also using bloom_file option
 
 This will load a bloom filter with all the kmers from the reads, then scan through them to find all of the junctions.
 It will print all of the junctions to a file named file_prefix.junctions, 
