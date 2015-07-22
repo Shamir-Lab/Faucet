@@ -3,6 +3,7 @@
 //
 //  Created by Guillaume Rizk on 9/02/12.
 //
+// Modified by Gil Goldshlager 7/15
 
 #ifndef Bloom_h
 #define Bloom_h

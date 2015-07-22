@@ -6,15 +6,16 @@
 #include <time.h>
 using namespace std;
 
-ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, JChecker* checker){
+ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* junc_bloom, JChecker* checker){
   reads_file = readFile;
   bloom = bloo1;
+  junc_bloom = junc_bloom;
   junctionMap = juncMap;
   jchecker = checker;
 }
 
 void ReadScanner::printScanSummary(){
-  printf("\n Distinct junctions: %lli \n", (uint64_t)junctionMap->getNumJunctions());
+  printf("\nDistinct junctions: %lli \n", (uint64_t)junctionMap->getNumJunctions());
   printf("Number of junction pairs that exist on reads: %d\n", juncPairSet.size());
   printf("Number of kmers that we j-checked: %lli \n", NbJCheckKmer);
   printf ("Number of reads with no junctions: %lli \n",NbNoJuncs);
@@ -100,7 +101,7 @@ void ReadScanner::scan_forward(string read){
 
   ReadKmer* firstBackJunc;
   ReadKmer* lastForJunc;
-
+  
   ReadKmer* lastKmer;
   Junction* lastJunc;
   Junction* junc;
@@ -108,24 +109,30 @@ void ReadScanner::scan_forward(string read){
 
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
   while(find_next_junction(readKmer))
-  {
+  { // mark first R junction and last F junction
     if(readKmer->direction == BACKWARD){
-      if(!firstBackJunc){
-        firstBackJunc = new ReadKmer(readKmer);
-      }
-    }
-    else{
-      if(firstBackJunc){
-        delete(lastForJunc);
-        lastForJunc = new ReadKmer(readKmer);
-      }
-    }
 
+      backwardSet.insert(readKmer->getRealExtension());
+      // if(!firstBackJunc){
+      //   firstBackJunc = new ReadKmer(readKmer); // copy construct called
+      // }
+    }
     // else{
-    //   for(auto backIt = backwardSet.begin(); backIt != backwardSet.end(); backIt++){
-    //     juncPairSet.insert(std::pair<kmer_type, kmer_type>(readKmer->getKmer(), *backIt));
+    //   if(firstBackJunc){
+    //     delete(lastForJunc);
+    //     lastForJunc = new ReadKmer(readKmer);
     //   }
     // }
+
+    else{
+      // for(auto backIt = backwardSet.begin(); backIt != backwardSet.end(); backIt++){
+      //   // juncPairSet.insert(std::pair<kmer_type, kmer_type>(readKmer->getRealExtension(), *backIt));
+      // }
+
+      // to get adjacent R-F pairs, always pair F with end of backward set 
+      auto backIt = backwardSet.end();
+      juncPairSet.insert(std::pair<kmer_type, kmer_type>(readKmer->getRealExtension(), *backIt));
+    }
     
     junc = junctionMap->getJunction(readKmer);
     //create a junction at the current spot if none exists
@@ -158,10 +165,13 @@ void ReadScanner::scan_forward(string read){
     NbProcessed++,  NbSkipped += dist-1;
   }   
 
-  if(lastForJunc && firstBackJunc){
-    juncPairSet.insert(std::pair<kmer_type, kmer_type>(lastForJunc->getKmer(), firstBackJunc->getKmer()));
-  }
-  delete(firstBackJunc), delete(lastForJunc);
+  // if(lastForJunc && firstBackJunc){
+  //   // juncPairSet.insert(std::pair<kmer_type, kmer_type>(lastForJunc->getKmer(), firstBackJunc->getKmer()));    
+  //   if(lastForJunc->getRealExtension() && firstBackJunc->getRealExtension()){
+  //     juncPairSet.insert(std::pair<kmer_type, kmer_type>(lastForJunc->getRealExtension(), firstBackJunc->getRealExtension()));
+  //   }
+  // }
+  // delete(firstBackJunc), delete(lastForJunc);
   
   //If there were no junctions on the read, add a fake junction
   if(!lastKmer){

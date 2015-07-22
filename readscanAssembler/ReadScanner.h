@@ -32,6 +32,7 @@ class ReadScanner{
 
 private:
     Bloom* bloom;
+    Bloom* junc_bloom;
     set<kmer_type> jcheckedSet;
     set<kmer_type> nextRealSet;
     set<std::pair<kmer_type, kmer_type>> juncPairSet;
@@ -81,6 +82,6 @@ public:
     //If there are no junctions, add_fake_junction is called
     void scan_forward(string read); 
 
-    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, JChecker* jchecker);
+    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* junc_bloom, JChecker* jchecker);
 };
 #endif
