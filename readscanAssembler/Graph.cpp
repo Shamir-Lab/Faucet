@@ -252,6 +252,10 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
         for(int i = 0; i < 5; i++){
             if(node.cov[i]  > 0 || i == 4){ //if there is coverage but not yet a link
                 result = findNeighborBf(node, kmer, i);
+                if(result.kmer == -1){
+                    std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
+                    std::cout << "Search was on index " << i << "\n";
+                }
                 if(linkNodes && node.nextJunc[i] == -1){
                     linkNeighbor(node, kmer, i, result);
                 }
