@@ -69,7 +69,7 @@ private:
     void linkNodeToSink(kmer_type nodeKmer, int index, kmer_type sinkKmer, int distance);
 
     //for linking a node to a neighbor found in a bloom scan
-    void linkNeighbor(Node node, kmer_type startKmer, int index, BfSearchResult result);
+    void linkNeighbor(kmer_type startKmer, int index, BfSearchResult result);
 
     //Traverses every contig using the bloom filter, in order to either link the nodes to each other or print the contigs
     void traverseContigs(bool linkNodes, bool printContigs);

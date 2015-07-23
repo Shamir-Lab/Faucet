@@ -141,12 +141,12 @@ void Graph::linkNodeToSink(kmer_type nodeKmer, int index, kmer_type sinkKmer, in
     node->update(index, distance, sinkKmer);
 }
 
-void Graph::linkNeighbor(Node node, kmer_type startKmer, int index, BfSearchResult result){
+void Graph::linkNeighbor(kmer_type startKmer, int index, BfSearchResult result){
     if(result.isNode){
         directLinkNodes(startKmer, index, result.kmer, result.index, result.distance);
     }
     else{
-        linkNodeToSink(startKmer, index, result.kmer, result.kmer);
+        linkNodeToSink(startKmer, index, result.kmer, result.distance);
     }
 }
 
@@ -163,6 +163,7 @@ GraphSearchResult Graph::findNeighborGraph(Node node, kmer_type startKmer, int i
 }
 
 //Finds the neighbor of the given node on the given extension.  
+//Returns a result with kmer -1 if there is an error
 BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
     DoubleKmer doubleKmer(startKmer);
     int dist = 1;
@@ -251,16 +252,16 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
         kmer = it->first;
         node = it->second;
         for(int i = 0; i < 5; i++){
-            if(node.cov[i]  > 0 || i == 4){ //if there is coverage but not yet a link
+            if(node.cov[i]  > 0 || i == 4){ //if there is coverage or its the backwards direction
                 result = findNeighborBf(node, kmer, i);
-                if(result.kmer == -1){
+                if(result.kmer == -1){ //if the search function returned an error, print the error
                     std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
                     std::cout << "Search was on index " << i << "\n";
                 }
-                if(linkNodes && node.nextJunc[i] == -1){
-                    linkNeighbor(node, kmer, i, result);
+                if(linkNodes && node.nextJunc[i] == -1){ //if we're supposed to link nodes and its not already linked
+                    linkNeighbor(kmer, i, result);
                 }
-                if(printContigs){
+                if(printContigs){ //if we're supposed to print contigs, print them
                     if(result.contig <= revcomp_string(result.contig)){
                         cFile << result.contig << "\n";
                     }
