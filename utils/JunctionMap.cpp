@@ -78,7 +78,7 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
     }
 
     //Scan forward until there's no chance of finding a junction that indicates an overlapping kmer 
-    while(scanDist < maxDist + maxReadLength){ 
+    while(scanDist < maxDist + maxReadLength*2){ 
 
         //move forward if possible
         int validExtension = getValidJExtension(doubleKmer);
