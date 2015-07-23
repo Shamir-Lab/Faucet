@@ -220,13 +220,18 @@ int main(int argc, char *argv[])
     //dump junctions to file
     junctionMap->writeToFile(file_prefix + ".junctions");
 
-    //build graph, dump graph and contigs to file
+    //build raw graph, dump graph to file
     Graph* graph = new Graph(bloom, jchecker);
     graph->buildGraph(junctionMap);
     graph->linkNodes();
+    graph->printGraph(file_prefix + ".graph.raw");
+
+    //clean graph
     graph->cutTips(read_length);
+
+    //dump final graph and contigs to file 
+    graph->printGraph(file_prefix + ".graph.final");
     graph->printContigs(file_prefix + ".contigs");
-    graph->printGraph(file_prefix + ".graph");
 
     //done!
     printf("Program reached end. \n");
