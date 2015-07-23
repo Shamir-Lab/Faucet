@@ -71,8 +71,8 @@ int Graph::getValidJExtension(DoubleKmer kmer, int dist, int max){
                             if(it == realExtensions->end()){
                                 printf("Base kmer %s at %d/%d is not in the real extension map.\n", print_kmer(kmer.kmer), dist, max);
                                 printf("Real extensions: %d, %d\n", answer, i);
+                                return -1;
                             }   
-                            return -1;
                 }
             }
         }
