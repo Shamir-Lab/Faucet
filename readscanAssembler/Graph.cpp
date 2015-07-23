@@ -380,9 +380,9 @@ void Graph::cutTips(int maxTipLength){
                     linkNodeToSink(last.kmer, last.index, next.kmer, last.distance + next.distance);
                 }          
 
+                it++;
                 deleteNode(kmer);
                 numNodesRemoved++;
-                it++;
                 continue;
             }
         }
