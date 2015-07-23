@@ -131,14 +131,14 @@ void Graph::buildGraph(JunctionMap* juncMap){
 void Graph::directLinkNodes(kmer_type kmer1, int index1, kmer_type kmer2, int index2, int distance){
     Node* node1 = getNode(kmer1);
     Node* node2 = getNode(kmer2); 
-    node1->update(index1, distance, kmer2);
-    node2->update(index2, distance, kmer1);
+    node1->update(index1, distance, kmer2, index2);
+    node2->update(index2, distance, kmer1, index1);
 }
 
 //puts in distances and junction IDs to link the node to the sink
 void Graph::linkNodeToSink(kmer_type nodeKmer, int index, kmer_type sinkKmer, int distance){
     Node* node = getNode(nodeKmer);
-    node->update(index, distance, sinkKmer);
+    node->update(index, distance, sinkKmer,-1);
 }
 
 void Graph::linkNeighbor(kmer_type startKmer, int index, BfSearchResult result){
@@ -156,7 +156,7 @@ GraphSearchResult Graph::findNeighborGraph(Node node, kmer_type startKmer, int i
     bool isNode = nodeMap.find(kmer) != nodeMap.end();
     int otherIndex = -1;
     if(isNode){
-        otherIndex = getPathIndex(nodeMap.find(kmer)->second, startKmer);
+        otherIndex = node.backIndex[index];
     }
     int distance = node.dist[index];
     return GraphSearchResult { kmer, isNode, otherIndex, distance };
@@ -358,6 +358,10 @@ void Graph::cutTips(int maxTipLength){
                     }
                     sinks->erase(node->nextJunc[i]); 
                     node->deletePath(i);
+                    Node newNode = nodeMap.find(kmer)->second;
+                    if(newNode.cov[i] != 0 || newNode.dist[i] != 0 || newNode.nextJunc[i] != -1){
+                        printf("ERROR: delete path doesn't work.\n");
+                    }
                     numTipsCut++;
                 }
             }

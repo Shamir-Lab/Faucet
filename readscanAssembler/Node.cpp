@@ -9,6 +9,7 @@ void Node::deletePath(int index){
   dist[index] = 0;
   cov[index] = 0;
   nextJunc[index] = -1;
+  backIndex[index] = -1; //the index along which the next node points back to this one at this extension
 }
 
 int Node::numPathsOut(){
@@ -22,9 +23,11 @@ int Node::numPathsOut(){
 }
 
 //Updates the junc info based on finding a path of length length from the extension nucExt
-void Node::update(int nucExt, int lengthFor,  kmer_type jID){
+//With given backIndex
+void Node::update(int nucExt, int lengthFor,  kmer_type jID, int bI){
       dist[nucExt] = max(dist[nucExt], lengthFor);
       nextJunc[nucExt] = jID;
+      backIndex[nucExt] = (char)bI;
 }
 
 
@@ -37,6 +40,10 @@ void Node::writeToFile(ofstream*jFile){
   *jFile << " Coverages: " ;
   for(int i = 0; i < 5; i++){
     *jFile << (int)cov[i] << "," ;
+  }
+  *jFile << " Back indices: " ;
+  for(int i = 0; i < 5; i++){
+    *jFile << (int)backIndex[i] << "," ;
   }
   *jFile << " IDs: ";
   for(int i = 0; i < 5; i++){
