@@ -39,7 +39,6 @@ private:
     set<kmer_type> backwardSet;
     uint64_t hash0, hash1,
     nextHash0, nextHash1;
-    int readLength;
     string reads_file;
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 

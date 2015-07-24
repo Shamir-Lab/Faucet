@@ -86,7 +86,7 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
             return new kmer_type(sinkKmer);
         }
         if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions- but it's still a sink!
-            return new kmer_type(doubleKmer.kmer);
+            return new kmer_type(sinkKmer);
         }
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
         doubleKmer.forward(validExtension); 
@@ -110,8 +110,7 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
         }
 
         //if we're at the position where the sink would be, record the value for later use
-        //REMOVED THE -2*jchecker->j
-        if(scanDist == maxDist){ //subtract 2*j (which corresponds to j positions in the forward direction) to ensure jchecking works
+        if(scanDist == maxDist){ 
             sinkKmer = doubleKmer.kmer;
         }
     }

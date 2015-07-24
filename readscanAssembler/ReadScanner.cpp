@@ -218,8 +218,6 @@ void ReadScanner::scanReads()
   int lastSum = 0, thisSum = 0;
   while (getline(solidReads, read))
   {
-    //lastSum = thisSum;
-    readLength = read.length();
     //printf("Checking for errors.\n");
     if(isValidRead(read)){
       //printf("None! Scanning\n");

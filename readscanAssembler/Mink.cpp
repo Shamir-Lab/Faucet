@@ -181,8 +181,8 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
 
 //Builds the junction map from either a file or the readscan
 void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, JChecker* jchecker){
-     Bloom* junc_bloom;
-     ReadScanner* scanner = new ReadScanner(junctionMap, reads_file, bloom, junc_bloom, jchecker);
+    Bloom* junc_bloom;
+    ReadScanner* scanner = new ReadScanner(junctionMap, reads_file, bloom, junc_bloom, jchecker);
      
     //scan reads, print summary
     scanner->scanReads();
