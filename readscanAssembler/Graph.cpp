@@ -197,7 +197,6 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
         }
         dist = 2;
         if(isNode(doubleKmer.kmer)){
-            directLinkNodes(startKmer, index, doubleKmer.kmer, 4, 2);
             return BfSearchResult { doubleKmer.kmer, true, 4, 2, contig };
         }
         if(isSink(doubleKmer.kmer)){
