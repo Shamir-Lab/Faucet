@@ -57,7 +57,7 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
         //if we're searching forwards, we need to specially handle the first extension since the junction tells us where to go.
         //From there, we can scan normally.
         doubleKmer.forward(index);
-        if(isJunction(doubleKmer.kmer)){
+        if(isJunction(doubleKmer.kmer) || isJunction(doubleKmer.revcompKmer)){
             return NULL;
         }
         scanDist = 2;
