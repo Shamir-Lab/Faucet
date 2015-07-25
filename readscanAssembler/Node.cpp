@@ -61,6 +61,7 @@ Node::Node(Junction junc){
     dist[i] = junc.dist[i];
     cov[i] = junc.cov[i];
     nextJunc[i] = -1;
+    backIndex[i] = -1;
   }
 }
 
@@ -69,6 +70,7 @@ Node::Node(){
     dist[i] = 0;
     cov[i] = 0;
     nextJunc[i] = -1;
+    backIndex[i] = -1;
   }
 }
 

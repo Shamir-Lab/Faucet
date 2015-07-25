@@ -336,7 +336,7 @@ void Graph::deleteNode(kmer_type kmer){
     nodeMap.erase(kmer);
 }
 
-void Graph::cutTips(int maxTipLength){
+int Graph::cutTips(int maxTipLength){
     time_t start,stop;
     time(&start);
     printf("Cutting tips.\n");
@@ -395,6 +395,7 @@ void Graph::cutTips(int maxTipLength){
     printf("Done cutting %d tips and removing %d nodes.\n", numTipsCut, numNodesRemoved);
     time(&stop);
     printf("Time: %f\n", difftime(stop, start));
+    return numTipsCut;
 }
 
 void Graph::printGraph(string fileName){

@@ -86,7 +86,7 @@ private:
     int getPathIndex(Node startNode, kmer_type destinationKmer);
 
 public: 
-    void cutTips(int maxTipLength);   //remove all short tips
+    int cutTips(int maxTipLength);   //remove all short tips, return number cut
     void linkNodes(); //use BF to link nodes
     void printContigs(string filename); 
     void buildGraph(JunctionMap* juncMap); //makes nodes out of complex junctions, replaces others with real extensions
