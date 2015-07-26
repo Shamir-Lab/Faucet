@@ -19,7 +19,8 @@ using namespace std;
 float fpRate = .01;
 int j = 1;
 
-string reads_file;
+string read_load_file;
+string read_scan_file;
 string bloom_input_file;
 string junctions_input_file;
 
@@ -45,7 +46,8 @@ string file_prefix;
 To run Mink, first type make in the directory to compile.
 
 Then, type ./mink, followed by the following arguments:
--reads_file <>, name of reads file (current format is each line has a string of characters representing the read)
+-read_load_file <>, name of reads file  to load bloom filter from (current format is each line has a string of characters representing the read)
+-read_scan_file <>, name of reads file  for read scan (current format is each line has a string of characters representing the read)
 -size_kmer k
 -max_read_length <>, upper bound on the size of a read
 -estimaed_kmers <>, number of number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
@@ -67,21 +69,17 @@ file_prefix.contigs, file_prefix.graph.
 
 void argumentError(){
     fprintf (stderr,"usage:\n");
-    fprintf (stderr,"./mink -read_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers -file_prefix prefix");
+    fprintf (stderr,"./mink -read_load filename -read_scan_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers -file_prefix prefix");
     fprintf(stderr, "Optional arguments: -fp rate -j j  --two_hash -bloom_file filename -junctions_file filename\n");
 }
 
 int handle_arguments(int argc, char *argv[]){
-    if(argc <  8)
-    {
-        fprintf (stderr,"usage:\n");
-        fprintf (stderr,"./mink -read_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers [-fp rate] [-j j] -file_prefix prefix [--two_hash]\n");
-        return 1;
-    }
 
     for(int i = 1; i < argc; i++){
-        if(0 == strcmp(argv[i] , "-read_file")) //1st arg: read file name
-                reads_file = string(argv[i+1]), i++;
+        if(0 == strcmp(argv[i] , "-read_load_file")) //1st arg: read file name
+                read_load_file = string(argv[i+1]), i++;
+        else if(0 == strcmp(argv[i] , "-read_scan_file")) //1st arg: read file name
+                read_scan_file = string(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-size_kmer")) // 2rd arg: kmer size.
                 setSizeKmer(atoi(argv[i+1])), i++;
         else if(0 == strcmp(argv[i], "-max_read_length")) //3rd arg: read length
@@ -124,7 +122,9 @@ int handle_arguments(int argc, char *argv[]){
     else
         printf("Starting at the beginning: will load bloom and find junctions from the read set.");
 
-    std::cout << "Reads file name: " << reads_file << "\n";
+    std::cout << "Read load file name: " << read_load_file << "\n";
+
+    std::cout << "Read scan file name: " << read_scan_file << "\n";
 
     printf("k: %d: \n", sizeKmer);
 
@@ -174,7 +174,7 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
         bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
         bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, fpRate);
     }
-    load_two_filters(bloo1, bloo2, reads_file);
+    load_two_filters(bloo1, bloo2, read_load_file);
     delete(bloo1);
     return bloo2;
 }
@@ -182,7 +182,7 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
 //Builds the junction map from either a file or the readscan
 void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, JChecker* jchecker){
     Bloom* junc_bloom;
-    ReadScanner* scanner = new ReadScanner(junctionMap, reads_file, bloom, junc_bloom, jchecker);
+    ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, junc_bloom, jchecker);
      
     //scan reads, print summary
     scanner->scanReads();
