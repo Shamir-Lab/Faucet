@@ -2,7 +2,7 @@
 #define CONTIG
 
 #include <iostream>
-#include "../utils/Node.h"
+#include "ContigNode.h"
 using std::ofstream;
 
 class Contig{ // modeled after node implementation
@@ -14,7 +14,7 @@ public:
     char ind1;
     char ind2;
     string seq;
-    Contig(Node* n1, char ind1, Node* n2, char ind2);
+    Contig(ContigNode* n1, char ind1, ContigNode* n2, char ind2);
     Contig();
 
 };

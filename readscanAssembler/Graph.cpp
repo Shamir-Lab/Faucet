@@ -12,6 +12,7 @@ Graph::Graph(Bloom* bloo1, JChecker* jcheck){
     bloom = bloo1;
     jchecker = jcheck;
     nodeMap = {};
+    contigNodeMap = {};
     realExtensions = {};
     sinks = {};
 }
@@ -275,15 +276,38 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
 // given Node graph (having all cFPs, sinks, k-mer extensions out of nodes), changes
 // to nodes as ends of explicit contigs representation 
 void Graph::buildContigGraph(){
+    kmer_type kmer;
+    Node node;
+    BfSearchResult result;
+
     // create node map copy
+    unordered_map<kmer_type, Node> nodeMap_copy = {};
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        kmer = it->first;
+        node = it->second;
+        nodeMap_copy.insert(std::pair<kmer_type, Node>(kmer, node));
+    }
     // iterate through node map
+    for(auto it = nodeMap_copy.begin(); it != nodeMap_copy.end(); it++){
+        kmer = it->first;
+        node = it->second;
+        std::cout << print_kmer(kmer) << "\n";
+        // for(int i = 0; i < 5; i++){
+        //     if(node.cov[i]  > 0 || i == 4){ //if there is coverage or its the backwards direction
+        //         result = findNeighborBf(node, kmer, i);
+
+
+        //     }
+    }
         // build contig sequence between nodes, create contigNodes, 
         // point them to created contigs as you go
         // use sequence ends as k-mers to create new JuncMap (of contigNodes)
         // whenever all extensions of some node linked to contig, 
         // remove existing (junction) Node from map copy, delete existing Nodes
-    // verify node map copy empty, delete original and copy 
+            // use nodeMap_copy.erase(kmer)
 
+    // verify node map copy empty, delete original and copy 
+        // use 
 }
 
 

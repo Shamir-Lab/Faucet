@@ -69,7 +69,7 @@ file_prefix.contigs, file_prefix.graph.
 
 void argumentError(){
     fprintf (stderr,"usage:\n");
-    fprintf (stderr,"./mink -read_load filename -read_scan_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers -file_prefix prefix");
+    fprintf (stderr,"./mink -read_load_file filename -read_scan_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers -file_prefix prefix");
     fprintf(stderr, "Optional arguments: -fp rate -j j  --two_hash -bloom_file filename -junctions_file filename\n");
 }
 
@@ -223,17 +223,18 @@ int main(int argc, char *argv[])
     //build raw graph, dump graph to file
     Graph* graph = new Graph(bloom, jchecker);
     graph->buildNodeGraph(junctionMap);
-    graph->linkNodes();
-    graph->printGraph(file_prefix + ".graph.raw");
+    graph->buildContigGraph();
+    // graph->linkNodes();
+    // graph->printGraph(file_prefix + ".graph.raw");
 
-    //clean graph
-    graph->cutTips(2*read_length-1);
+    // //clean graph
+    // graph->cutTips(2*read_length-1);
 
-    //dump final graph and contigs to file 
-    graph->printGraph(file_prefix + ".graph.final");
-    graph->printContigs(file_prefix + ".contigs");
+    // //dump final graph and contigs to file 
+    // graph->printGraph(file_prefix + ".graph.final");
+    // graph->printContigs(file_prefix + ".contigs");
 
-    //done!
+    // //done!
     printf("Program reached end. \n");
     return 0;
 }

@@ -3,7 +3,10 @@
 
 #include <iostream>
 #include "Node.h"
+//#include "Contig.h"
 using std::ofstream;
+
+class Contig; // forward declare to avoid circ. dependency
 
 class ContigNode{
 public:
