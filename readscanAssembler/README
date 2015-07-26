@@ -3,7 +3,8 @@
 To run Mink, first type make in the directory to compile.
 
 Then, type ./mink, followed by the following arguments:
--reads_file <>, name of reads file (current format is each line has a string of characters representing the read)
+-read_load_file <>, name of reads file  to load bloom filter from (current format is each line has a string of characters representing the read)
+-read_scan_file <>, name of reads file  for read scan (current format is each line has a string of characters representing the read)
 -size_kmer k
 -max_read_length <>, upper bound on the size of a read
 -estimaed_kmers <>, number of number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
