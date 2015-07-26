@@ -36,6 +36,10 @@ public:
     //and the one valid extension.  This serves the purpose of the cFP set for Minia.
     unordered_map<kmer_type, int>* getRealExtensions();
 
+    //Returns true if multiple extensions of the given kmer jcheck
+    //Assumes the given kmer is in the BF
+    bool isBloomJunction(kmer_type kmer);
+
     //Scans forward from a junction at the specified index i.
     //If a sink is found, it is returned.  Otherwise, returns NULL
     kmer_type * findSink(Junction junc, kmer_type kmer ,int i);
@@ -46,7 +50,6 @@ public:
     //Returns -2 if there are multiple
     //ASSUMES NO CFP SET- since this is only done in findSinks, BEFORE the cFPs are found
     int getValidJExtension(DoubleKmer kmer);
-
 
     //File format:
     //One line for each junction.  On each line, the kmer is printed as a string, then the junction is printed.  

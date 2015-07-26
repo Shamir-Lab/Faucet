@@ -157,6 +157,20 @@ unordered_set<kmer_type>* JunctionMap::getSinks(){
     return sinks;
 }
 
+//Returns true if multiple extensions of the given kmer jcheck
+//Assumes the given kmer is in the BF
+bool JunctionMap::isBloomJunction(kmer_type kmer){
+    kmer_type ext;
+    int pathCount = 0;
+    for(int i = 0; i < 4; i++){
+        ext = next_kmer(kmer, i, FORWARD);
+        if(jchecker->jcheck(ext)){
+            pathCount++;
+        }
+    }
+    return pathCount > 1;
+}
+
 //Iterates through all of the junctions, cleaning the non-complex ones.
 //Every time a non-complex junction is found, the one real extension is added to the RealExtension set and the junction is destroyed
 //To be used AFTER findSinks
@@ -171,11 +185,13 @@ unordered_map<kmer_type,int>* JunctionMap::getRealExtensions(){
         junction = it->second;
         it++; //must do this before potentially erasing the element
         if (junction.numPathsOut() == 1){
-            for(int i = 0; i < 4; i++){
-                if(junction.cov[i] > 0){
-                    //Must record both the base kmer and the valid extension to uniquely identify what's happening, since
-                    //the same kmer can be a valid extension of one junction but an invalid extension of another junction.
-                    (*realExtensions)[kmer] = i; 
+            if(isBloomJunction(kmer)){
+                for(int i = 0; i < 4; i++){
+                    if(junction.cov[i] > 0){
+                        //Must record both the base kmer and the valid extension to uniquely identify what's happening, since
+                        //the same kmer can be a valid extension of one junction but an invalid extension of another junction.
+                        (*realExtensions)[kmer] = i; 
+                    }
                 }
             }
             junctionMap.erase(kmer); 
