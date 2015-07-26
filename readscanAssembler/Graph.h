@@ -89,7 +89,8 @@ public:
     int cutTips(int maxTipLength);   //remove all short tips, return number cut
     void linkNodes(); //use BF to link nodes
     void printContigs(string filename); 
-    void buildGraph(JunctionMap* juncMap); //makes nodes out of complex junctions, replaces others with real extensions
+    void buildNodeGraph(JunctionMap* juncMap); //makes nodes out of complex junctions, replaces others with real extensions
+    void buildContigGraph();
     void printGraph(string fileName);
     Graph(Bloom* bloom, JChecker* jcheck);
 };

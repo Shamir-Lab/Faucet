@@ -103,7 +103,7 @@ void Graph::getNodesFromJunctions(JunctionMap* juncMap){
 
 //Simply replaces all of the junctions of juncMap with nodes in the graph.  After this the juncMap
 //Should be empty and cFPs, sinks, and nodes should exist everywhere they need to.
-void Graph::buildGraph(JunctionMap* juncMap){
+void Graph::buildNodeGraph(JunctionMap* juncMap){
     //get sinks and cFPs
     time_t start, stop;
 
@@ -270,6 +270,22 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
     }
     cFile.close();
 }
+
+
+// given Node graph (having all cFPs, sinks, k-mer extensions out of nodes), changes
+// to nodes as ends of explicit contigs representation 
+void Graph::buildContigGraph(){
+    // create node map copy
+    // iterate through node map
+        // build contig sequence between nodes, create contigNodes, 
+        // point them to created contigs as you go
+        // use sequence ends as k-mers to create new JuncMap (of contigNodes)
+        // whenever all extensions of some node linked to contig, 
+        // remove existing (junction) Node from map copy, delete existing Nodes
+    // verify node map copy empty, delete original and copy 
+
+}
+
 
 //Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
 //Iterates through the nodes and prints every contig path

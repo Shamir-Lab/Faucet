@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 
     //build raw graph, dump graph to file
     Graph* graph = new Graph(bloom, jchecker);
-    graph->buildGraph(junctionMap);
+    graph->buildNodeGraph(junctionMap);
     graph->linkNodes();
     graph->printGraph(file_prefix + ".graph.raw");
 
