@@ -1,9 +1,13 @@
 #ifndef CONTIG
 #define CONTIG
 
+class ContigNode;
+
 #include <iostream>
-#include "ContigNode.h"
+#include <string.h>
+// #include "ContigNode.h"
 using std::ofstream;
+using namespace std;
 
 class Contig{ // modeled after node implementation
 public:

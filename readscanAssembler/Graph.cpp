@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream> 
 #include <sstream>
+#include <algorithm>
 
 using std::ofstream;
 using std::string;
@@ -279,6 +280,8 @@ void Graph::buildContigGraph(){
     kmer_type kmer;
     Node node;
     BfSearchResult result;
+    ContigNode cnode;
+    string cstr;
 
     // create node map copy
     unordered_map<kmer_type, Node> nodeMap_copy = {};
@@ -288,24 +291,32 @@ void Graph::buildContigGraph(){
         nodeMap_copy.insert(std::pair<kmer_type, Node>(kmer, node));
     }
     // iterate through node map
-    for(auto it = nodeMap_copy.begin(); it != nodeMap_copy.end(); it++){
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer = it->first;
         node = it->second;
-        std::cout << print_kmer(kmer) << "\n";
-        // for(int i = 0; i < 5; i++){
-        //     if(node.cov[i]  > 0 || i == 4){ //if there is coverage or its the backwards direction
-        //         result = findNeighborBf(node, kmer, i);
+        // std::cout << print_kmer(kmer) << "\n";
+        for(int i = 0; i < 5; i++){
+            if(node.cov[i]  > 0 || i == 4){ //if there is coverage or its the backwards direction
+                result = findNeighborBf(node, kmer, i);
+                if(result.kmer == -1){ //if the search function returned an error, print the error
+                    std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
+                    std::cout << "Search was on index " << i << "\n";
+                }
+                cstr = std::min(result.contig, revcomp_string(result.contig));
+                cnode = ContigNode(cstr);
+                // if(result.contig <= revcomp_string(result.contig)){
+                //     std::cout << result.contig << "\n";
+                // }
 
-
-        //     }
-    }
+            }
+        }
         // build contig sequence between nodes, create contigNodes, 
         // point them to created contigs as you go
         // use sequence ends as k-mers to create new JuncMap (of contigNodes)
         // whenever all extensions of some node linked to contig, 
         // remove existing (junction) Node from map copy, delete existing Nodes
             // use nodeMap_copy.erase(kmer)
-
+    }
     // verify node map copy empty, delete original and copy 
         // use 
 }
