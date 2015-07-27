@@ -15,7 +15,7 @@ public:
     unsigned char cov[5];
     Contig * contigs[5];
 
-    ContigNode(string cstr);
+    ContigNode(Node node);
     ContigNode();
 
 };

@@ -1,11 +1,11 @@
 #ifndef CONTIG
 #define CONTIG
 
-class ContigNode;
+class ContigNode; // forward declaration
 
 #include <iostream>
 #include <string.h>
-// #include "ContigNode.h"
+
 using std::ofstream;
 using namespace std;
 
@@ -18,8 +18,7 @@ public:
     char ind1;
     char ind2;
     string seq;
-    Contig(ContigNode* n1, char ind1, ContigNode* n2, char ind2);
-    Contig();
+    Contig(ContigNode* n1, char ind1, ContigNode* n2, char ind2, string seq);
 
 };
 
