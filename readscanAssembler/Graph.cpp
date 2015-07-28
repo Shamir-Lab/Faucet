@@ -330,6 +330,8 @@ void Graph::buildContigGraph(){
                     far_end.contigs[result.index] = &contig;
                 }
                 near_end.contigs[i] = &contig;
+                std::cout << "assigned contigs"<< "\n";
+
             }
         }
     }
