@@ -38,7 +38,7 @@ class Graph
 private:
     string contigFile; //just the file name
     unordered_map<kmer_type, Node> nodeMap; //maps kmers to nodes
-    unordered_map<kmer_type, ContigNode *> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
+    unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
     unordered_map<kmer_type, int>* realExtensions; //acts like a FP set- maps kmers at FP junctions to their one and only real extension
     unordered_set<kmer_type>* sinks; //set of sink kmers
     Bloom* bloom;

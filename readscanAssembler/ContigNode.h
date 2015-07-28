@@ -16,6 +16,7 @@ public:
 
     ContigNode(Node node);
     ContigNode();
+    void update(int nucExt, Contig * contig);
 
 };
 
