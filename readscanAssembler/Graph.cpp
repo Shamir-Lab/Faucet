@@ -8,6 +8,7 @@
 using std::ofstream;
 using std::string;
 using std::stringbuf;
+using std::min;
 
 Graph::Graph(Bloom* bloo1, JChecker* jcheck){
     bloom = bloo1;
@@ -273,6 +274,10 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
     cFile.close();
 }
 
+ContigNode * getContigOppositeEnd(ContigNode cnode1, Contig contig){
+
+}
+
 
 // given Node graph (having all cFPs, sinks, k-mer extensions out of nodes), changes
 // to nodes as ends of explicit contigs representation 
@@ -291,26 +296,36 @@ void Graph::buildContigGraph(){
         kmer = it->first;
         node = it->second;
 
+        std::cout << "k-mer: " << print_kmer(kmer) << "\n";
+
         // if kmer not in contigNodeMap, add cnode:
         if(contigNodeMap.find(kmer) == contigNodeMap.end()){
             near_end = ContigNode(node);
             contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
+            std::cout << "inserted k-mer: " << print_kmer(kmer) << "\n";
+
         }
         for(int i = 0; i < 5; i++){
             //if there is coverage or its the backwards direction, and the contig hasn't been captured yet
             if((node.cov[i]  > 0 || i == 4) && near_end.contigs[i] == NULL){
+                std::cout << "entered if block"<< "\n";
+
                 result = findNeighborBf(node, kmer, i);
                 if(result.kmer == -1){ //if the search function returned an error, print the error
                     std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
                     std::cout << "Search was on index " << i << "\n";
                 }
-                cstr = std::min(result.contig, revcomp_string(result.contig));
+                cstr = min(result.contig, revcomp_string(result.contig));
+                std::cout << "cstr: "<< cstr << "\n";
+
                 if(contigNodeMap.find(result.kmer) == contigNodeMap.end()){
                     far_node = getNode(result.kmer);
                     far_end = ContigNode(*far_node);
                     contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
                 }
                 contig = Contig(&near_end, i, &far_end, result.index, cstr);
+                std::cout << "contig seq: "<< contig.seq << "\n";
+
                 if(far_end.contigs[result.index]==NULL){
                     far_end.contigs[result.index] = &contig;
                 }
@@ -318,6 +333,22 @@ void Graph::buildContigGraph(){
             }
         }
     }
+    // iterate through contig node map to verify it has been loaded
+    for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
+        kmer = it->first;
+        near_end = it->second;
+        // print kmer
+        std::cout << "contigNode k-mer: " << print_kmer(kmer) << "\n";
+
+        for(int i = 0; i < 5; i++){
+            // print coverage, contig
+            std::cout << "coverage: " << near_end.cov[i] << "\n";
+            std::cout << near_end.contigs[i]->seq << "\n";
+
+        }
+    }
+
+
 }
 
 
