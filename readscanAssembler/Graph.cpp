@@ -288,7 +288,7 @@ void Graph::buildContigGraph(){
     BfSearchResult result;
     ContigNode near_end;
     ContigNode far_end;
-    Contig * contig;
+    Contig contig;
     string cstr;
 
     // iterate through original node map
@@ -333,17 +333,20 @@ void Graph::buildContigGraph(){
                     }
                     far_end = ContigNode(*far_node);
                     // std::cout << "called ContigNode"<< "\n";                    
-                    contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, far_end));
+                    // contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, far_end));
                     // std::cout << "called insert"<< "\n";
-                    contig = new Contig(&near_end, i, &far_end, result.index, cstr);
+                    contig = Contig(&near_end, i, &far_end, result.index, cstr);
                     // std::cout << "contig seq: "<< contig.seq << "\n";
 
-                    if(far_end.contigs[result.index]==NULL){
+                    // if(far_end.contigs[result.index]==NULL){
                         // far_end->contigs[result.index] = &contig;
-                        far_end.update(result.index, contig);
-                    }
+                        // far_end.update(result.index, &contig);
+                        // std::cout << "contigs[i]->seq: "<< far_end.contigs[i]->seq << "\n";
+
+                    // }
                     // near_end->contigs[i] = &contig;
-                    near_end.update(i, contig);
+                    near_end.update(i, &contig);
+                // std::cout << "contigs[i]->seq: "<< near_end.contigs[i]->seq << "\n";
 
                 }
                 
@@ -360,11 +363,9 @@ void Graph::buildContigGraph(){
         std::cout << "contigNode k-mer: " << print_kmer(kmer) << "\n";
 
         for(int i = 0; i < 5; i++){
-            // print coverage, contig
-            // std::cout << "coverage: " << near_end->cov[i] << "\n";
-            // if(near_end->cov[i]  > 0 || i == 4) {
             if( (int) near_end.cov[i] > 0){
                 std::cout << (int) near_end.cov[i] << "\n";
+                // std::cout << "contigs[i]->seq: "<< near_end.contigs[i]->seq << "\n";
             }
             
 
