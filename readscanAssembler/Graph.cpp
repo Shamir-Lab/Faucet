@@ -279,46 +279,45 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
 void Graph::buildContigGraph(){
     kmer_type kmer;
     Node node;
+    Node * far_node;
     BfSearchResult result;
-    ContigNode cnode;
+    ContigNode near_end;
+    ContigNode far_end;
+    Contig contig;
     string cstr;
 
-    // create node map copy
-    unordered_map<kmer_type, Node> nodeMap_copy = {};
+    // iterate through original node map
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer = it->first;
         node = it->second;
-        nodeMap_copy.insert(std::pair<kmer_type, Node>(kmer, node));
-    }
-    // iterate through node map
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-        kmer = it->first;
-        node = it->second;
-        // std::cout << print_kmer(kmer) << "\n";
+
+        // if kmer not in contigNodeMap, add cnode:
+        if(contigNodeMap.find(kmer) == contigNodeMap.end()){
+            near_end = ContigNode(node);
+            contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
+        }
         for(int i = 0; i < 5; i++){
-            if(node.cov[i]  > 0 || i == 4){ //if there is coverage or its the backwards direction
+            //if there is coverage or its the backwards direction, and the contig hasn't been captured yet
+            if((node.cov[i]  > 0 || i == 4) && near_end.contigs[i] == NULL){
                 result = findNeighborBf(node, kmer, i);
                 if(result.kmer == -1){ //if the search function returned an error, print the error
                     std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
                     std::cout << "Search was on index " << i << "\n";
                 }
                 cstr = std::min(result.contig, revcomp_string(result.contig));
-                cnode = ContigNode(cstr);
-                // if(result.contig <= revcomp_string(result.contig)){
-                //     std::cout << result.contig << "\n";
-                // }
-
+                if(contigNodeMap.find(result.kmer) == contigNodeMap.end()){
+                    far_node = getNode(result.kmer);
+                    far_end = ContigNode(*far_node);
+                    contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
+                }
+                contig = Contig(&near_end, i, &far_end, result.index, cstr);
+                if(far_end.contigs[result.index]==NULL){
+                    far_end.contigs[result.index] = &contig;
+                }
+                near_end.contigs[i] = &contig;
             }
         }
-        // build contig sequence between nodes, create contigNodes, 
-        // point them to created contigs as you go
-        // use sequence ends as k-mers to create new JuncMap (of contigNodes)
-        // whenever all extensions of some node linked to contig, 
-        // remove existing (junction) Node from map copy, delete existing Nodes
-            // use nodeMap_copy.erase(kmer)
     }
-    // verify node map copy empty, delete original and copy 
-        // use 
 }
 
 

@@ -15,10 +15,11 @@ public:
     // length from sequence
     ContigNode * node1; // lex. lesser end k-mer
     ContigNode * node2;
-    char ind1;
-    char ind2;
+    int ind1;
+    int ind2;
     string seq;
-    Contig(ContigNode* n1, char ind1, ContigNode* n2, char ind2, string seq);
+    Contig(ContigNode* n1, int ind1, ContigNode* n2, int ind2, string seq);
+    Contig();
 
 };
 

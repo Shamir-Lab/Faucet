@@ -6,7 +6,6 @@ class Contig; // forward declare to avoid circ. dependency
 
 #include <iostream>
 #include "Node.h"
-//#include "Contig.h"
 using std::ofstream;
 
 
