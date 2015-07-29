@@ -7,7 +7,6 @@ class ContigNode; // forward declaration
 #include <string.h>
 
 using std::ofstream;
-using namespace std;
 
 class Contig{ // modeled after node implementation
 public:
@@ -17,8 +16,8 @@ public:
     ContigNode * node2;
     int ind1;
     int ind2;
-    string seq;
-    Contig(ContigNode* n1, int ind1, ContigNode* n2, int ind2, string seq);
+    std::string seq;
+    Contig(ContigNode* n1, int ind1, ContigNode* n2, int ind2, std::string seq);
     Contig();
 
 };

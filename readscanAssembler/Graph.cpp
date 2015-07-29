@@ -284,7 +284,6 @@ ContigNode * getContigOppositeEnd(ContigNode cnode1, Contig contig){
 void Graph::buildContigGraph(){
     kmer_type kmer;
     Node node;
-    Node * far_node;
     BfSearchResult result;
     ContigNode near_end;
     ContigNode far_end;
@@ -296,62 +295,50 @@ void Graph::buildContigGraph(){
         kmer = it->first;
         node = it->second;
 
-        // std::cout << "k-mer: " << print_kmer(kmer) << "\n";
-
         // if kmer not in contigNodeMap, add cnode:
-        if(contigNodeMap.find(kmer) == contigNodeMap.end()){
-            near_end = ContigNode(node);
-            contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
-            // std::cout << "inserted k-mer: " << print_kmer(kmer) << "\n";
+        // if(contigNodeMap.find(kmer) == contigNodeMap.end()){
+        //     near_end = ContigNode(node);
+        //     contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
 
-        }
+        // }
         for(int i = 0; i < 5; i++){
             //if there is coverage or its the backwards direction, and the contig hasn't been captured yet
-            if((node.cov[i]  > 0 || i == 4) && near_end.contigs[i] == NULL){
-                // std::cout << "entered if block"<< "\n";
+            if((node.cov[i]  > 0 || i == 4)){ //&& near_end.contigs[i] == nullptr){
 
                 result = findNeighborBf(node, kmer, i);
                 if(result.kmer == -1){ //if the search function returned an error, print the error
                     std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
                     std::cout << "Search was on index " << i << "\n";
                 }
-                cstr = min(result.contig, revcomp_string(result.contig));
-                // std::cout << "cstr: "<< cstr << "\n";
-
-                if(contigNodeMap.find(result.kmer) == contigNodeMap.end() && result.isNode){
-                    far_node = getNode(result.kmer);
-                    // std::cout << "called getNode, i is "<< i << " kmer is "<< print_kmer(result.kmer) << "\n";
-                    if (result.kmer==-1){
-                        std::cout << "no result.kmer"<< "\n";                    
-                    }
-                    if (far_node!=NULL){
-                        // std::cout << "far_node not null"<< "\n";
-                        for(int j = 0; j < 5; j++){
-                            // std::cout << far_node->dist[j] << " ";
-                        }
-                        // std::cout << "\n";
-                    }
-                    far_end = ContigNode(*far_node);
-                    // std::cout << "called ContigNode"<< "\n";                    
-                    // contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, far_end));
-                    // std::cout << "called insert"<< "\n";
-                    contig = Contig(&near_end, i, &far_end, result.index, cstr);
-                    // std::cout << "contig seq: "<< contig.seq << "\n";
-
-                    // if(far_end.contigs[result.index]==NULL){
-                        // far_end->contigs[result.index] = &contig;
-                        // far_end.update(result.index, &contig);
-                        // std::cout << "contigs[i]->seq: "<< far_end.contigs[i]->seq << "\n";
-
-                    // }
-                    // near_end->contigs[i] = &contig;
-                    near_end.update(i, &contig);
-                // std::cout << "contigs[i]->seq: "<< near_end.contigs[i]->seq << "\n";
-
+                if(!result.isNode){
+                    // trying to access sink's member cov gives segfault
+                    // TODO: make sure will later connect starting from sink --
+                    // are sinks always in nodeMap?
+                    continue;
                 }
-                
-                // std::cout << "contigs[i]->seq: "<< near_end.contigs[i]->seq << "\n";
+                cstr = min(result.contig, revcomp_string(result.contig));
+                near_end = ContigNode(node);
+                Node far_node = nodeMap.find(result.kmer)->second;
+                far_end = ContigNode(far_node);
+                contig = Contig(&near_end, i, &far_end, result.index, cstr);
+                near_end.update(i, &contig);
+                far_end.update(result.index, &contig);
+                contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
+                contigNodeMap.insert(std::pair<kmer_type, ContigNode>(result.kmer, far_end));
+                // std::cout << "end" << "\n";
 
+                // if(contigNodeMap.find(result.kmer) == contigNodeMap.end() && result.isNode){
+                //     Node far_node = nodeMap.find(result.kmer)->second;
+
+                //     if (result.kmer==-1){
+                //         std::cout << "no result.kmer"<< "\n";                    
+                //     }
+                //     far_end = ContigNode(far_node);
+                //     contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, far_end));
+                //     contig = Contig(&near_end, i, &far_end, result.index, cstr);                    
+                //     near_end.update(i, &contig);
+                // }
+                
             }
         }
     }
@@ -364,8 +351,10 @@ void Graph::buildContigGraph(){
 
         for(int i = 0; i < 5; i++){
             if( (int) near_end.cov[i] > 0){
-                std::cout << (int) near_end.cov[i] << "\n";
-                // std::cout << "contigs[i]->seq: "<< near_end.contigs[i]->seq << "\n";
+                std::cout << "i is " << i << " cov is " << (int) near_end.cov[i] << "\n";
+                if (near_end.contigs[i]!=nullptr){
+                    std::cout << "contigs[i]->seq: "<< near_end.contigs[i]->seq << "\n";
+                }
             }
             
 
