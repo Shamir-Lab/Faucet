@@ -287,8 +287,6 @@ void Graph::buildContigGraph(){
     BfSearchResult result;
     ContigNode near_end;
     ContigNode far_end;
-    Contig contig;
-    string cstr;
 
     // iterate through original node map
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
@@ -316,11 +314,11 @@ void Graph::buildContigGraph(){
                     // are sinks always in nodeMap?
                     continue;
                 }
-                cstr = min(result.contig, revcomp_string(result.contig));
+                string cstr = min(result.contig, revcomp_string(result.contig));
                 near_end = ContigNode(node);
                 Node far_node = nodeMap.find(result.kmer)->second;
                 far_end = ContigNode(far_node);
-                contig = Contig(&near_end, i, &far_end, result.index, cstr);
+                Contig contig = Contig(&near_end, i, &far_end, result.index, cstr);
                 near_end.update(i, &contig);
                 far_end.update(result.index, &contig);
                 contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
