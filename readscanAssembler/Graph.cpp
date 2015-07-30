@@ -292,13 +292,7 @@ void Graph::buildContigGraph(){
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer = it->first;
         node = it->second;
-
-        // if kmer not in contigNodeMap, add cnode:
-        // if(contigNodeMap.find(kmer) == contigNodeMap.end()){
-        //     near_end = ContigNode(node);
-        //     contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
-
-        // }
+        near_end = ContigNode(node);
         for(int i = 0; i < 5; i++){
             //if there is coverage or its the backwards direction, and the contig hasn't been captured yet
             if((node.cov[i]  > 0 || i == 4)){ //&& near_end.contigs[i] == nullptr){
@@ -316,37 +310,18 @@ void Graph::buildContigGraph(){
                 }
                 string cstr = min(result.contig, revcomp_string(result.contig));
 
-                near_end = ContigNode(node);
+                
                 Node far_node = nodeMap.find(result.kmer)->second;
                 far_end = ContigNode(far_node);
                 
-                // Contig contig = Contig(&near_end, i, &far_end, result.index, cstr);
                 Contig * contig = new Contig();
-                // void setEnds(const ContigNode* n1, int i1, const ContigNode* n2, int i2);
-                // void setSeq(const std::string& cont);
                 contig->setEnds(&near_end, i, &far_end, result.index);
-                contig->setSeq(result.contig);
+                contig->setSeq(cstr);
 
                 near_end.update(i, contig);
-                far_end.update(result.index, contig);
-
-                contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
-                contigNodeMap.insert(std::pair<kmer_type, ContigNode>(result.kmer, far_end));
-                // std::cout << "end" << "\n";
-
-                // if(contigNodeMap.find(result.kmer) == contigNodeMap.end() && result.isNode){
-                //     Node far_node = nodeMap.find(result.kmer)->second;
-
-                //     if (result.kmer==-1){
-                //         std::cout << "no result.kmer"<< "\n";                    
-                //     }
-                //     far_end = ContigNode(far_node);
-                //     contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, far_end));
-                //     contig = Contig(&near_end, i, &far_end, result.index, cstr);                    
-                //     near_end.update(i, &contig);
-                // }
                 
             }
+            contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
         }
     }
     // iterate through contig node map to verify it has been loaded
@@ -354,14 +329,12 @@ void Graph::buildContigGraph(){
         kmer = it->first;
         near_end = it->second;
         // print kmer
-        std::cout << "contigNode k-mer: " << print_kmer(kmer) << "\n";
+        std::cout << "\ncontigNode k-mer: " << print_kmer(kmer) << "\n";
 
         for(int i = 0; i < 5; i++){
             if( (int) near_end.cov[i] > 0){
                 std::cout << "i is " << i << " cov is " << (int) near_end.cov[i] << "\n";
-                // if (near_end.contigs[i]!=nullptr){
                 std::cout << "contigs[i]->seq: "<< *near_end.contigs[i]->seq_p << "\n";
-                // }
             }
             
 
