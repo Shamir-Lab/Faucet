@@ -17,7 +17,7 @@ public:
     int ind1;
     int ind2;
     std::string seq;
-    Contig(ContigNode* n1, int ind1, ContigNode* n2, int ind2, std::string seq);
+    Contig(ContigNode* n1, int ind1, ContigNode* n2, int ind2, const std::string& seq);
     Contig();
 
 };
