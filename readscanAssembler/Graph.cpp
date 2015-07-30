@@ -315,12 +315,21 @@ void Graph::buildContigGraph(){
                     continue;
                 }
                 string cstr = min(result.contig, revcomp_string(result.contig));
+
                 near_end = ContigNode(node);
                 Node far_node = nodeMap.find(result.kmer)->second;
                 far_end = ContigNode(far_node);
-                Contig contig = Contig(&near_end, i, &far_end, result.index, cstr);
-                near_end.update(i, &contig);
-                far_end.update(result.index, &contig);
+                
+                // Contig contig = Contig(&near_end, i, &far_end, result.index, cstr);
+                Contig * contig = new Contig();
+                // void setEnds(const ContigNode* n1, int i1, const ContigNode* n2, int i2);
+                // void setSeq(const std::string& cont);
+                contig->setEnds(&near_end, i, &far_end, result.index);
+                contig->setSeq(result.contig);
+
+                near_end.update(i, contig);
+                far_end.update(result.index, contig);
+
                 contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
                 contigNodeMap.insert(std::pair<kmer_type, ContigNode>(result.kmer, far_end));
                 // std::cout << "end" << "\n";
@@ -350,9 +359,9 @@ void Graph::buildContigGraph(){
         for(int i = 0; i < 5; i++){
             if( (int) near_end.cov[i] > 0){
                 std::cout << "i is " << i << " cov is " << (int) near_end.cov[i] << "\n";
-                if (near_end.contigs[i]!=nullptr){
-                    std::cout << "contigs[i]->seq: "<< near_end.contigs[i]->seq << "\n";
-                }
+                // if (near_end.contigs[i]!=nullptr){
+                std::cout << "contigs[i]->seq: "<< *near_end.contigs[i]->seq_p << "\n";
+                // }
             }
             
 
