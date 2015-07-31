@@ -294,8 +294,8 @@ void Graph::buildContigGraph(){
         node = it->second;
         near_end = ContigNode(node);
         for(int i = 0; i < 5; i++){
-            //if there is coverage or its the backwards direction, and the contig hasn't been captured yet
-            if((node.cov[i]  > 0 || i == 4)){ //&& near_end.contigs[i] == nullptr){
+            //if there is coverage or its the backwards direction
+            if((node.cov[i]  > 0 || i == 4)){
 
                 result = findNeighborBf(node, kmer, i);
                 if(result.kmer == -1){ //if the search function returned an error, print the error
@@ -306,6 +306,14 @@ void Graph::buildContigGraph(){
                     // trying to access sink's member cov gives segfault
                     // TODO: make sure will later connect starting from sink --
                     // are sinks always in nodeMap?
+
+                    // need to deal with cases separately:
+                    // node --> sink
+                    // sink --> node
+                    // sink --> sink
+                    // no issues with node --> node
+                    // see what Gil does in cutTips
+                    // uses Graph::isSink(kmer) function
                     continue;
                 }
                 string cstr = min(result.contig, revcomp_string(result.contig));
