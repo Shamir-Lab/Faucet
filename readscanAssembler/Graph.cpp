@@ -274,10 +274,6 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
     cFile.close();
 }
 
-ContigNode * getContigOppositeEnd(ContigNode cnode1, Contig contig){
-
-}
-
 
 // given Node graph (having all cFPs, sinks, k-mer extensions out of nodes), changes
 // to nodes as ends of explicit contigs representation 
@@ -336,7 +332,6 @@ void Graph::buildContigGraph(){
     for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
         kmer = it->first;
         near_end = it->second;
-        // print kmer
         std::cout << "\ncontigNode k-mer: " << print_kmer(kmer) << "\n";
 
         for(int i = 0; i < 5; i++){

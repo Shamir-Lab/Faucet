@@ -57,8 +57,6 @@ private:
     //Useful for graph simplification and assembly traversal
     GraphSearchResult findNeighborGraph(Node node, kmer_type startKmer , int index);
 
-    ContigNode * getContigOppositeEnd(ContigNode cnode1, Contig contig);
-
     bool isSink(kmer_type kmer);
     bool isNode(kmer_type kmer);
     bool isRealExtension(kmer_type kmer, int ext);

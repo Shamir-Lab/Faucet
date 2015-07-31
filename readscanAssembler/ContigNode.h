@@ -14,7 +14,6 @@ using std::ofstream;
 class ContigNode{
 public:
     unsigned char cov[5];
-    // std::vector<Contig*> contigs;
     Contig * contigs[5];
 
     ContigNode(Node node);
