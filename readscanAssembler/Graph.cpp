@@ -307,12 +307,11 @@ void Graph::buildContigGraph(){
                     // node --> sink
                     // sink --> node
                     // sink --> sink
-                    // no issues with node --> node
                     // see what Gil does in cutTips
                     // uses Graph::isSink(kmer) function
                     continue;
                 }
-                string cstr = min(result.contig, revcomp_string(result.contig));
+                string cstr = result.contig; //min(result.contig, revcomp_string(result.contig));
 
                 
                 Node far_node = nodeMap.find(result.kmer)->second;

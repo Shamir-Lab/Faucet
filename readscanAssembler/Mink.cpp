@@ -223,13 +223,13 @@ int main(int argc, char *argv[])
     //build raw graph, dump graph to file
     Graph* graph = new Graph(bloom, jchecker);
     graph->buildNodeGraph(junctionMap);
+    
+    graph->linkNodes();
+    graph->printGraph(file_prefix + ".graph.raw");
+
+    //clean graph
+    graph->cutTips(2*read_length-1);
     graph->buildContigGraph();
-    // graph->linkNodes();
-    // graph->printGraph(file_prefix + ".graph.raw");
-
-    // //clean graph
-    // graph->cutTips(2*read_length-1);
-
     // //dump final graph and contigs to file 
     // graph->printGraph(file_prefix + ".graph.final");
     // graph->printContigs(file_prefix + ".contigs");
