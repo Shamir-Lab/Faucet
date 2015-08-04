@@ -3,8 +3,8 @@
 #Takes on parameter- the output file prefix
 #Streams the input file from Roye's website at http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz
 
-READ_COMMAND=curl\ -s\ http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz\ \|\ gunzip\ \|\ awk\ '"{if (NR%2==0){print}}"'
-
+READ_COMMAND=curl\ -s\ http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz\ \|\ gunzip
+echo $READ_COMMAND
 ./mink -size_kmer 27 \
 -max_read_length 100 \
 -estimated_kmers 60000000 \

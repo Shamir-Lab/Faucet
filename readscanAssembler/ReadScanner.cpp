@@ -218,6 +218,7 @@ void ReadScanner::scanReads()
   int lastSum = 0, thisSum = 0;
   while (getline(solidReads, read))
   {
+    getline(solidReads, read);//since it's a fasta we skip the first of every pair of lines
     //printf("Checking for errors.\n");
     if(isValidRead(read)){
       //printf("None! Scanning\n");

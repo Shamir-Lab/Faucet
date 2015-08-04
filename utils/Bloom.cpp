@@ -134,6 +134,7 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename){
     kmer_type canonKmer;
     while (getline(solidReads, read))
     {
+        getline(solidReads, read);//since it's a fasta we skip the first of every pair of lines
         for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
             canonKmer = kmer.getCanon();
             hashA = bloo1->oldHash(canonKmer, 0);
@@ -173,6 +174,7 @@ void Bloom::load_from_reads(const char* reads_filename){
     printf("Weight before load: %f \n", weight());
     while (getline(solidReads, read))
     {
+        getline(solidReads, read);//since it's a fasta we skip the first of every pair of lines
         for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
             oldAdd(kmer.getCanon());
         }    
