@@ -342,10 +342,7 @@ void Graph::buildContigGraph(){
 
         }
     }
-
-
 }
-
 
 //Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
 //Iterates through the nodes and prints every contig path

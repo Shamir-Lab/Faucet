@@ -229,10 +229,11 @@ int main(int argc, char *argv[])
 
     //clean graph
     graph->cutTips(2*read_length-1);
-    graph->buildContigGraph();
-    // //dump final graph and contigs to file 
-    // graph->printGraph(file_prefix + ".graph.final");
-    // graph->printContigs(file_prefix + ".contigs");
+    //graph->buildContigGraph();
+    
+    //dump final graph and contigs to file 
+    graph->printGraph(file_prefix + ".graph.final");
+    graph->printContigs(file_prefix + ".contigs");
 
     // //done!
     printf("Program reached end. \n");
