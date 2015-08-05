@@ -21,3 +21,4 @@ ContigNode::ContigNode(){
 void ContigNode::update(int nucExt, Contig* contig){
       *contigs[nucExt] = *contig;
 }
+

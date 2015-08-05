@@ -335,7 +335,7 @@ void Graph::buildContigGraph(){
 
         for(int i = 0; i < 5; i++){
             if( (int) near_end.cov[i] > 0){
-                std::cout << "i is " << i << " cov is " << (int) near_end.cov[i] << "\n";
+                std::cout << "i: " << i << " cov: " << (int) near_end.cov[i] << "\n";
                 std::cout << "contigs[i]->seq: "<< *near_end.contigs[i]->seq_p << "\n";
             }
             

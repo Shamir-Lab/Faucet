@@ -29,6 +29,7 @@ uint64_t estimated_kmers;
 bool two_hash = false;
 bool from_bloom = false;
 bool from_junctions = false;
+bool just_load = false;
 int64_t nb_reads;
 
 #include "../utils/Bloom.h"
@@ -57,7 +58,7 @@ Then, type ./mink, followed by the following arguments:
 --two_hash, if this option is selected a bigger bloom filter with only two hash functions is used
 -bloom_file <>, used to shortcut loading the filter if you already have it on file
 -junctions_file <>, used to shortcut the readscan if you have access to a junctions file
-
+--just_load_bloom, if this option is selected the bloom will be loaded and dumped, then the program will terminate
 Note: cannot use junctions_file option without also using bloom_file option
 
 This will load a bloom filter with all the kmers from the reads, then scan through them to find all of the junctions.
@@ -94,6 +95,8 @@ int handle_arguments(int argc, char *argv[]){
                 file_prefix = string(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "--two_hash")) //use two hash function BF instead of optimal size BF
                 two_hash = true; 
+        else if(0 == strcmp(argv[i] , "--just_load_bloom")) //stop after loading blom
+                just_load = true;
         else if(0 == strcmp(argv[i] , "-bloom_file")){
                 bloom_input_file = string(argv[i+1]);
                 from_bloom = true, i++;
@@ -120,7 +123,10 @@ int handle_arguments(int argc, char *argv[]){
     else if(from_bloom)
         printf("Starting from after bloom load based on bloom file.\n");
     else
-        printf("Starting at the beginning: will load bloom and find junctions from the read set.");
+        printf("Starting at the beginning: will load bloom and find junctions from the read set.\n");
+
+    if(just_load)
+        printf("Only loading bloom, dumping and termination.\n");
 
     std::cout << "Read load file name: " << read_load_file << "\n";
 
@@ -206,6 +212,8 @@ int main(int argc, char *argv[])
     }
     bloom->dump(&(file_prefix + ".bloom")[0]);
 
+    if(just_load) return 0;
+    
     //create JChecker
     JChecker* jchecker = new JChecker(j, bloom);
 
@@ -227,9 +235,11 @@ int main(int argc, char *argv[])
     graph->linkNodes();
     graph->printGraph(file_prefix + ".graph.raw");
 
+    //change to contig based representation
+    //graph->buildContigGraph();
+
     //clean graph
     graph->cutTips(2*read_length-1);
-    //graph->buildContigGraph();
     
     //dump final graph and contigs to file 
     graph->printGraph(file_prefix + ".graph.final");
