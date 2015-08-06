@@ -7,18 +7,18 @@ using std::ofstream;
 ContigNode::ContigNode(Node node){
 	for(int i  = 0; i < 5; i++){
 		cov[i] = node.cov[i];
-		contigs[i] = new Contig();
+		contigs[i] =nullptr;
 	}
 }
 
 ContigNode::ContigNode(){
 	for(int i  = 0; i < 5; i++){
 		cov[i] = -1;
-		contigs[i] = new Contig();
+		contigs[i] = nullptr;
 	}	
 }
 
 void ContigNode::update(int nucExt, Contig* contig){
-      *contigs[nucExt] = *contig;
+      contigs[nucExt] = contig;
 }
 
