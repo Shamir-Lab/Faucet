@@ -7,7 +7,7 @@ using std::ofstream;
 ContigNode::ContigNode(Node node){
 	for(int i  = 0; i < 5; i++){
 		cov[i] = node.cov[i];
-		contigs[i] =nullptr;
+		contigs[i] = nullptr;
 	}
 }
 

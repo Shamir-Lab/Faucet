@@ -45,7 +45,7 @@ ContigNode * Graph::createContigNode(kmer_type kmer, Node node){
     //if(contigNodeMap.find(kmer) != contigNodeMap.end()){
       //  return &contigNodeMap.find(kmer)->second;
     //} //Didn't help..
-    return &contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, ContigNode(node))).first->second;
+    return &(contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, ContigNode(node))).first->second);
 }
 
 ContigNode * Graph::getContigNode(kmer_type kmer){
@@ -291,7 +291,7 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
                     linkNeighbor(kmer, i, result);
                 }
                 if(printContigs){ //if we're supposed to print contigs, print them
-                    if(result.contig <= revcomp_string(result.contig)){
+                    if(result.contig <= revcomp_string(result.contig) || !result.isNode){
                         cFile << result.contig << "\n";
                     }
                 }
@@ -310,16 +310,19 @@ void Graph::buildContigGraph(){
     BfSearchResult result;
     ContigNode* near_end;
     ContigNode* far_end;
+    Contig* contig;
 
     // iterate through original node map
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer = it->first;
         node = it->second;
-        near_end = createContigNode(kmer, node);
+
+        near_end = createContigNode(kmer, node); //tested
+
         for(int i = 0; i < 5; i++){
             //if there is coverage or its the backwards direction
             if((node.cov[i]  > 0 || i == 4)){
-                Contig* contig;
+                far_end = nullptr, contig = nullptr;
                 result = findNeighborBf(node, kmer, i); 
                 if(result.kmer == -1){ //if the search function returned an error, print the error
                     std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
@@ -327,7 +330,7 @@ void Graph::buildContigGraph(){
                 }
                 if(result.isNode){
                     Node far_node = *getNode(result.kmer);
-                    far_end = createContigNode(result.kmer, far_node);
+                    far_end = createContigNode(result.kmer, far_node);//tested
                     contig = far_end->contigs[result.index]; //null if the far_end is a new node, maybe exist already otherwise
                 }
                 else{
@@ -345,27 +348,34 @@ void Graph::buildContigGraph(){
 
                 near_end->update(i, contig);
                 if(far_end){
-                    far_end->update(i,contig);
+                    far_end->update(result.index,contig);
                 }
             }
         }
     }
+    
+    int contigCount = 0, sinkCount = 0;
     // iterate through contig node map to verify it has been loaded
     for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
         kmer = it->first;
         near_end = &it->second;
-        std::cout << "\ncontigNode k-mer: " << print_kmer(kmer) << "\n";
 
         for(int i = 0; i < 5; i++){
             if( (int) near_end->cov[i] > 0){
-                std::cout << "i: " << i << " cov: " << (int) near_end->cov[i] << "\n";
-                std::cout << "contigs[i]->seq: "<< *near_end->contigs[i]->seq_p << "\n";
-                std::cout << "Other node?: " << (bool)near_end->contigs[i]->otherEndNode(near_end) << "\n";
+                if(! (bool) near_end->contigs[i]->otherEndNode(near_end) ){
+                    sinkCount++;
+                    contigCount += 2;
+                }
+                else{
+                    contigCount ++;
+                }
             }
-            
-
         }
     }
+        std::cout << "Stats after contig graph built: " << " \n";
+        std::cout << "Contig count: " << (contigCount/2) << "\n";
+        std::cout << "Sink count: " << sinkCount << "\n";
+
 }
 
 //Assumes the graph has all nodes, sinks, and cFPs properly initialized. 

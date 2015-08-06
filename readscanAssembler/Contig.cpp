@@ -5,7 +5,7 @@ using std::ofstream;
 
 void Contig::setEnds( ContigNode* n1, int i1, ContigNode* n2, int i2){
 	node1_p = n1;
-	ind1 = ind1;
+	ind1 = i1;
 	node2_p = n2;
 	ind2 = i2;
 }
@@ -27,8 +27,7 @@ ContigNode* Contig::otherEndNode(ContigNode * oneEnd){
 }
 
 Contig::Contig(){
-	seq_p = new std::string;
-	*seq_p = "";
+	seq_p = new std::string("");
 	node1_p = nullptr;
 	node2_p = nullptr;
 	ind1 = -1;
