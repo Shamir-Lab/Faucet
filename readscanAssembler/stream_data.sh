@@ -3,7 +3,7 @@
 #Takes on parameter- the output file prefix
 #Streams the input file from Roye's website at http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz
 
-READ_COMMAND=curl\ -s\ http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz\ \|\ zcat\ -f
+READ_COMMAND=wget\ -qO-\ http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz\ \|\ zcat\ -f
 
 eval "./mink -size_kmer 27 \
 -max_read_length 100 \
