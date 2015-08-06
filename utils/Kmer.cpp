@@ -8,6 +8,7 @@
 #include "Kmer.h"
 #include "lut.h"
 #include <string>
+#include <list>
 
 using namespace std;
 
@@ -34,6 +35,38 @@ void setSizeKmer(int k){
         kmerMask = -1;
     else
         kmerMask=(((kmer_type)1)<<(sizeKmer*2))-1;
+}
+
+bool isValidNuc(char nt){
+     switch(nt){
+        case 'A':
+        case 'C': 
+        case 'T':
+        case 'G':
+            return true;
+        default:
+            return false;
+    }
+}
+
+//returns a list of valid nucleotide sequences of length at least k
+//Invalid chars and valid sequences shorter than k are discarded
+std::list<std::string> getUnambiguousReads(string read){
+    std::list<std::string> resultList;
+    std::string result;
+    int index = 0;
+    while(index < read.length()){
+        result = "";
+        while(!isValidNuc(read[index]) && index < read.length()){
+            index++;
+        }
+        while(isValidNuc(read[index]) && index < read.length()){
+            result += read[index];
+            index++;
+        }
+        if(result.length() >= sizeKmer) resultList.push_front(result);
+    }
+    return resultList;
 }
 
 int NT2int(char nt)

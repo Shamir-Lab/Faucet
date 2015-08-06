@@ -30,6 +30,7 @@ bool two_hash = false;
 bool from_bloom = false;
 bool from_junctions = false;
 bool just_load = false;
+bool fastq = false;
 int64_t nb_reads;
 
 #include "../utils/Bloom.h"
@@ -59,6 +60,8 @@ Then, type ./mink, followed by the following arguments:
 -bloom_file <>, used to shortcut loading the filter if you already have it on file
 -junctions_file <>, used to shortcut the readscan if you have access to a junctions file
 --just_load_bloom, if this option is selected the bloom will be loaded and dumped, then the program will terminate
+--fastq, use fastq files
+
 Note: cannot use junctions_file option without also using bloom_file option
 
 This will load a bloom filter with all the kmers from the reads, then scan through them to find all of the junctions.
@@ -97,6 +100,8 @@ int handle_arguments(int argc, char *argv[]){
                 two_hash = true; 
         else if(0 == strcmp(argv[i] , "--just_load_bloom")) //stop after loading blom
                 just_load = true;
+        else if(0 == strcmp(argv[i] , "--fastq")) //stop after loading blom
+                fastq = true;
         else if(0 == strcmp(argv[i] , "-bloom_file")){
                 bloom_input_file = string(argv[i+1]);
                 from_bloom = true, i++;
@@ -180,7 +185,7 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
         bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
         bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, fpRate);
     }
-    load_two_filters(bloo1, bloo2, read_load_file);
+    load_two_filters(bloo1, bloo2, read_load_file, fastq);
     delete(bloo1);
     return bloo2;
 }
@@ -191,7 +196,7 @@ void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, JChecker*
     ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, junc_bloom, jchecker);
      
     //scan reads, print summary
-    scanner->scanReads();
+    scanner->scanReads(fastq);
     scanner->printScanSummary();
 }
 

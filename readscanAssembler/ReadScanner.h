@@ -56,7 +56,7 @@ private:
 public:
     JunctionMap* getJunctionMap();
 
-    void scanReads(); //scans all the reads
+    void scanReads(bool fastq); //scans all the reads.  Fastq if fastq, otherwise fasta
     void printScanSummary(); //prints statistics from the readscan
     
     //Determines if the given ReadKmer is a junction.

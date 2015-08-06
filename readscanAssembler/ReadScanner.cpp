@@ -75,7 +75,7 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer){
 //Adds a fake junction in the middle and points it to the two ends.  This ensures we have coverage of long linear regions, and that we capture
 //sinks at the end of such regions.
 void ReadScanner::add_fake_junction(string read){
-  ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
+  ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2-jchecker->j, FORWARD);
   junctionMap->createJunction(middleKmer);
   Junction* junc = junctionMap->getJunction(middleKmer);
   junc->addCoverage(middleKmer->getRealExtensionNuc());
@@ -198,11 +198,12 @@ bool ReadScanner::isValidRead(string read){
   return true;
 }
 
-void ReadScanner::scanReads()
+void ReadScanner::scanReads(bool fastq)
 {
   NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, 
   NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0, 
   readsNoErrors = 0,  NbJuncPairs = 0;
+  uint64_t unambiguousReads = 0;
 
   time_t start;
   time_t stop;
@@ -219,19 +220,29 @@ void ReadScanner::scanReads()
   while (getline(solidReads, read))
   {
     getline(solidReads, read);//since it's a fasta we skip the first of every pair of lines
-    //printf("Checking for errors.\n");
-    if(isValidRead(read)){
-      //printf("None! Scanning\n");
-      scan_forward(read);
-      readsNoErrors++;
+    std::list<string> readList = getUnambiguousReads(read);
+    while(!readList.empty()){
+        read = readList.front();
+        readList.pop_front();
+        if(read.length() >= sizeKmer + 2*jchecker->j + 1){
+          unambiguousReads++;
+            //printf("Checking for errors.\n");
+          if(isValidRead(read)){
+            //printf("None! Scanning\n");
+            scan_forward(read);
+            readsNoErrors++;
+          }
+        }
     }
     if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;
-  }
+    if(fastq) getline(solidReads, read), getline(solidReads, read); //if fastq skip two more lines
+}
 
   solidReads.close();
   time(&stop);
   printf("Reads processed: %lli\n", readsProcessed);
+  printf("Unambiguous reads: %lli\n", unambiguousReads);
   printf("Time in seconds for read scan: %f \n", difftime(stop,start));
 }
 

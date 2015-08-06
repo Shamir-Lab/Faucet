@@ -277,7 +277,7 @@ public:
     ~Bloom();
 };
 
-void load_two_filters(Bloom* bloo1, Bloom* bloo2, std::string reads_filename);
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, std::string reads_filename, bool fastq); //if fastq, use fastq. Else use fasta
 
 #endif
 

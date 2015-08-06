@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <list>
 
 #ifdef _largeint
 #include "LargeInt.h"
@@ -25,8 +26,11 @@ extern const bool FORWARD;
 extern const bool BACKWARD;
 extern uint64_t nsolids;
 
+
+std::list<std::string> getUnambiguousReads(std::string read);//returns every string of valid nuc characters in the read- throws out all other characters 
 void setSizeKmer(int k);
 char getNucChar(int nucIndex);
+bool isValidNuc(char nt);
 int NT2int(char nt);
 int revcomp_int(int nt_int);
 char revcomp_char(char c);
