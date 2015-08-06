@@ -153,6 +153,7 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename){
     solidReads.close();
     printf("\n");
     printf("Weights after load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    printf("Reads processed: %d\n", readsProcessed);
     time(&stop);
     printf("Time to load: %f \n", difftime(stop,start));
 }

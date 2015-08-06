@@ -231,6 +231,7 @@ void ReadScanner::scanReads()
 
   solidReads.close();
   time(&stop);
+  printf("Reads processed: %lli\n", readsProcessed);
   printf("Time in seconds for read scan: %f \n", difftime(stop,start));
 }
 
