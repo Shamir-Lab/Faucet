@@ -4,7 +4,7 @@
 #Streams the input file from Roye's website at http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz
 
 ADDRESS=ftp://ftp.ddbj.nig.ac.jp/ddbj_database/dra/fastq/SRA010/SRA010896/SRX016231/
-READ_COMMAND=wget\ -O-\ $ADDRESS*\ \|\ bzip2\ -d\ -c\ -q
+READ_COMMAND=wget\ -qO-\ $ADDRESS*\ \|\ bzip2\ -d\ -c\ -q
 
 eval "./mink -size_kmer 27 \
 -max_read_length 130 \
