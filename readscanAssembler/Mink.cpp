@@ -243,7 +243,8 @@ int main(int argc, char *argv[])
     
     //dump final graph and contigs to file 
     graph->printGraph(file_prefix + ".graph.final");
-    graph->printContigs(file_prefix + ".contigs");
+    graph->printGraphFromContigs(file_prefix + ".contig_graph.final");
+    graph->printContigsFromContigGraph(file_prefix + ".contig_graph.contigs");
 
     // //done!
     printf("Program reached end. \n");

@@ -22,6 +22,7 @@ public:
     std::string * seq_p;
     void setEnds(ContigNode* n1, int i1, ContigNode* n2, int i2);
     void setSeq(const std::string& cont);
+    int getMinIndex();
     Contig();
 
 };

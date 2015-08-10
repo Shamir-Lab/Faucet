@@ -299,6 +299,14 @@ char revcomp_char(char c){
     }
 }
 
+std::string canon_contig(std::string contig){
+    std::string revcomp_contig = revcomp_string(contig);
+    if(contig <= revcomp_contig){
+        return contig;
+    }
+    return revcomp_contig;
+}
+
 std::string revcomp_string(std::string s){
     string revcomp = "";
     for(int i = 0; i < s.length(); i++){

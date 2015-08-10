@@ -218,6 +218,7 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
     else{
         //in this case thats the next forward kmer- but since we're at a junction we must get there manually using the given index, no bloom scan possible 
         lastNuc =first_nucleotide(doubleKmer.revcompKmer); 
+        contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0));
         doubleKmer.forward(index);
         for(int i = 0; i < sizeKmer; i++){
             contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
@@ -249,16 +250,14 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
         }
         lastNuc = first_nucleotide(doubleKmer.revcompKmer);
         doubleKmer.forward(validExtension); 
-
+        
+        contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
+        
         //handle backward junction case
         if(isNode(doubleKmer.revcompKmer)){
             return BfSearchResult { doubleKmer.revcompKmer, true, lastNuc, dist, contig };
         }
         dist++;
-
-        //this happens in the middle of rev and forward directions since we don't want to include 
-        //this nuc in the contig if the other junction is facing backward
-        contig += getNucChar(validExtension);
 
         //handle forward junction case
         if(isNode(doubleKmer.kmer)){
@@ -291,8 +290,16 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
                     linkNeighbor(kmer, i, result);
                 }
                 if(printContigs){ //if we're supposed to print contigs, print them
-                    if(result.contig <= revcomp_string(result.contig) || !result.isNode){
-                        cFile << result.contig << "\n";
+                    if(!result.isNode){
+                        cFile << canon_contig(result.contig) << "\n";
+                    } 
+                    else if(result.contig == revcomp_string(result.contig)){ //palindrome! yikes
+                        if(i <= result.index){//If index is the same, then it shows up once.  If indices are different we only print once.
+                            cFile << result.contig << "\n"; 
+                        }
+                    }
+                    else if(result.contig == canon_contig(result.contig)){ //contig between two nodes but not a palindrome
+                        cFile << result.contig << "\n"; //in this case only print if it's the canonical one to ensure one print
                     }
                 }
             }
@@ -353,42 +360,61 @@ void Graph::buildContigGraph(){
             }
         }
     }
-    
-    int contigCount = 0, sinkCount = 0;
-    // iterate through contig node map to verify it has been loaded
-    for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
-        kmer = it->first;
-        near_end = &it->second;
-
-        for(int i = 0; i < 5; i++){
-            if( (int) near_end->cov[i] > 0){
-                if(! (bool) near_end->contigs[i]->otherEndNode(near_end) ){
-                    sinkCount++;
-                    contigCount += 2;
-                }
-                else{
-                    contigCount ++;
-                }
-            }
-        }
-    }
-        std::cout << "Stats after contig graph built: " << " \n";
-        std::cout << "Contig count: " << (contigCount/2) << "\n";
-        std::cout << "Sink count: " << sinkCount << "\n";
-
 }
 
 //Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
 //Iterates through the nodes and prints every contig path
-void Graph::printContigs(string filename){
+void Graph::printContigsFromNodeGraph(string filename){
     contigFile = filename;
     time_t start,stop;
     time(&start);
-    printf("Printing contigs.\n");
+    printf("Printing contigs from node graph.\n");
 
     traverseContigs(false, true);
     
-    printf("Done printing contigs.\n");
+    printf("Done printing contigs from node graph.\n");
+    time(&stop);
+    printf("Time: %f\n", difftime(stop, start));
+}
+
+//From contig graph
+void Graph::printContigsFromContigGraph(string filename){
+    
+    ofstream cFile(filename);
+    time_t start,stop;
+    time(&start);
+    printf("Printing contigs from contig graph.\n");
+
+    ContigNode* near_end;
+    // iterate through contig node map to verify it has been loaded
+    for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
+        near_end = &it->second;
+
+        for(int i = 0; i < 5; i++){
+            if( (int) near_end->cov[i] > 0 || i == 4){ 
+                string contig = *near_end->contigs[i]->seq_p;
+                if(! (bool) near_end->contigs[i]->otherEndNode(near_end) ){ //a sink!
+                    cFile << canon_contig(contig) << "\n";
+                }
+                else{ //not a sink!
+                    if(near_end == near_end->contigs[i]->otherEndNode(near_end)){ //if the contig hits the same node on both sides, the following test fails
+                        //but in this case it must come from different indices on each end, so this test resolves the problem
+                        //Or if they come from the same index, it actually only occurs once, so it's still ok
+                        //e.g. ATATATATATATATAT 
+                        if(i == near_end->contigs[i]->getMinIndex()){
+                            cFile << canon_contig(contig) << "\n";
+                        }
+                    }
+                    else if(near_end->contigs[i]->node1_p == near_end){ //so we only print each contig once, not once for each end
+                        cFile << canon_contig(contig) << "\n";
+                    }
+                }
+            }
+        }
+    } 
+
+    cFile.close();
+    printf("Done printing contigs from contig graph.\n");
     time(&stop);
     printf("Time: %f\n", difftime(stop, start));
 }
@@ -503,6 +529,10 @@ int Graph::cutTips(int maxTipLength){
     time(&stop);
     printf("Time: %f\n", difftime(stop, start));
     return numTipsCut;
+}
+
+void Graph::printGraphFromContigs(string fileName){
+   printf("NOT IMPLEMENTED");
 }
 
 void Graph::printGraph(string fileName){

@@ -11,7 +11,11 @@ void Contig::setEnds( ContigNode* n1, int i1, ContigNode* n2, int i2){
 }
 
 void Contig::setSeq(const std::string& cont){
-	*seq_p += cont;
+	*seq_p = cont;
+}
+
+int Contig::getMinIndex(){
+	return std::min(ind1, ind2);
 }
 
 ContigNode* Contig::otherEndNode(ContigNode * oneEnd){
