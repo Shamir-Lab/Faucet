@@ -16,7 +16,7 @@ ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bl
 
 void ReadScanner::printScanSummary(){
   printf("\nDistinct junctions: %lli \n", (uint64_t)junctionMap->getNumJunctions());
-  printf("Number of junction pairs that exist on reads: %d\n", juncPairSet.size());
+  //printf("Number of junction pairs that exist on reads: %d\n", juncPairSet.size());
   printf("Number of kmers that we j-checked: %lli \n", NbJCheckKmer);
   printf ("Number of reads with no junctions: %lli \n",NbNoJuncs);
   printf("Number of processed kmers: %lli \n", NbProcessed);
@@ -110,6 +110,8 @@ void ReadScanner::scan_forward(string read){
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
   while(find_next_junction(readKmer))
   { // mark first R junction and last F junction
+    
+    /*
     if(readKmer->direction == BACKWARD){
 
       backwardSet.insert(readKmer->getRealExtension());
@@ -133,6 +135,7 @@ void ReadScanner::scan_forward(string read){
       auto backIt = backwardSet.end();
       juncPairSet.insert(std::pair<kmer_type, kmer_type>(readKmer->getRealExtension(), *backIt));
     }
+    */
     
     junc = junctionMap->getJunction(readKmer);
     //create a junction at the current spot if none exists
