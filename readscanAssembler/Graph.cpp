@@ -30,7 +30,30 @@ int Graph::getPathIndex(Node startNode, kmer_type destinationKmer){
 }
 
 Node * Graph::getNode(kmer_type kmer){
-    return &(nodeMap.find(kmer)->second);
+    auto it = nodeMap.find(kmer);
+    if(it != nodeMap.end()){
+        return &it->second;
+    }
+    return nullptr;
+}
+
+Node * Graph::createNode(kmer_type kmer, Node node){
+    return &nodeMap.insert(std::pair<kmer_type, Node>(kmer, node)).first->second;
+}
+
+ContigNode * Graph::createContigNode(kmer_type kmer, Node node){
+    //if(contigNodeMap.find(kmer) != contigNodeMap.end()){
+      //  return &contigNodeMap.find(kmer)->second;
+    //} //Didn't help..
+    return &(contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, ContigNode(node))).first->second);
+}
+
+ContigNode * Graph::getContigNode(kmer_type kmer){
+    auto it = contigNodeMap.find(kmer);
+    if(it != contigNodeMap.end()){
+        return &it->second;
+    }
+    return nullptr;
 }
 
 bool Graph::isSink(kmer_type kmer){
@@ -39,6 +62,10 @@ bool Graph::isSink(kmer_type kmer){
 
 bool Graph::isNode(kmer_type kmer){
     return nodeMap.find(kmer) != nodeMap.end();
+}
+
+bool Graph::isContigNode(kmer_type kmer){
+    return contigNodeMap.find(kmer) != contigNodeMap.end();
 }
 
 bool Graph::isRealExtension(kmer_type kmer, int ext){
@@ -95,7 +122,7 @@ void Graph::getNodesFromJunctions(JunctionMap* juncMap){
         it++; //must update iterator before killing the kmer
         if(junction.numPathsOut()>1){
             node = Node(junction);
-            nodeMap.insert(std::pair<kmer_type, Node>(kmer, node));
+            createNode(kmer, node);
             juncMap->killJunction(kmer);
         }
         else{
@@ -191,6 +218,7 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
     else{
         //in this case thats the next forward kmer- but since we're at a junction we must get there manually using the given index, no bloom scan possible 
         lastNuc =first_nucleotide(doubleKmer.revcompKmer); 
+        contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0));
         doubleKmer.forward(index);
         for(int i = 0; i < sizeKmer; i++){
             contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
@@ -222,16 +250,14 @@ BfSearchResult Graph::findNeighborBf(Node node, kmer_type startKmer, int index){
         }
         lastNuc = first_nucleotide(doubleKmer.revcompKmer);
         doubleKmer.forward(validExtension); 
-
+        
+        contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
+        
         //handle backward junction case
         if(isNode(doubleKmer.revcompKmer)){
             return BfSearchResult { doubleKmer.revcompKmer, true, lastNuc, dist, contig };
         }
         dist++;
-
-        //this happens in the middle of rev and forward directions since we don't want to include 
-        //this nuc in the contig if the other junction is facing backward
-        contig += getNucChar(validExtension);
 
         //handle forward junction case
         if(isNode(doubleKmer.kmer)){
@@ -289,80 +315,106 @@ void Graph::buildContigGraph(){
     kmer_type kmer;
     Node node;
     BfSearchResult result;
-    ContigNode near_end;
-    ContigNode far_end;
+    ContigNode* near_end;
+    ContigNode* far_end;
+    Contig* contig;
 
     // iterate through original node map
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer = it->first;
         node = it->second;
-        near_end = ContigNode(node);
+
+        near_end = createContigNode(kmer, node); //tested
+
         for(int i = 0; i < 5; i++){
             //if there is coverage or its the backwards direction
             if((node.cov[i]  > 0 || i == 4)){
-
-                result = findNeighborBf(node, kmer, i);
+                far_end = nullptr, contig = nullptr;
+                result = findNeighborBf(node, kmer, i); 
                 if(result.kmer == -1){ //if the search function returned an error, print the error
                     std::cout << "Error occured while searching from " << print_kmer(kmer) << "\n";
                     std::cout << "Search was on index " << i << "\n";
                 }
-                if(!result.isNode){
-                    // trying to access sink's member cov gives segfault
-                    // TODO: make sure will later connect starting from sink --
-                    // are sinks always in nodeMap?
-
-                    // need to deal with cases separately:
-                    // node --> sink
-                    // sink --> node
-                    // sink --> sink
-                    // see what Gil does in cutTips
-                    // uses Graph::isSink(kmer) function
-                    continue;
+                if(result.isNode){
+                    Node far_node = *getNode(result.kmer);
+                    far_end = createContigNode(result.kmer, far_node);//tested
+                    contig = far_end->contigs[result.index]; //null if the far_end is a new node, maybe exist already otherwise
                 }
-                string cstr = result.contig; //min(result.contig, revcomp_string(result.contig));
+                else{
+                    far_end = nullptr;
+                }
 
+                if(!contig){
+                    contig = new Contig();
+                }
+
+                string cstr = result.contig; //min(result.contig, revcomp_string(result.contig));
                 
-                Node far_node = nodeMap.find(result.kmer)->second;
-                far_end = ContigNode(far_node);
-                
-                Contig * contig = new Contig();
-                contig->setEnds(&near_end, i, &far_end, result.index);
+                contig->setEnds(near_end, i, far_end, result.index);
                 contig->setSeq(cstr);
 
-                near_end.update(i, contig);
-                
+                near_end->update(i, contig);
+                if(far_end){
+                    far_end->update(result.index,contig);
+                }
             }
-            contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, near_end));
-        }
-    }
-    // iterate through contig node map to verify it has been loaded
-    for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
-        kmer = it->first;
-        near_end = it->second;
-        std::cout << "\ncontigNode k-mer: " << print_kmer(kmer) << "\n";
-
-        for(int i = 0; i < 5; i++){
-            if( (int) near_end.cov[i] > 0){
-                std::cout << "i: " << i << " cov: " << (int) near_end.cov[i] << "\n";
-                std::cout << "contigs[i]->seq: "<< *near_end.contigs[i]->seq_p << "\n";
-            }
-            
-
         }
     }
 }
 
 //Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
 //Iterates through the nodes and prints every contig path
-void Graph::printContigs(string filename){
+void Graph::printContigsFromNodeGraph(string filename){
     contigFile = filename;
     time_t start,stop;
     time(&start);
-    printf("Printing contigs.\n");
+    printf("Printing contigs from node graph.\n");
 
     traverseContigs(false, true);
     
-    printf("Done printing contigs.\n");
+    printf("Done printing contigs from node graph.\n");
+    time(&stop);
+    printf("Time: %f\n", difftime(stop, start));
+}
+
+//From contig graph
+void Graph::printContigsFromContigGraph(string filename){
+    
+    ofstream cFile(filename);
+    time_t start,stop;
+    time(&start);
+    printf("Printing contigs from contig graph.\n");
+
+    ContigNode* near_end;
+    // iterate through contig node map to verify it has been loaded
+    for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
+        near_end = &it->second;
+
+        for(int i = 0; i < 5; i++){
+            if( (int) near_end->cov[i] > 0 || i == 4){ 
+                string contig = *near_end->contigs[i]->seq_p;
+                if(! (bool) near_end->contigs[i]->otherEndNode(near_end) ){ //a sink!
+                    cFile << canon_contig(contig) << "\n";
+                }
+                else{ //not a sink!
+                    if(near_end == near_end->contigs[i]->otherEndNode(near_end)){ //if the contig hits the same node on both sides, the following test fails
+                        //but in this case it must come from different indices on each end, so this test resolves the problem
+                        //Or if they come from the same index, it actually only occurs once, so it's still ok
+                        //e.g. ATATATATATATATAT 
+                        if(i == near_end->contigs[i]->getMinIndex()){
+                            cFile << canon_contig(contig) << "\n";
+                        }
+                    }
+                    else if(near_end->contigs[i]->node1_p == near_end){ //so we only print each contig once, not once for each end
+                        cFile << canon_contig(contig) << "\n";
+                    }
+                }
+            }
+        }
+    } 
+
+    cFile.close();
+    printf("Done printing contigs from contig graph.\n");
     time(&stop);
     printf("Time: %f\n", difftime(stop, start));
 }
@@ -477,6 +529,10 @@ int Graph::cutTips(int maxTipLength){
     time(&stop);
     printf("Time: %f\n", difftime(stop, start));
     return numTipsCut;
+}
+
+void Graph::printGraphFromContigs(string fileName){
+   printf("NOT IMPLEMENTED");
 }
 
 void Graph::printGraph(string fileName){

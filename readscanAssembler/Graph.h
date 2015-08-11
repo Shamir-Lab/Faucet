@@ -43,7 +43,14 @@ private:
     unordered_set<kmer_type>* sinks; //set of sink kmers
     Bloom* bloom;
     JChecker* jchecker;
-    Node * getNode(kmer_type kmer);
+    Node * getNode(kmer_type kmer); //returns a pointer to the Node if it exists or NULL otherwise
+    ContigNode * getContigNode(kmer_type kmer);//returns a pointer to the ContigNode if it exists or NULL otherwise
+    Node * createNode(kmer_type kmer, Node node);
+
+    //Creates a contig node if it doesn't already exist
+    //If it exists, does nothing and returns the existing one.
+    //Otherwise, returns the new one
+    ContigNode * createContigNode(kmer_type kmer, Node node); 
 
     //Assumes cFPs and sinks were already handled, only complex junctions should remain.  
     //Gets junctions from juncMap and builds equivalent Nodes for graph. Kills junctions as it goes.
@@ -59,6 +66,7 @@ private:
 
     bool isSink(kmer_type kmer);
     bool isNode(kmer_type kmer);
+    bool isContigNode(kmer_type kmer);
     bool isRealExtension(kmer_type kmer, int ext);
 
     //Gets the valid extension of the given kmer based on the bloom filter and cFPs.  JChecks! so this cuts off tips
@@ -91,10 +99,12 @@ private:
 public: 
     int cutTips(int maxTipLength);   //remove all short tips, return number cut
     void linkNodes(); //use BF to link nodes
-    void printContigs(string filename); 
+    void printContigsFromNodeGraph(string filename); 
+    void printContigsFromContigGraph(string filename);
     void buildNodeGraph(JunctionMap* juncMap); //makes nodes out of complex junctions, replaces others with real extensions
     void buildContigGraph();
     void printGraph(string fileName);
+    void printGraphFromContigs(string fileName);
     Graph(Bloom* bloom, JChecker* jcheck);
 };
 

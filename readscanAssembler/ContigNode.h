@@ -20,6 +20,10 @@ public:
     ContigNode();
     void update(int nucExt, Contig * contig);
 
+    //for traversal
+    bool hasNeighbor(int index);
+    ContigNode* getNeighbor(int index);
+    
 };
 
 #endif
