@@ -83,6 +83,7 @@ kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos);
 kmer_type rotate_right(kmer_type kmer, int dist);
 kmer_type rotate_left(kmer_type kmer, int dist);
 
+std::string canon_contig(std::string contig);
 std::string revcomp_string(std::string s);
 void revcomp_sequence(char* s, int len);
 

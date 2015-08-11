@@ -264,8 +264,16 @@ void Graph::traverseContigs(bool linkNodes, bool printContigs){
                     linkNeighbor(kmer, i, result);
                 }
                 if(printContigs){ //if we're supposed to print contigs, print them
-                    if(result.contig <= revcomp_string(result.contig)){
-                        cFile << result.contig << "\n";
+                    if(!result.isNode){
+                        cFile << canon_contig(result.contig) << "\n";
+                    } 
+                    else if(result.contig == revcomp_string(result.contig)){ //palindrome! yikes
+                        if(i <= result.index){//If index is the same, then it shows up once.  If indices are different we only print once.
+                            cFile << result.contig << "\n"; 
+                        }
+                    }
+                    else if(result.contig == canon_contig(result.contig)){ //contig between two nodes but not a palindrome
+                        cFile << result.contig << "\n"; //in this case only print if it's the canonical one to ensure one print
                     }
                 }
             }
