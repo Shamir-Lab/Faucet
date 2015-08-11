@@ -241,15 +241,15 @@ int main(int argc, char *argv[])
     graph->printGraph(file_prefix + ".graph.raw");
 
     //change to contig based representation
-    graph->buildContigGraph();
+    //graph->buildContigGraph();
 
     //clean graph
-    //graph->cutTips(2*read_length-1);
+    graph->cutTips(2*read_length-1);
     
     //dump final graph and contigs to file 
     graph->printGraph(file_prefix + ".graph.final");
-    graph->printGraphFromContigs(file_prefix + ".contig_graph.final");
-    graph->printContigsFromContigGraph(file_prefix + ".contig_graph.contigs");
+    //graph->printGraphFromContigs(file_prefix + ".contig_graph.final");
+    graph->printContigsFromNodeGraph(file_prefix + ".contigs");
 
     // //done!
     printf("Program reached end. \n");
