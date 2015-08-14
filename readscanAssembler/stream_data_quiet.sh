@@ -3,6 +3,7 @@
 #Takes on parameter- the output file prefix
 #Streams the input file from Roye's website at http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz
 
+#Command: wget -qO- ftp://ftp.ddbj.nig.ac.jp/ddbj_database/dra/fastq/SRA010/SRA010896/SRX016231* | bzip2 -d -c -q
 ADDRESS=ftp://ftp.ddbj.nig.ac.jp/ddbj_database/dra/fastq/SRA010/SRA010896/SRX016231/
 READ_COMMAND=wget\ -qO-\ $ADDRESS*\ \|\ bzip2\ -d\ -c\ -q
 

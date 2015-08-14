@@ -11,7 +11,12 @@
 #include "Bloom.h"
 #include "JChecker.h"
 #include "Kmer.h"
+#include "../readscanAssembler/Contig.h"
+#include "../readscanAssembler/ContigNode.h"
+#include "../readscanAssembler/ContigGraph.h"
 #include <fstream>
+#include "../readscanAssembler/BfSearchResult.h"
+
 using std::ofstream;
 using std::unordered_map;
 using std::string;
@@ -24,7 +29,25 @@ private:
     JChecker* jchecker; 
     int maxReadLength; //needed for finding sinks properly- tells you when to stop scanning   
 
+    void buildLinearRegions(ContigGraph* contigGraph); //Builds node graph for any connected component that has branching
+    void buildBranchingPaths(ContigGraph* contigGraph); //For connected components that have no branching at all- builds contig graph
+
 public:
+    //Builds a contig graph from this junction map, destroying the non-complex junctions as it goes
+    ContigGraph* buildContigGraph();
+
+    //Gets the contig from this junction to the next complex junction or sink
+    //Has all fields except the ContigNode pointers filled out- indices, juncDistances, and seq are all there
+    Contig* getContig(Junction junc, kmer_type startKmer, int index);
+
+    //Scans forward from junction junc at index i with bloom filter
+    //If it hits another junction at or before the distance specified by the given junction, returns a "node" result with that junction
+    //If it does not, it keeps scanning until it hits another junction or an actual sink
+    //If it hits a sink, it returns it.  If it hits a junction, it tests how far that junction points along the path.
+    //Based on the indicated overlap, it either decides the entire intermediate sequence is real or the connection is a 
+    //false positive connection.  Then returns either a sink or a node result.
+    BfSearchResult findNeighbor(Junction junc, kmer_type startKmer, int index);
+
     unordered_map<kmer_type,Junction> junctionMap;  //stores the junctions themselves
 
     //Does bloom scans from the junctions that are not linked to other junctions.  

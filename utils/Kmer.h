@@ -78,6 +78,7 @@ kmer_type next_kmer(kmer_type graine, int added_nt, bool strand);//returns shift
 kmer_type next_kmer(kmer_type graine, int added_nt, int* strand);
 void shift_kmer(kmer_type *graine, int added_nt, int strand); //shifts in place
 void getFirstKmerFromRead(kmer_type* kmer, char* read);
+kmer_type getKmerFromRead(std::string read, int index);//returns kmer starting at position index
 kmer_type next_kmer_in_read(kmer_type kmer, int index_in_read, char* read, bool direction);
 kmer_type advance_kmer(char* read, kmer_type* kmer,  int startPos, int endPos);
 kmer_type rotate_right(kmer_type kmer, int dist);

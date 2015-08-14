@@ -75,7 +75,7 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer){
 //Adds a fake junction in the middle and points it to the two ends.  This ensures we have coverage of long linear regions, and that we capture
 //sinks at the end of such regions.
 void ReadScanner::add_fake_junction(string read){
-  ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2-jchecker->j, FORWARD);
+  ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
   junctionMap->createJunction(middleKmer);
   Junction* junc = junctionMap->getJunction(middleKmer);
   junc->addCoverage(middleKmer->getRealExtensionNuc());

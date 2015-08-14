@@ -1,8 +1,15 @@
 #include <fstream>
 #include "ContigNode.h"
 using std::ofstream;
+#include <sstream> //for std::stringstream 
+#include <string>  //for std::string
 
-
+ContigNode::ContigNode(Junction junction){
+    for(int i  = 0; i < 5; i++){
+        cov[i] = junction.cov[i];
+        contigs[i] = nullptr;
+    }
+}
 
 ContigNode::ContigNode(Node node){
 	for(int i  = 0; i < 5; i++){
@@ -17,8 +24,45 @@ ContigNode::ContigNode(){
 		contigs[i] = nullptr;
 	}	
 }
+void ContigNode::setCoverage(Junction junc){
+    for(int i = 0; i < 5; i++){
+        cov[i] = junc.cov[i];
+    }
+}
 
 void ContigNode::update(int nucExt, Contig* contig){
-      contigs[nucExt] = contig;
+    contigs[nucExt] = contig;
 }
+
+kmer_type ContigNode::getKmer(){
+    return contigs[4]->getNodeKmer(this);
+}
+
+ContigNode* ContigNode::getNeighbor(int index){
+    if(contigs[index]){
+        return contigs[index]->otherEndNode(this);
+    }
+    return nullptr;
+}
+
+std::string ContigNode::getString(){
+    std::string result = "";
+    result += print_kmer(getKmer());
+    for(int i = 0; i < 5; i++){
+        result += " ";
+        result += (char) cov[i];
+    }
+    // for(int i = 0; i < 5; i++){
+    //     result += " ";
+    //     ContigNode * neighbor = getNeighbor(i);
+    //     if(neighbor){
+    //         result += print_kmer(neighbor->getKmer());
+    //     }
+    //     else{
+    //         result += "X";
+    //     }
+    // }
+    result += "\n";
+}
+
 

@@ -31,6 +31,7 @@ bool from_bloom = false;
 bool from_junctions = false;
 bool just_load = false;
 bool fastq = false;
+bool node_graph = false;
 int64_t nb_reads;
 
 #include "../utils/Bloom.h"
@@ -102,6 +103,8 @@ int handle_arguments(int argc, char *argv[]){
                 just_load = true;
         else if(0 == strcmp(argv[i] , "--fastq")) //stop after loading blom
                 fastq = true;
+        else if(0 == strcmp(argv[i], "--node_graph")) //use node graph rather tha ncontig graph
+                node_graph = true;
         else if(0 == strcmp(argv[i] , "-bloom_file")){
                 bloom_input_file = string(argv[i+1]);
                 from_bloom = true, i++;
@@ -132,6 +135,11 @@ int handle_arguments(int argc, char *argv[]){
 
     if(just_load)
         printf("Only loading bloom, dumping and termination.\n");
+
+    if(node_graph)
+        printf("Using node graph.\n");
+    else 
+        printf("Using contig graph.\n");
 
     std::cout << "Read load file name: " << read_load_file << "\n";
 
@@ -233,23 +241,30 @@ int main(int argc, char *argv[])
     //dump junctions to file
     junctionMap->writeToFile(file_prefix + ".junctions");
 
+
     //build raw graph, dump graph to file
-    Graph* graph = new Graph(bloom, jchecker);
-    graph->buildNodeGraph(junctionMap);
-    
-    graph->linkNodes();
-    graph->printGraph(file_prefix + ".graph.raw");
+    if(node_graph) {
+        Graph* graph = new Graph(bloom, jchecker);
+        graph->buildNodeGraph(junctionMap);
+        
+        graph->linkNodes();
+        graph->printGraph(file_prefix + ".node_graph");
+        graph->printContigsFromNodeGraph(file_prefix + ".node_graph.contigs");
+    }
+    else {
+        ContigGraph* contigGraph = junctionMap->buildContigGraph();
+        contigGraph->printContigs(file_prefix + ".contig_graph.contigs");
+    }
 
     //change to contig based representation
-    //graph->buildContigGraph();
 
     //clean graph
-    graph->cutTips(2*read_length-1);
+    //graph->cutTips(2*read_length-1);
     
     //dump final graph and contigs to file 
-    graph->printGraph(file_prefix + ".graph.final");
+    //graph->printGraph(file_prefix + ".graph.final");
+    //graph->buildContigGraph();
     //graph->printGraphFromContigs(file_prefix + ".contig_graph.final");
-    graph->printContigsFromNodeGraph(file_prefix + ".contigs");
 
     // //done!
     printf("Program reached end. \n");

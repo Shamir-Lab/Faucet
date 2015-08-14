@@ -12,6 +12,7 @@
 #include "Node.h"
 #include "Contig.h"
 #include "ContigNode.h"
+#include "BfSearchResult.h"
 using std::unordered_map;
 using std::unordered_set;
 using std::string;
@@ -22,15 +23,6 @@ struct GraphSearchResult{
     bool isNode; //either node or sink
     int index; //index from it that points back to the start point
     int distance; //how far away it was
-};
-
-//Stores all the info involved in moving from one node to another in the graph by doing a bloom scan
-struct BfSearchResult{
-    kmer_type kmer;
-    bool isNode; //either node or sink
-    int index; //index from it that points back to the start point
-    int distance; //how far away it was
-    string contig; //the contig!
 };
 
 class Graph
@@ -98,6 +90,7 @@ private:
 
 public: 
     int cutTips(int maxTipLength);   //remove all short tips, return number cut
+    int cutTipsContigs(int maxTipLength);
     void linkNodes(); //use BF to link nodes
     void printContigsFromNodeGraph(string filename); 
     void printContigsFromContigGraph(string filename);

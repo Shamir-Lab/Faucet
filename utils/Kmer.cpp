@@ -422,6 +422,14 @@ void getFirstKmerFromRead(kmer_type *kmer, char* read){
       }
 }
 
+kmer_type getKmerFromRead(std::string read, int index){
+    kmer_type kmer(0);
+    for(int i = 0; i < sizeKmer; i++){
+        shift_kmer(&kmer, NT2int(read[i+index]), FORWARD);
+    }
+    return kmer;
+}
+
 //Tested!
 //USE THIS ONE
 //preserves the orientation of the kmer, considers it as a revcomp if strand == 1, or normal if strand == 0

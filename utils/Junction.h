@@ -15,6 +15,10 @@ public:
     unsigned char cov[5]; //the number of reads along this extension
     bool linked[5]; //whether or not we found another junction along this extension
 
+    //Returns an index that points to a valid path in the direction opposite the direction of the given index
+    //If input is 4, it returns the valid path of 0-4
+    //If input is not 0,1,2,3, returns 3
+    int getOppositeIndex(int index);
     int numPathsOut(); //Returns the number of forward paths out of the junction with positive coverage
     bool isSolid(int threshold); //Returns true if at least 2 paths out of the junction have at least a threshold coverage.  
     

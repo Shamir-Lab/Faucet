@@ -10,6 +10,19 @@ using std::stringstream;
 
 void writeToFile(ofstream* jFile);
 
+int Junction::getOppositeIndex(int index){
+  if(index < 4){
+    return 4;
+  }
+  else{
+    for(int i = 0; i < 4; i++){
+      if(cov[i] > 0){
+        return i;
+      }
+    }
+  }
+}
+
 int Junction::numPathsOut(){
   int numPaths = 0;
   for(int i = 0; i < 4; i++){

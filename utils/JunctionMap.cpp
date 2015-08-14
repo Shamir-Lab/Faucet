@@ -7,6 +7,224 @@ using std::ifstream;
 using std::istringstream;
 using std::string;
 
+ContigGraph* JunctionMap::buildContigGraph(){
+    ContigGraph* contigGraph = new ContigGraph();
+    printf("Building contig graph.\n");
+    
+    printf("Building branching regions.\n");    
+    buildBranchingPaths(contigGraph);
+
+    printf("Building linear regions.\n");
+    buildLinearRegions(contigGraph);
+
+    printf("Done building contig graph.\n");
+    return contigGraph;
+}
+
+void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
+    for(auto it = junctionMap.begin(); it != junctionMap.end(); it++){ //for each junction
+        kmer_type kmer = it->first;
+        Junction junction = it->second;
+        if(junction.numPathsOut() > 1){ //if the junction is complex
+            //printf("Kmer %s\n", print_kmer(kmer));
+            ContigNode* startNode = contigGraph->createContigNode(kmer, junction);
+            for(int i = 0; i < 5; i++){ 
+                //printf("%d\n", i);
+                if(startNode->contigs[i]){
+                    //printf("Already has contig.\n");
+                }
+                if((junction.cov[i] > 0 || i == 4) && !startNode->contigs[i]){ //for every valid path out which doesn't already have a contig
+                    //printf("Building contig from index %d\n", i);
+                    Contig* contig = getContig(junction, kmer, i);
+                    ContigNode* otherNode = nullptr;
+                    kmer_type far_kmer = contig->getSideKmer(2);
+                    if(isJunction(far_kmer)){ //complex junction- should create a contig node
+                        //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
+                        Junction* far_junc = getJunction(far_kmer);
+                        otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet
+                    }
+                    else{
+                        //printf("Path builder found a sink.\n");
+                    }
+                    //printf("Setting ends of contig to indices %d, %d\n", contig->ind1, contig->ind2);
+                    contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
+                }
+            }
+        }
+    }  
+}
+
+void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
+    for(auto it = junctionMap.begin(); it != junctionMap.end(); it++){ //for each junction
+        kmer_type kmer = it->first;
+        Junction junction = it->second;
+        if ( junction.numPathsOut() == 1 ) { //if the junction is not complex
+            Contig* forwardContig;
+            Contig* backwardContig;
+            for ( int i = 0 ; i < 4 ; i++ ){ 
+                if ( junction.cov[i] > 0 ) { //for every valid path out which doesn't already have a contig
+                    forwardContig = getContig(junction, kmer, i);
+                }
+            }
+            backwardContig = getContig(junction, kmer, 4);
+
+            contigGraph->addIsolatedContig(backwardContig->concatenate(forwardContig, 1, 1));
+            delete(forwardContig);
+            delete(backwardContig);
+        }
+    }  
+}
+
+//Gets the contig from this junction to the next complex junction or sink
+Contig* JunctionMap::getContig(Junction junc, kmer_type startKmer, int startIndex){
+    int index = startIndex;
+    string contigString(print_kmer(startKmer));
+    if(index == 4) contigString = print_kmer(revcomp(startKmer));
+    std::list<unsigned char> distances;
+    BfSearchResult result;
+    bool done = false;
+    while(!done){
+        result = findNeighbor(junc, startKmer, index);
+        contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off thee first k chars to avoid repeats 
+        if(result.isNode){
+            Junction nextJunc = *getJunction(result.kmer);
+            if (nextJunc.numPathsOut() == 1){
+                distances.push_back((unsigned char) result.distance);
+                junc = nextJunc;
+                startKmer = result.kmer;
+                index = junc.getOppositeIndex(result.index);
+                killJunction(startKmer); //erase dummy junction from map
+            }
+            else{
+                done = true;
+            }
+        }
+        else{
+            done = true;
+        }
+    }
+    Contig* contig = new Contig();
+    contig->setSeq(contigString);
+    contig->setJuncDistances(distances);
+    if(result.isNode){
+        contig->setIndices(startIndex, result.index);
+        //printf("Found another node: %s\n", print_kmer(result.kmer));
+    }
+    else{
+        contig->setIndices(startIndex, -1);
+        //printf("Found a sink.\n");
+    }
+    return contig;
+}
+
+
+//TESTED that it always returns the correct type of answer, and that it's correct if it's a sink.\
+//Scans forward from junction junc at index i with bloom filter
+//If it hits another junction at or before the distance specified by the given junction, returns a "node" result with that junction
+//If it does not, it keeps scanning until it hits another junction or an actual sink
+//If it hits a sink, it returns it.  If it hits a junction, it tests how far that junction points along the path.
+//Based on the indicated overlap, it either decides the entire intermediate sequence is real or the connection is a 
+//false positive connection.  Then returns either a sink or a node result.
+BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int index){
+    DoubleKmer doubleKmer(startKmer);
+    kmer_type kmer;
+    int dist = 1;
+    int maxDist = junc.dist[index];
+    string contig("");
+    int lastNuc; //stores the last nuc so we know which extension we came from. 
+
+    //First, process the first 1-2 kmers in order to reach the first kmer from which can properly bloom scan.  
+    //This is different for forwards and backward extensions.
+    if(index == 4){
+        doubleKmer.reverse(); 
+        for(int i = 0; i < sizeKmer; i++){
+            contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
+        }
+        //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
+        if(isJunction(doubleKmer.kmer)){
+            return BfSearchResult(doubleKmer.kmer, true, 4, 1, contig);
+        }
+    }
+    else{
+        //in this case thats the next forward kmer- but since we're at a junction we must get there manually using the given index, no bloom scan possible 
+        lastNuc = first_nucleotide(doubleKmer.revcompKmer); 
+        contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0));
+        doubleKmer.forward(index);
+        for(int i = 0; i < sizeKmer; i++){
+            contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
+        }
+        if(isJunction(doubleKmer.revcompKmer)){
+            return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, 1, contig);
+        }
+        dist = 2;
+        if(isJunction(doubleKmer.kmer)){
+            return BfSearchResult(doubleKmer.kmer, true, 4, 2, contig);
+        }
+    }
+    
+    //After the scan loop, these will store the needed info about the junction found
+    BfSearchResult sinkResult, juncResult;
+    int nextJuncDist, nextJuncExtIndex;
+
+    //if we're at or past the position where the sink would be, record the value for later use
+    if(dist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
+        if(dist > maxDist){
+            printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
+        }
+        sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig);
+    }
+
+    //Scan forward until there's no chance of finding a junction that indicates an overlapping kmer 
+    while(dist < maxDist + maxReadLength*2){ 
+
+        //move forward if possible
+        int validExtension = getValidJExtension(doubleKmer);
+        if(validExtension == -1){//Then we're at the end of the line! Found a sink.
+            return sinkResult;
+        }
+        if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions- but it's still a sink!
+            return sinkResult;
+        }
+        lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
+        doubleKmer.forward(validExtension); 
+        contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
+        
+        dist++;
+
+        //handle backward junction case
+        if(isJunction(doubleKmer.revcompKmer)){
+            juncResult = BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
+            break;
+        }
+        dist++;
+
+        //handle forward junction case
+        if(isJunction(doubleKmer.kmer)){
+            juncResult = BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
+            break; 
+        }
+
+        //if we're at the position where the sink would be, record the value for later use
+        if(dist == maxDist){ 
+            sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig);
+        }
+    }
+
+    //if no junction was found, must be a sink!
+    if(juncResult.kmer == -1){
+        return sinkResult;
+    }
+
+    //Otherwise, we found a junction, but it may or may not indicate an actual link.  Calculate overlap distance to verify.
+    int otherMaxDist = getJunction(juncResult.kmer)->dist[juncResult.index];
+    int overlap = otherMaxDist + maxDist - juncResult.distance;
+    if(overlap >= 0){
+        return juncResult; //if there is indicated overlap, this is not a sink.
+    }
+    return sinkResult; //if there is no indicated overlap between this and the next junction, we found a sink
+}
+
+
 //Gets the valid extension of the given kmer based on the bloom filter and cFPs.  Uses JChecking! so this cuts off tips
 //Assume the given kmer is not a junction
 //Returns -1 if there is no valid extension
@@ -145,6 +363,7 @@ unordered_set<kmer_type>* JunctionMap::getSinks(){
         for(int i = 0; i < 5; i++){
             if( !junction.linked[i] && (i == 4 || junction.cov[i] > 0) ){ //need the || since we want to scan backwards, but we don't store backwards coverage
                 kmer_type* sink = findSink(junction, kmer, i);
+                
                 if(sink){
                     kmer_type copy = *sink;
                     sinks->insert(copy);

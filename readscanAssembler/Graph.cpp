@@ -42,9 +42,9 @@ Node * Graph::createNode(kmer_type kmer, Node node){
 }
 
 ContigNode * Graph::createContigNode(kmer_type kmer, Node node){
-    //if(contigNodeMap.find(kmer) != contigNodeMap.end()){
-      //  return &contigNodeMap.find(kmer)->second;
-    //} //Didn't help..
+    // if(contigNodeMap.find(kmer) != contigNodeMap.end()){
+    //    return &contigNodeMap.find(kmer)->second;
+    // } //Didn't help..
     return &(contigNodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, ContigNode(node))).first->second);
 }
 
@@ -319,6 +319,7 @@ void Graph::buildContigGraph(){
     ContigNode* far_end;
     Contig* contig;
 
+    printf("Building contig graph. \n");
     // iterate through original node map
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer = it->first;
@@ -337,6 +338,9 @@ void Graph::buildContigGraph(){
                 }
                 if(result.isNode){
                     Node far_node = *getNode(result.kmer);
+                    if(far_node.cov[result.index] == 0){
+                        printf("ERROR: found node with no coverage on the other end..\n");
+                    }
                     far_end = createContigNode(result.kmer, far_node);//tested
                     contig = far_end->contigs[result.index]; //null if the far_end is a new node, maybe exist already otherwise
                 }
@@ -360,6 +364,7 @@ void Graph::buildContigGraph(){
             }
         }
     }
+    printf("Done buildingg contig graph. \n");
 }
 
 //Assumes the graph has all nodes, sinks, and cFPs properly initialized. 
@@ -392,7 +397,7 @@ void Graph::printContigsFromContigGraph(string filename){
 
         for(int i = 0; i < 5; i++){
             if( (int) near_end->cov[i] > 0 || i == 4){ 
-                string contig = *near_end->contigs[i]->seq_p;
+                string contig = near_end->contigs[i]->seq;
                 if(! (bool) near_end->contigs[i]->otherEndNode(near_end) ){ //a sink!
                     cFile << canon_contig(contig) << "\n";
                 }
@@ -469,6 +474,68 @@ void Graph::deleteNode(kmer_type kmer){
     nodeMap.erase(kmer);
 }
 
+int Graph::cutTipsContigs(int maxTipLength){
+    time_t start,stop;
+    time(&start);
+    printf("Cutting tips from contig graph.\n");
+
+    int numTipsCut = 0, numNodesRemoved = 0;
+    kmer_type kmer;
+    ContigNode* node;
+    for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); ){
+        kmer = it->first;
+        node = &it->second;
+        // int numTips = getNumTips(*node, maxTipLength);
+        // if(numTips > 0 && numTips < node->numPathsOut()){
+        //     for(int i = 0; i < 4; i++){
+        //         if(isTip(*node, i, maxTipLength)){
+        //             if(sinks->find(node->nextJunc[i]) == sinks->end()){
+        //                 printf("ERROR: trimmed a tip but it didn't lead to a sink. \n");
+        //                 printf("Supposed sink kmer %s\n", print_kmer(node->nextJunc[i]));
+        //             }
+        //             sinks->erase(node->nextJunc[i]); 
+        //             node->deletePath(i);
+        //             Node newNode = nodeMap.find(kmer)->second;
+        //             if(newNode.cov[i] != 0 || newNode.dist[i] != 0 || newNode.nextJunc[i] != -1){
+        //                 printf("ERROR: delete path doesn't work.\n");
+        //             }
+        //             numTipsCut++;
+        //         }
+        //     }
+
+        //     if(node->numPathsOut() == 1){
+        //         GraphSearchResult last, next;
+        //         for(int i = 0; i < 4; i++){
+        //             if(node->cov[i] > 0){
+        //                 next = findNeighborGraph(*node, kmer, i);
+        //             }
+        //         }
+        //         last = findNeighborGraph(*node, kmer, 4);
+
+        //         if(last.isNode && next.isNode){ //back kmer is a node!
+        //             directLinkNodes(last.kmer, last.index, next.kmer, next.index, last.distance + next.distance);
+        //         }
+        //         else if (!last.isNode && next.isNode){
+        //             linkNodeToSink(next.kmer, next.index, last.kmer, last.distance + next.distance);
+        //         }   
+        //         else if (last.isNode && !next.isNode){
+        //             linkNodeToSink(last.kmer, last.index, next.kmer, last.distance + next.distance);
+        //         }          
+
+        //         it++;
+        //         deleteNode(kmer);
+        //         numNodesRemoved++;
+        //         continue;
+        //     }
+        // }
+        // it++;
+    }
+    printf("Done cutting %d tips and removing %d nodes.\n", numTipsCut, numNodesRemoved);
+    time(&stop);
+    printf("Time: %f\n", difftime(stop, start));
+    return numTipsCut;
+}
+
 int Graph::cutTips(int maxTipLength){
     time_t start,stop;
     time(&start);
@@ -532,7 +599,21 @@ int Graph::cutTips(int maxTipLength){
 }
 
 void Graph::printGraphFromContigs(string fileName){
-   printf("NOT IMPLEMENTED");
+    ofstream jFile;
+    jFile.open(fileName);
+    printf("Writing graph from contig nodes to file.\n");
+    printf("Writing contig nodes to file.\n");
+    jFile << "Contig Nodes: \n";
+    kmer_type kmer;
+    ContigNode node;
+    for(auto it = contigNodeMap.begin(); it != contigNodeMap.end(); it++){
+        kmer = it->first;
+        node = it->second;
+        jFile << node.getString() << "\n";
+    }
+    printf("Done writing contig nodes to file.\n");
+    printf("Done writing graph from contig nodes to file.\n");
+    jFile.close();
 }
 
 void Graph::printGraph(string fileName){
