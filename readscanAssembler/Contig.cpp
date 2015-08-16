@@ -4,7 +4,7 @@
 using std::stringstream;
 using std::ofstream;
 
-Contig Contig::concatenate(Contig* otherContig, int thisSide, int otherSide){
+Contig* Contig::concatenate(Contig* otherContig, int thisSide, int otherSide){
 	if(thisSide == 1){
 		reverse();
 	}
@@ -15,14 +15,14 @@ Contig Contig::concatenate(Contig* otherContig, int thisSide, int otherSide){
 }
 
 //utility for linking them if they're both facing "forward"
-Contig Contig::concatenate(Contig* otherContig){
-	Contig result = Contig();
-	result.setEnds(node1_p, ind1, otherContig->node1_p, otherContig->ind2);
-	result.setSeq(seq.substr(0, seq.length()-sizeKmer) + otherContig->seq);
+Contig* Contig::concatenate(Contig* otherContig){
+	Contig* result = new Contig();
+	result->setEnds(node1_p, ind1, otherContig->node2_p, otherContig->ind2);
+	result->setSeq(seq.substr(0, seq.length()-sizeKmer) + otherContig->seq);
 	std::list<unsigned char> newDistances(juncDistances);
 	newDistances.insert(newDistances.end(), otherContig->juncDistances.begin(), otherContig->juncDistances.end());
-	result.setJuncDistances(newDistances);
-	result.setCoverage(coverageSum + otherContig->coverageSum);
+	result->setJuncDistances(newDistances);
+	result->setCoverage(coverageSum + otherContig->coverageSum);
 	return result;
 }
 
@@ -133,7 +133,7 @@ int Contig::getSide(ContigNode* node){
 
 string Contig::getStringRep(){
 	stringstream stream;
-    stream << canon_contig(seq) << "\n";
+    stream << seq << "\n";
     stream << node1_p << "," << ind1 << " " << node2_p << "," << ind2 << "\n";
     for(auto it = juncDistances.begin(); it != juncDistances.end(); it++){
         stream << (int)*it << " ";
@@ -150,5 +150,6 @@ Contig::Contig(){
 	ind1 = -1;
 	ind2 = -1;
 	coverageSum = 0;
+	juncDistances = {};
 }
 

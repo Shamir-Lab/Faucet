@@ -15,7 +15,7 @@ private:
     //utility for linking if they're both facing forward
     //Glues end 2 of this contig to end 1 of the other
     //Doesn't change the value of either contig- just returns the concatenation.
-    Contig concatenate(Contig* otherContig);
+    Contig* concatenate(Contig* otherContig);
 
 public:
     // coverage can be obtained by end nodes
@@ -29,7 +29,7 @@ public:
     int coverageSum;
 
     //Concatenates the two contigs, gluing together the specified sides
-    Contig concatenate(Contig* otherContig, int thisSide, int otherSide);
+    Contig* concatenate(Contig* otherContig, int thisSide, int otherSide);
 
     void reverse(); //reverses the contig orientation
     ContigNode* otherEndNode(ContigNode * oneEnd);//returns a pointer to the node at the other end

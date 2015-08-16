@@ -26,6 +26,18 @@ ContigNode::ContigNode(){
 	}	
 }
 
+int ContigNode::numPathsOut(){
+    int numPaths = 0;
+    for(int i = 0; i < 4; i++){
+        if(cov[i] > 0){
+            numPaths++;
+        }
+    }
+    return numPaths;
+}
+
+
+
 int ContigNode::getCoverage(int nucExt){
     if(nucExt < 4){
         return (int)cov[nucExt];
@@ -41,6 +53,11 @@ void ContigNode::setCoverage(Junction junc){
 
 void ContigNode::update(int nucExt, Contig* contig){
     contigs[nucExt] = contig;
+}
+
+void ContigNode::breakPath(int nucExt){
+    cov[nucExt] = 0;
+    contigs[nucExt] = nullptr;
 }
 
 kmer_type ContigNode::getKmer(){

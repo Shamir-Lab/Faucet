@@ -8,8 +8,108 @@ bool ContigGraph::isContigNode(kmer_type kmer){
 
 }
 
-int ContigGraph::deleteErrorContigs(){
+bool ContigGraph::isErrorContig(Contig* contig){
+    return contig->getAvgCoverage() < 3;
+}
 
+void ContigGraph::deleteContig(Contig* contig){
+    if(contig->node1_p){
+        contig->node1_p->breakPath(contig->ind1);
+    }
+    if(contig->node2_p){
+        contig->node2_p->breakPath(contig->ind2);
+    }
+    delete(contig);
+}
+
+void ContigGraph::deleteErrorContigs(){
+    printf("Deleting error contigs.\n");
+    int numDeleted = 0;
+
+    //looks through all contigs adjacent to nodes
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        ContigNode* node = &it->second;
+        for(int i = 0; i < 5; i++){
+            if(node->contigs[i]){
+                Contig* contig = node->contigs[i];
+                if(isErrorContig(contig)){
+                    numDeleted++;
+                    deleteContig(contig);
+                }
+            }
+        }
+    }
+
+    //prints isolated contigs
+    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
+        Contig* contig = &*it;
+        if(isErrorContig(contig)){
+            numDeleted++;
+            it++;
+            isolated_contigs.erase(it);
+            printf("Deleting contig %s\n", &contig->seq[0]);
+            deleteContig(contig);
+        }
+        else{
+            it++;
+        }
+    }
+
+    printf("Done deleting %d error contigs.\n", numDeleted);
+}   
+
+int ContigGraph::collapseDummyNodes(){
+   printf("Collapsing dummy nodes.\n");
+    int numCollapsed = 0;
+
+    //looks through all contigs adjacent to nodes
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
+        ContigNode* node = &it->second;
+        if(node->numPathsOut() == 1){
+            numCollapsed++, it++;
+            collapseNode(node);
+        }
+        else it++;
+    }
+
+    printf("Done collapsing %d nodes.\n", numCollapsed);
+    return numCollapsed;
+}
+
+void ContigGraph::collapseNode(ContigNode * node){
+    Contig* backContig = node->contigs[4];
+    Contig* frontContig;
+    for(int i = 0; i < 4; i++){
+        if(node->contigs[i]) {
+            frontContig = node->contigs[i];
+        }
+    }
+    if(frontContig == backContig){ //circular sequence with a redundant node
+        addIsolatedContig(*frontContig);
+    }
+    else{ //normal case of collapsing a node between two other nodes
+        ContigNode* backNode = backContig->otherEndNode(node);
+        ContigNode* frontNode = frontContig->otherEndNode(node);
+
+
+        int backSide = backContig->getSide(node);
+        int frontSide = frontContig->getSide(node);
+
+        Contig* newContig = backContig->concatenate(frontContig, backSide, frontSide);
+        if(backNode){
+               backNode->contigs[newContig->ind1] = newContig;
+        }
+        if(frontNode){
+            frontNode->contigs[newContig->ind2] = newContig;
+        }
+        if(!backNode && !frontNode){
+            addIsolatedContig(*newContig);
+        }
+    }
+    kmer_type toErase = node->getKmer();
+    if(!nodeMap.erase(toErase)) printf("ERROR: tried to erase node %s but there was no node.\n", print_kmer(toErase));
+    delete(backContig);
+    delete(frontContig);
 }
 
 void ContigGraph::printGraph(string fileName){

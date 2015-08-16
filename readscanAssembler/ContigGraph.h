@@ -29,8 +29,12 @@ std::vector<Contig> isolated_contigs;
 public: 
     void addIsolatedContig(Contig contig); 
     ContigNode * getContigNode(kmer_type kmer);//returns a pointer to the ContigNode if it exists or NULL otherwise
-    bool isContigNode(kmer_type kmer); //true if a contig node exists for that kmer 
-    int deleteErrorContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
+    bool isContigNode(kmer_type kmer); //true if a contig node exists for that kmer
+    bool isErrorContig(Contig* contig);
+    void deleteContig(Contig* contig);
+
+    void deleteErrorContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
+    int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     void printContigs(string filename); //prints the contigs raw
     void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();
@@ -41,7 +45,7 @@ public:
     ContigNode * createContigNode(kmer_type kmer, Junction junction); 
 private:
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
-
+    void collapseNode(ContigNode * node);
 };
 
 #endif

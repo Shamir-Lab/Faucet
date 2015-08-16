@@ -253,6 +253,12 @@ int main(int argc, char *argv[])
     }
     else {
         ContigGraph* contigGraph = junctionMap->buildContigGraph();
+        
+        while(true){
+            contigGraph->deleteErrorContigs();
+            if(contigGraph->collapseDummyNodes() == 0) break;
+        }
+
         contigGraph->printContigs(file_prefix + ".contig_graph.contigs");
         contigGraph->printGraph(file_prefix + ".contig_graph.graph");
     }

@@ -77,7 +77,7 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             }
             backwardContig = getContig(junction, kmer, 4);
 
-            contigGraph->addIsolatedContig(backwardContig->concatenate(forwardContig, 1, 1));
+            contigGraph->addIsolatedContig(*backwardContig->concatenate(forwardContig, 1, 1));
             delete(forwardContig);
             delete(backwardContig);
         }

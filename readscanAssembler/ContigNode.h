@@ -21,9 +21,14 @@ public:
     ContigNode(Junction junction);
     ContigNode(Node node);
     ContigNode();
+    int numPathsOut();
     int getCoverage(int nucExt);
     void setCoverage(Junction junc);
     void update(int nucExt, Contig * contig);
+
+    //removes the given path out of this node.
+    //Removes contig pointer, set coverage to 0
+    void breakPath(int nucExt);
 
     //for traversal
     bool hasNeighbor(int index);
