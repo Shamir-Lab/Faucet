@@ -18,6 +18,9 @@ Contig* Contig::concatenate(Contig* otherContig, int thisSide, int otherSide){
 Contig* Contig::concatenate(Contig* otherContig){
 	Contig* result = new Contig();
 	result->setEnds(node1_p, ind1, otherContig->node2_p, otherContig->ind2);
+	if(seq.length() < sizeKmer){
+		printf("ERROR: seq less than k long in Contig::Concatenate.\n");
+	}
 	result->setSeq(seq.substr(0, seq.length()-sizeKmer) + otherContig->seq);
 	std::list<unsigned char> newDistances(juncDistances);
 	newDistances.insert(newDistances.end(), otherContig->juncDistances.begin(), otherContig->juncDistances.end());

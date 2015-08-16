@@ -98,6 +98,9 @@ Contig* JunctionMap::getContig(Junction junc, kmer_type startKmer, int startInde
     bool done = false;
     while(!done){
         result = findNeighbor(junc, startKmer, index);
+        if(result.contig.length() < sizeKmer){
+            printf("ERROR: contig less than k long in JunctionMap::getContig.\n");
+        }
         contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off thee first k chars to avoid repeats 
         distances.push_back((unsigned char) result.distance);
         if(result.isNode){

@@ -47,7 +47,6 @@ void ContigGraph::deleteErrorContigs(){
             numDeleted++;
             it++;
             isolated_contigs.erase(it);
-            printf("Deleting contig %s\n", &contig->seq[0]);
             deleteContig(contig);
         }
         else{
