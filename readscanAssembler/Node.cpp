@@ -59,7 +59,7 @@ void Node::writeToFile(ofstream*jFile){
 Node::Node(Junction junc){
   for(int i  = 0; i < 5; i++){
     dist[i] = junc.dist[i];
-    cov[i] = junc.cov[i];
+    cov[i] = junc.getCoverage(i);
     nextJunc[i] = -1;
     backIndex[i] = -1;
   }

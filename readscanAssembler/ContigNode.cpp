@@ -5,10 +5,11 @@ using std::ofstream;
 #include <string>  //for std::string
 
 ContigNode::ContigNode(Junction junction){
-    for(int i  = 0; i < 5; i++){
-        cov[i] = junction.cov[i];
+    for(int i  = 0; i < 4; i++){
+        cov[i] = junction.getCoverage(i);
         contigs[i] = nullptr;
     }
+    contigs[4] = nullptr;
 }
 
 ContigNode::ContigNode(Node node){
@@ -24,9 +25,17 @@ ContigNode::ContigNode(){
 		contigs[i] = nullptr;
 	}	
 }
+
+int ContigNode::getCoverage(int nucExt){
+    if(nucExt < 4){
+        return (int)cov[nucExt];
+    }
+    return (int)cov[0] + (int)cov[1] + (int)cov[2] + (int)cov[3];
+}
+
 void ContigNode::setCoverage(Junction junc){
-    for(int i = 0; i < 5; i++){
-        cov[i] = junc.cov[i];
+    for(int i = 0; i < 4; i++){
+        cov[i] = junc.getCoverage(i);
     }
 }
 
@@ -50,7 +59,7 @@ std::string ContigNode::getString(){
     result += print_kmer(getKmer());
     for(int i = 0; i < 5; i++){
         result += " ";
-        result += (char) cov[i];
+        result +=  getCoverage(i);
     }
     // for(int i = 0; i < 5; i++){
     //     result += " ";

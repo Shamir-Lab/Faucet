@@ -254,6 +254,7 @@ int main(int argc, char *argv[])
     else {
         ContigGraph* contigGraph = junctionMap->buildContigGraph();
         contigGraph->printContigs(file_prefix + ".contig_graph.contigs");
+        contigGraph->printGraph(file_prefix + ".contig_graph.graph");
     }
 
     //change to contig based representation

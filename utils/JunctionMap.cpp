@@ -14,6 +14,9 @@ ContigGraph* JunctionMap::buildContigGraph(){
     printf("Building branching regions.\n");    
     buildBranchingPaths(contigGraph);
 
+    printf("Destroying complex junctions.\n");
+    destroyComplexJunctions();
+
     printf("Building linear regions.\n");
     buildLinearRegions(contigGraph);
 
@@ -29,11 +32,7 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
             //printf("Kmer %s\n", print_kmer(kmer));
             ContigNode* startNode = contigGraph->createContigNode(kmer, junction);
             for(int i = 0; i < 5; i++){ 
-                //printf("%d\n", i);
-                if(startNode->contigs[i]){
-                    //printf("Already has contig.\n");
-                }
-                if((junction.cov[i] > 0 || i == 4) && !startNode->contigs[i]){ //for every valid path out which doesn't already have a contig
+                if(junction.getCoverage(i) > 0 && !startNode->contigs[i]){ //for every valid path out which doesn't already have a contig
                     //printf("Building contig from index %d\n", i);
                     Contig* contig = getContig(junction, kmer, i);
                     ContigNode* otherNode = nullptr;
@@ -43,13 +42,23 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                         Junction* far_junc = getJunction(far_kmer);
                         otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet
                     }
-                    else{
-                        //printf("Path builder found a sink.\n");
-                    }
-                    //printf("Setting ends of contig to indices %d, %d\n", contig->ind1, contig->ind2);
                     contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                 }
             }
+        }
+    }  
+}
+
+void JunctionMap::destroyComplexJunctions(){
+    for(auto it = junctionMap.begin(); it != junctionMap.end(); ){ //for each junction
+        kmer_type kmer = it->first;
+        Junction junction = it->second;
+        if ( junction.numPathsOut() > 1 ) { //if the junction is not complex
+            it++;
+            killJunction(kmer);
+        }
+        else{
+            it++;
         }
     }  
 }
@@ -62,7 +71,7 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             Contig* forwardContig;
             Contig* backwardContig;
             for ( int i = 0 ; i < 4 ; i++ ){ 
-                if ( junction.cov[i] > 0 ) { //for every valid path out which doesn't already have a contig
+                if ( junction.getCoverage(i) > 0 ) { //for every valid path out- should only be 1
                     forwardContig = getContig(junction, kmer, i);
                 }
             }
@@ -72,11 +81,15 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             delete(forwardContig);
             delete(backwardContig);
         }
+        else{
+            printf("ERROR: shouldn't be any complex junctions let during linear region build.\n");
+        }
     }  
 }
 
 //Gets the contig from this junction to the next complex junction or sink
 Contig* JunctionMap::getContig(Junction junc, kmer_type startKmer, int startIndex){
+    int coverageSum = junc.getCoverage(startIndex);
     int index = startIndex;
     string contigString(print_kmer(startKmer));
     if(index == 4) contigString = print_kmer(revcomp(startKmer));
@@ -86,10 +99,11 @@ Contig* JunctionMap::getContig(Junction junc, kmer_type startKmer, int startInde
     while(!done){
         result = findNeighbor(junc, startKmer, index);
         contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off thee first k chars to avoid repeats 
+        distances.push_back((unsigned char) result.distance);
         if(result.isNode){
             Junction nextJunc = *getJunction(result.kmer);
+            coverageSum += nextJunc.getCoverage(result.index);
             if (nextJunc.numPathsOut() == 1){
-                distances.push_back((unsigned char) result.distance);
                 junc = nextJunc;
                 startKmer = result.kmer;
                 index = junc.getOppositeIndex(result.index);
@@ -106,12 +120,13 @@ Contig* JunctionMap::getContig(Junction junc, kmer_type startKmer, int startInde
     Contig* contig = new Contig();
     contig->setSeq(contigString);
     contig->setJuncDistances(distances);
+    contig->setCoverage(coverageSum);
     if(result.isNode){
         contig->setIndices(startIndex, result.index);
         //printf("Found another node: %s\n", print_kmer(result.kmer));
     }
     else{
-        contig->setIndices(startIndex, -1);
+        contig->setIndices(startIndex, 4);
         //printf("Found a sink.\n");
     }
     return contig;
@@ -361,7 +376,7 @@ unordered_set<kmer_type>* JunctionMap::getSinks(){
         kmer = it->first;
         junction = it->second;
         for(int i = 0; i < 5; i++){
-            if( !junction.linked[i] && (i == 4 || junction.cov[i] > 0) ){ //need the || since we want to scan backwards, but we don't store backwards coverage
+            if( !junction.linked[i] && junction.getCoverage(i) > 0 ){ //need the || since we want to scan backwards, but we don't store backwards coverage
                 kmer_type* sink = findSink(junction, kmer, i);
                 
                 if(sink){
@@ -406,7 +421,7 @@ unordered_map<kmer_type,int>* JunctionMap::getRealExtensions(){
         if (junction.numPathsOut() == 1){
             if(isBloomJunction(kmer)){
                 for(int i = 0; i < 4; i++){
-                    if(junction.cov[i] > 0){
+                    if(junction.getCoverage(i) > 0){
                         //Must record both the base kmer and the valid extension to uniquely identify what's happening, since
                         //the same kmer can be a valid extension of one junction but an invalid extension of another junction.
                         (*realExtensions)[kmer] = i; 

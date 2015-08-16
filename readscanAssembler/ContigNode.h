@@ -13,13 +13,15 @@ using std::ofstream;
 
 
 class ContigNode{
+    
+    unsigned char cov[4];
 public:
-    unsigned char cov[5];
     Contig * contigs[5];
 
     ContigNode(Junction junction);
     ContigNode(Node node);
     ContigNode();
+    int getCoverage(int nucExt);
     void setCoverage(Junction junc);
     void update(int nucExt, Contig * contig);
 

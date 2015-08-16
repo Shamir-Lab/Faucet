@@ -8,8 +8,6 @@ using std::max;
 using std::istringstream;
 using std::stringstream;
 
-void writeToFile(ofstream* jFile);
-
 int Junction::getOppositeIndex(int index){
   if(index < 4){
     return 4;
@@ -47,6 +45,13 @@ bool Junction::isSolid(int threshold){
   return pathsOut > 1;
 }
 
+int Junction::getCoverage(int nucExt){
+  if(nucExt < 4){
+    return (int)cov[nucExt];
+  }
+  return (int)cov[0] + (int)cov[1] + (int)cov[2] + (int)cov[3];
+}
+
 void Junction::addCoverage(int nucExt){
   cov[nucExt] = cov[nucExt] + 1;
 
@@ -69,7 +74,7 @@ string Junction::toString(){
   }
   stream << " ";
   for(int i = 0; i < 5; i++){
-    stream << (int)cov[i] << " " ;
+    stream << getCoverage(i) << " " ;
   }
   stream << " ";
   for(int i = 0; i < 5; i++){
@@ -80,11 +85,13 @@ string Junction::toString(){
 
 //explicitly set if it's a spacer or not
 Junction::Junction(){
-  for(int i  = 0; i < 5; i++){
+  for(int i  = 0; i < 4; i++){
     dist[i] = 0;
     cov[i] = 0;
     linked[i] = false;
   }
+  dist[4] = 0;
+  linked[4] = false;
 }
 
 //Get junction from string printout
@@ -95,10 +102,11 @@ Junction::Junction(string juncString){
     iss >> val;
     dist[i] = stoi(val);
   }
-  for(int i = 0; i < 5; i++){
+  for(int i = 0; i < 4; i++){
     iss >> val;
     cov[i] = stoi(val);
   }
+  iss >> val;
   for(int i = 0; i < 5; i++){
     iss >> val;
     linked[i] = stoi(val);

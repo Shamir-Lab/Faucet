@@ -1,5 +1,7 @@
 #include <fstream>
+#include <sstream>
 #include "Contig.h"
+using std::stringstream;
 using std::ofstream;
 
 Contig Contig::concatenate(Contig* otherContig, int thisSide, int otherSide){
@@ -20,6 +22,7 @@ Contig Contig::concatenate(Contig* otherContig){
 	std::list<unsigned char> newDistances(juncDistances);
 	newDistances.insert(newDistances.end(), otherContig->juncDistances.begin(), otherContig->juncDistances.end());
 	result.setJuncDistances(newDistances);
+	result.setCoverage(coverageSum + otherContig->coverageSum);
 	return result;
 }
 
@@ -51,6 +54,18 @@ void Contig::setEnds( ContigNode* n1, int i1, ContigNode* n2, int i2){
 
 void Contig::setSeq(std::string cont){
 	seq = cont;
+}
+
+void Contig::setCoverage(int cov){
+	coverageSum = cov;
+}
+
+void Contig::addCoverage(int cov){
+	coverageSum += cov;
+}
+
+float Contig::getAvgCoverage(){
+	return (float) coverageSum / (float) (juncDistances.size()+1);
 }
 
 void Contig::setJuncDistances(std::list<unsigned char> juncDists){
@@ -93,15 +108,15 @@ kmer_type Contig::getNodeKmer(ContigNode * contigNode){
 kmer_type Contig::getSideKmer(int side){
 	if(side == 1){
 		kmer_type kmer = getKmerFromRead(seq, 0);
-		if(ind1 != 4) return kmer;
-		return revcomp(kmer);
+		if(ind1 == 4) return revcomp(kmer);
+		return kmer;
 	}
 	if(side == 2){
 		kmer_type kmer = getKmerFromRead(seq, seq.length()-sizeKmer);
 		if(ind2 == 4) return kmer;
 		return revcomp(kmer);
 	}
-	printf("ERROR: tried to get a kmer corresponding to a side other than 1conca or two from a contig.\n");
+	printf("ERROR: tried to get a kmer corresponding to a side other than one or two from a contig.\n");
 }
 
 int Contig::getSide(ContigNode* node){
@@ -112,7 +127,20 @@ int Contig::getSide(ContigNode* node){
 		return 2;
 	}
 	printf("ERROR: tried to get the side of a contig node not adjacent to the contig.\n");
+	std::cout << "Node1: " << node1_p << ", Node2: " << node2_p << " Input: " << node << "\n";
 	return -1;
+}
+
+string Contig::getStringRep(){
+	stringstream stream;
+    stream << canon_contig(seq) << "\n";
+    stream << node1_p << "," << ind1 << " " << node2_p << "," << ind2 << "\n";
+    for(auto it = juncDistances.begin(); it != juncDistances.end(); it++){
+        stream << (int)*it << " ";
+    }
+    stream << "\n";
+    stream << coverageSum << "\n";
+    return stream.str();
 }
 
 Contig::Contig(){
@@ -121,5 +149,6 @@ Contig::Contig(){
 	node2_p = nullptr;
 	ind1 = -1;
 	ind2 = -1;
+	coverageSum = 0;
 }
 

@@ -13,6 +13,7 @@ int ContigGraph::deleteErrorContigs(){
 }
 
 void ContigGraph::printGraph(string fileName){
+    printf("Printing graph from contig graph.\n");
     ofstream jFile;
     jFile.open(fileName);
     int lineNum = 1;
@@ -24,11 +25,16 @@ void ContigGraph::printGraph(string fileName){
         for(int i = 0; i < 5; i++){
             if(node->contigs[i]){
                 Contig* contig = node->contigs[i];
-                if(contig->getSide(node) == 1){
-                    //printf("Printing from node at index %d\n", i);
-                    // std::cout << "Contig " << lineNum << ":\n";
-                    // std::cout << contig->seq << "\n";
-                    jFile << canon_contig(contig->seq) << "\n";
+                if(!contig->node1_p || !contig->node2_p){ //if one side is a sink, always print
+                    jFile << contig->getStringRep();
+                }
+                else if(contig->node1_p == contig->node2_p){ //if the contig attaches to the same node twice, print when you see lower index
+                    if(i == contig->getMinIndex()){
+                        jFile << contig->getStringRep();;
+                    }
+              }
+                else if(contig->getSide(node) == 1){ //If it attaches to two distinct nodes, print when you're on side 1
+                        jFile << contig->getStringRep();
                 }
             }
         }
@@ -38,11 +44,12 @@ void ContigGraph::printGraph(string fileName){
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
         Contig contig = *it;
         //printf("Printing isolated contig.\n");
-        jFile << canon_contig(contig.seq) << "\n";
+         jFile << contig.getStringRep();
     }
 
     //printf("Done printing contigs from contig graph.\n");
     jFile.close();
+    printf("Done printing graph from contig graph.\n");
 }
 
 void ContigGraph::addIsolatedContig(Contig contig){
@@ -50,6 +57,7 @@ void ContigGraph::addIsolatedContig(Contig contig){
 }
 
 void ContigGraph::printContigs(string fileName){
+    printf("Printing contigs from contig graph.\n");
     ofstream jFile;
     jFile.open(fileName);
     int lineNum = 1;
@@ -80,6 +88,7 @@ void ContigGraph::printContigs(string fileName){
 
     //printf("Done printing contigs from contig graph.\n");
     jFile.close();
+    printf("Done printing contigs from contig graph.\n");
 }
 
 ContigGraph::ContigGraph(){

@@ -396,7 +396,7 @@ void Graph::printContigsFromContigGraph(string filename){
         near_end = &it->second;
 
         for(int i = 0; i < 5; i++){
-            if( (int) near_end->cov[i] > 0 || i == 4){ 
+            if( (int) near_end->getCoverage(i) > 0){ 
                 string contig = near_end->contigs[i]->seq;
                 if(! (bool) near_end->contigs[i]->otherEndNode(near_end) ){ //a sink!
                     cFile << canon_contig(contig) << "\n";
