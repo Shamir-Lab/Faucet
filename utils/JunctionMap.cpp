@@ -88,29 +88,65 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
 }
 
 //Gets the contig from this junction to the next complex junction or sink
-Contig* JunctionMap::getContig(Junction junc, kmer_type startKmer, int startIndex){
-    int coverageSum = junc.getCoverage(startIndex);
+Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int startIndex){
+    //just for debugging
+    std::list<BfSearchResult> results = {};
+    std::list<Junction> junctions = {};
+    junctions.push_back(startJunc);
+
+    //needed for loop
+    std::list<kmer_type> kmers_to_destroy = {};
+    Junction junc = startJunc;
+    kmer_type kmer = startKmer;
     int index = startIndex;
-    string contigString(print_kmer(startKmer));
-    if(index == 4) contigString = print_kmer(revcomp(startKmer));
+    int coverageSum = junc.getCoverage(startIndex);
+    string contigString(print_kmer(kmer));
+    if(index == 4) contigString = print_kmer(revcomp(kmer));
     std::list<unsigned char> distances;
     BfSearchResult result;
+
     bool done = false;
     while(!done){
-        result = findNeighbor(junc, startKmer, index);
+        result = findNeighbor(junc, kmer, index);
+        results.push_back(result); //debugging
+
+        //DEBUGGING
         if(result.contig.length() < sizeKmer){
             printf("ERROR: contig less than k long in JunctionMap::getContig.\n");
+            std::cout << "Original junction: " << startJunc.toString() << "\n";
+            std::cout << "Original kmer: " << print_kmer(startKmer) << "\n";
+            std::cout << "Original index: " << startIndex << "\n";
+            std::cout << "Results: " << "\n";
+            for(auto it = results.begin(); it != results.end(); it++){
+                BfSearchResult theResult = *it;
+                std::cout << "Distance: " << theResult.distance << "\n";
+                std::cout << "Kmer: " << print_kmer(theResult.kmer) << "\n";
+                std::cout << "Index: " << theResult.index << "\n";
+            } 
+            std::cout << "Last search was on index " << index << "\n";
+            std::cout << "Junctions: " << "\n";
+            for(auto it = junctions.begin(); it != junctions.end(); it++){
+                Junction theJunc = *it;
+                std::cout << theJunc.toString() << "\n";
+            }
         }
-        contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off thee first k chars to avoid repeats 
+        //END DEBUGGING
+
+        contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off the first k chars to avoid repeats 
         distances.push_back((unsigned char) result.distance);
         if(result.isNode){
             Junction nextJunc = *getJunction(result.kmer);
+            junctions.push_back(nextJunc);//debugging
             coverageSum += nextJunc.getCoverage(result.index);
             if (nextJunc.numPathsOut() == 1){
+                if(kmer == result.kmer){
+                    printf("Found a loop.\n"); //debugging
+                    //done = true;
+                }    
                 junc = nextJunc;
-                startKmer = result.kmer;
+                kmer = result.kmer;
                 index = junc.getOppositeIndex(result.index);
-                killJunction(startKmer); //erase dummy junction from map
+                kmers_to_destroy.push_back(kmer);
             }
             else{
                 done = true;
@@ -126,12 +162,17 @@ Contig* JunctionMap::getContig(Junction junc, kmer_type startKmer, int startInde
     contig->setCoverage(coverageSum);
     if(result.isNode){
         contig->setIndices(startIndex, result.index);
-        //printf("Found another node: %s\n", print_kmer(result.kmer));
     }
     else{
         contig->setIndices(startIndex, 4);
-        //printf("Found a sink.\n");
     }
+
+    //destroy all kmers found
+    for(auto it = kmers_to_destroy.begin(); it != kmers_to_destroy.end(); it++){
+        kmer_type toDestroy = *it;
+        killJunction(toDestroy);
+    }
+    
     return contig;
 }
 
@@ -188,6 +229,9 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     if(dist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
         if(dist > maxDist){
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
+            std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
+            std::cout << "Searching from junction " << junc.toString() << "\n";
+            std::cout << "Searching from index " << index << "\n";
         }
         sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig);
     }
