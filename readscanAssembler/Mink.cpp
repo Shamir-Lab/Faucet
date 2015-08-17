@@ -222,8 +222,8 @@ int main(int argc, char *argv[])
     }
     else{
         bloom = getBloomFilterFromReads();
+        bloom->dump(&(file_prefix + ".bloom")[0]);
     }
-    bloom->dump(&(file_prefix + ".bloom")[0]);
 
     if(just_load) return 0;
     
@@ -237,9 +237,9 @@ int main(int argc, char *argv[])
     }
     else{
         buildJunctionMapFromReads(junctionMap, bloom, jchecker);
+        junctionMap->writeToFile(file_prefix + ".junctions");
     }
     //dump junctions to file
-    junctionMap->writeToFile(file_prefix + ".junctions");
 
 
     //build raw graph, dump graph to file
@@ -254,9 +254,10 @@ int main(int argc, char *argv[])
     else {
         ContigGraph* contigGraph = junctionMap->buildContigGraph();
         
-        while(true){
+        bool done = false;
+        while(!done){
             contigGraph->deleteErrorContigs();
-            if(contigGraph->collapseDummyNodes() == 0) break;
+            if(contigGraph->collapseDummyNodes() == 0) done = true;
         }
 
         contigGraph->printContigs(file_prefix + ".contig_graph.contigs");

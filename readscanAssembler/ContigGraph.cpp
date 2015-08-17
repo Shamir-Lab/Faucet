@@ -9,7 +9,17 @@ bool ContigGraph::isContigNode(kmer_type kmer){
 }
 
 bool ContigGraph::isErrorContig(Contig* contig){
-    return contig->getAvgCoverage() < 3;
+    printf("Testing for error contig\n");
+    if(!contig->juncDistances){
+        printf("No junc distances\n");
+    }
+    printf("Contig length: %d\n", contig->seq.length());
+    printf("Coverage sum: %d\n", contig->coverageSum);
+    printf("Distances size: %d\n", contig->juncDistances->size());
+    std::cout << "Average coverage: " << contig->getAvgCoverage() << "\n";
+    bool answer = contig->getAvgCoverage() < 3;
+    printf("Got result of test. Returning.\n");
+    return answer;
 }
 
 void ContigGraph::deleteContig(Contig* contig){
@@ -26,20 +36,30 @@ void ContigGraph::deleteErrorContigs(){
     printf("Deleting error contigs.\n");
     int numDeleted = 0;
 
+    printf("Deleting node mapped contigs.\n");
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         ContigNode* node = &it->second;
+        printf("Got node.\n");
         for(int i = 0; i < 5; i++){
             if(node->contigs[i]){
+                 printf("Checking contig %d.\n", i);
                 Contig* contig = node->contigs[i];
+                printf("Got contig. \n");
                 if(isErrorContig(contig)){
+                    printf("Is error contig.\n");
                     numDeleted++;
                     deleteContig(contig);
+                    printf("Deleted contig.\n");
+                }
+                else{
+                    printf("No error contig\n");
                 }
             }
         }
     }
 
+    printf("Deleting isolated contigs.\n");
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
         Contig* contig = &*it;
@@ -47,7 +67,6 @@ void ContigGraph::deleteErrorContigs(){
             numDeleted++;
             it++;
             isolated_contigs.erase(it);
-            deleteContig(contig);
         }
         else{
             it++;

@@ -1,5 +1,7 @@
 #include <fstream>
 #include <sstream>
+#include <algorithm>    // std::reverse
+#include <vector>       // std::vector
 #include "Contig.h"
 using std::stringstream;
 using std::ofstream;
@@ -22,8 +24,8 @@ Contig* Contig::concatenate(Contig* otherContig){
 		printf("ERROR: seq less than k long in Contig::Concatenate.\n");
 	}
 	result->setSeq(seq.substr(0, seq.length()-sizeKmer) + otherContig->seq);
-	std::list<unsigned char> newDistances(juncDistances);
-	newDistances.insert(newDistances.end(), otherContig->juncDistances.begin(), otherContig->juncDistances.end());
+	std::vector<unsigned char>* newDistances = new std::vector<unsigned char>(*juncDistances);
+	newDistances->insert(newDistances->end(), otherContig->juncDistances->begin(), otherContig->juncDistances->end());
 	result->setJuncDistances(newDistances);
 	result->setCoverage(coverageSum + otherContig->coverageSum);
 	return result;
@@ -40,7 +42,7 @@ void Contig::reverse(){
 
 	seq = revcomp_string(seq);
 
-	juncDistances.reverse();
+	std::reverse(juncDistances->begin(), juncDistances->end());
 }
 
 void Contig::setEnds( ContigNode* n1, int i1, ContigNode* n2, int i2){
@@ -68,10 +70,17 @@ void Contig::addCoverage(int cov){
 }
 
 float Contig::getAvgCoverage(){
-	return (float) coverageSum / (float) (juncDistances.size()+1);
+	printf("Getting avg coverage.\n");
+
+	if(!juncDistances){
+		printf("NO JUNC DISTANCES!");
+	}
+
+	printf("Got avg coverage.\n");
+	return (float) coverageSum / (float) (juncDistances->size()+1);
 }
 
-void Contig::setJuncDistances(std::list<unsigned char> juncDists){
+void Contig::setJuncDistances(std::vector<unsigned char>* juncDists){
 	juncDistances = juncDists;
 }
 
@@ -138,7 +147,7 @@ string Contig::getStringRep(){
 	stringstream stream;
     stream << seq << "\n";
     stream << node1_p << "," << ind1 << " " << node2_p << "," << ind2 << "\n";
-    for(auto it = juncDistances.begin(); it != juncDistances.end(); it++){
+    for(auto it = juncDistances->begin(); it != juncDistances->end(); it++){
         stream << (int)*it << " ";
     }
     stream << "\n";
@@ -153,6 +162,10 @@ Contig::Contig(){
 	ind1 = -1;
 	ind2 = -1;
 	coverageSum = 0;
-	juncDistances = {};
+	juncDistances = new std::vector<unsigned char>({});
+}
+
+Contig::~Contig(){
+	delete juncDistances;
 }
 

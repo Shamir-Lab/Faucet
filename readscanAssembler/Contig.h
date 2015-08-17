@@ -25,7 +25,7 @@ public:
     int ind1;
     int ind2;
     std::string seq;
-    std::list<unsigned char> juncDistances;
+    std::vector<unsigned char>* juncDistances;
     int coverageSum;
 
     //Concatenates the two contigs, gluing together the specified sides
@@ -36,7 +36,7 @@ public:
     void setEnds(ContigNode* n1, int i1, ContigNode* n2, int i2);
     void setIndices(int i1, int i2);
     void setSeq(std::string cont);
-    void setJuncDistances(std::list<unsigned char> juncDists);
+    void setJuncDistances(std::vector<unsigned char>* juncDists);
     void setCoverage(int cov);
     void addCoverage(int cov);
     float getAvgCoverage();
@@ -46,6 +46,7 @@ public:
     int getSide(ContigNode* node);
     std::string getStringRep();
     Contig();
+    ~Contig();
 
 };
 
