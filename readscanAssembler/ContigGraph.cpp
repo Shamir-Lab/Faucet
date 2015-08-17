@@ -9,16 +9,16 @@ bool ContigGraph::isContigNode(kmer_type kmer){
 }
 
 bool ContigGraph::isErrorContig(Contig* contig){
-    printf("Testing for error contig\n");
+   // printf("Testing for error contig\n");
     if(!contig->juncDistances){
-        printf("No junc distances\n");
+        //printf("No junc distances\n");
     }
-    printf("Contig length: %d\n", contig->seq.length());
-    printf("Coverage sum: %d\n", contig->coverageSum);
-    printf("Distances size: %d\n", contig->juncDistances->size());
-    std::cout << "Average coverage: " << contig->getAvgCoverage() << "\n";
+    //printf("Contig length: %d\n", contig->seq.length());
+    //printf("Coverage sum: %d\n", contig->coverageSum);
+    //printf("Distances size: %d\n", contig->juncDistances->size());
+    //std::cout << "Average coverage: " << contig->getAvgCoverage() << "\n";
     bool answer = contig->getAvgCoverage() < 3;
-    printf("Got result of test. Returning.\n");
+   // printf("Got result of test. Returning.\n");
     return answer;
 }
 
@@ -40,20 +40,20 @@ void ContigGraph::deleteErrorContigs(){
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         ContigNode* node = &it->second;
-        printf("Got node.\n");
+        //printf("Got node.\n");
         for(int i = 0; i < 5; i++){
             if(node->contigs[i]){
-                 printf("Checking contig %d.\n", i);
+                 //printf("Checking contig %d.\n", i);
                 Contig* contig = node->contigs[i];
-                printf("Got contig. \n");
+                //printf("Got contig. \n");
                 if(isErrorContig(contig)){
-                    printf("Is error contig.\n");
+                   // printf("Is error contig.\n");
                     numDeleted++;
                     deleteContig(contig);
-                    printf("Deleted contig.\n");
+                   // printf("Deleted contig.\n");
                 }
                 else{
-                    printf("No error contig\n");
+                   // printf("No error contig\n");
                 }
             }
         }

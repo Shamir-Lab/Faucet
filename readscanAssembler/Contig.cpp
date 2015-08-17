@@ -70,13 +70,13 @@ void Contig::addCoverage(int cov){
 }
 
 float Contig::getAvgCoverage(){
-	printf("Getting avg coverage.\n");
+	//printf("Getting avg coverage.\n");
 
 	if(!juncDistances){
 		printf("NO JUNC DISTANCES!");
 	}
 
-	printf("Got avg coverage.\n");
+	//printf("Got avg coverage.\n");
 	return (float) coverageSum / (float) (juncDistances->size()+1);
 }
 
