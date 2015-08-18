@@ -144,10 +144,10 @@ int Contig::getSide(ContigNode* node){
 }
 
 int Contig::getSide(ContigNode* node, int index){
-	if(node1_p == node && ind1 == index){
+	if((node1_p == node) && (ind1 == index)){
 		return 1;
 	}
-	if(node2_p == node && ind2 == index){
+	if((node2_p == node) && (ind2 == index)){
 		return 2;
 	}
 	printf("ERROR: tried to get the side of a contig node,index pair, but didn't find it on either side.\n");

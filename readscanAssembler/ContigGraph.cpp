@@ -77,9 +77,7 @@ bool ContigGraph::isErrorContig(Contig* contig){
     //printf("Coverage sum: %d\n", contig->coverageSum);
     //printf("Distances size: %d\n", contig->juncDistances->size());
     //std::cout << "Average coverage: " << contig->getAvgCoverage() << "\n";
-    bool answer = contig->getAvgCoverage() < 3;
-   // printf("Got result of test. Returning.\n");
-    return answer;
+    return contig->getAvgCoverage() < 3;
 }
 
 void ContigGraph::deleteContig(Contig* contig){
@@ -89,7 +87,9 @@ void ContigGraph::deleteContig(Contig* contig){
     if(contig->node2_p){
         cutPath(contig->node2_p, contig->ind2);
     }
-    delete contig;
+    if(contig){ //shouldn't be necessary but we'll see
+        delete contig;
+    }
 }
 
 int ContigGraph::deleteErrorContigs(){
@@ -187,7 +187,15 @@ void ContigGraph::cutPath(ContigNode* node, int index){
         printf("ERROR: tried to cut nonexistant path.");
     }
     Contig* contig = node->contigs[index];
-    contig->setSide(contig->getSide(node, index), nullptr); //set to point to null instead of the node
+    int side = contig->getSide(node, index);
+    int otherSide = 3 - side;
+    if(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2){ //to handle hairpins
+        contig->setSide(side, nullptr); //set to point to null instead of the node
+        contig->setSide(otherSide, nullptr);
+    }
+    else{
+        contig->setSide(side, nullptr);
+    }
     node->breakPath(index);
 }
 
