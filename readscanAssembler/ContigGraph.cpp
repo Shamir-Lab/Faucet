@@ -116,17 +116,16 @@ int ContigGraph::deleteErrorContigs(){
         }
     }
 
+    printf("Done deleting node mapped contigs.\n");
     printf("Deleting isolated contigs.\n");
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
         Contig* contig = &*it;
         if(isErrorContig(contig)){
-            numDeleted++;
-            it = isolated_contigs.erase(it);
+            numDeleted++, it++;
+            isolated_contigs.erase(it);
         }
-        else{
-            it++;
-        }
+        else it++;
     }
 
     printf("Done deleting %d error contigs.\n", numDeleted);
