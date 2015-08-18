@@ -32,10 +32,10 @@ public:
     bool isContigNode(kmer_type kmer); //true if a contig node exists for that kmer
     bool isErrorContig(Contig* contig);
     void deleteContig(Contig* contig);
+    bool cleanGraph(); //Cleans graph and returns true if any changes were made
 
     void checkGraph();
-    void deleteErrorContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
-    int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
+    
     void printContigs(string filename); //prints the contigs raw
     void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();
@@ -45,6 +45,9 @@ public:
     //Otherwise, returns the new one
     ContigNode * createContigNode(kmer_type kmer, Junction junction); 
 private:
+    int deleteErrorContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
+    int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
+    int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
     void collapseNode(ContigNode * node);
     void cutPath(ContigNode* node, int index); //used on nodes with no backward contig

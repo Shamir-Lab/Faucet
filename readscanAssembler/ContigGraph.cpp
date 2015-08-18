@@ -8,6 +8,20 @@ bool ContigGraph::isContigNode(kmer_type kmer){
 
 }
 
+bool ContigGraph::cleanGraph(){
+    bool result = false;
+    if(deleteErrorContigs() > 0){
+        result = true;
+    }
+    if(destroyDegenerateNodes() > 0){
+        result = true;
+    }
+    if(collapseDummyNodes() > 0){
+        result = true;
+    }
+    return result;
+}
+
 void ContigGraph::checkGraph(){
     printf("Checking node mapped contigs.\n");
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
@@ -72,14 +86,13 @@ void ContigGraph::deleteContig(Contig* contig){
     if(contig->node1_p){
         cutPath(contig->node1_p, contig->ind1);
     }
-
     if(contig->node2_p){
         cutPath(contig->node2_p, contig->ind2);
     }
-    delete(contig);
+    delete contig;
 }
 
-void ContigGraph::deleteErrorContigs(){
+int ContigGraph::deleteErrorContigs(){
     printf("Deleting error contigs.\n");
     int numDeleted = 0;
 
@@ -99,9 +112,6 @@ void ContigGraph::deleteErrorContigs(){
                     deleteContig(contig);
                    // printf("Deleted contig.\n");
                 }
-                else{
-                   // printf("No error contig\n");
-                }
             }
         }
     }
@@ -112,8 +122,7 @@ void ContigGraph::deleteErrorContigs(){
         Contig* contig = &*it;
         if(isErrorContig(contig)){
             numDeleted++;
-            it++;
-            isolated_contigs.erase(it);
+            it = isolated_contigs.erase(it);
         }
         else{
             it++;
@@ -121,7 +130,39 @@ void ContigGraph::deleteErrorContigs(){
     }
 
     printf("Done deleting %d error contigs.\n", numDeleted);
+    return numDeleted;
 }   
+
+int ContigGraph::destroyDegenerateNodes(){
+    printf("Destroying degenerate nodes.\n");
+    int numDegen = 0;
+
+    //looks through all contigs adjacent to nodes
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
+        ContigNode* node = &it->second;
+        kmer_type kmer = it->first;
+        it++;
+        if(node->numPathsOut() == 0){
+            if(node->contigs[4]){
+                cutPath(node, 4);
+            }
+            numDegen++;
+            nodeMap.erase(kmer);
+        }
+        else if(!node->contigs[4]){
+            for(int i = 0; i < 4; i++){
+                if(node->contigs[i]){
+                    cutPath(node,i);
+                }
+            }
+            numDegen++;
+            nodeMap.erase(kmer);
+        }
+    }
+
+    printf("Done destroying %d nodes.\n", numDegen);
+    return numDegen;
+}
 
 int ContigGraph::collapseDummyNodes(){
    printf("Collapsing dummy nodes.\n");
@@ -130,11 +171,12 @@ int ContigGraph::collapseDummyNodes(){
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         ContigNode* node = &it->second;
+        kmer_type kmer = it->first;
+        it++;
         if(node->numPathsOut() == 1){
-            numCollapsed++, it++;
+            numCollapsed++;
             collapseNode(node);
         }
-        else it++;
     }
 
     printf("Done collapsing %d nodes.\n", numCollapsed);
@@ -142,21 +184,12 @@ int ContigGraph::collapseDummyNodes(){
 }
 
 void ContigGraph::cutPath(ContigNode* node, int index){
-    if(index == 4){ //if a node has no back path, it turns into sinks instead
-        for(int i = 0; i < 4; i++){ //so find all contigs that it points to in the forward direciton
-            if(node->contigs[i]){
-                Contig* contig = node->contigs[i];
-                contig->setSide(contig->getSide(node, i), nullptr); //set them to point to null instead of the node
-                if(contig->isIsolated()){ //and add them to isolated_contigs if they're now isolated
-                    isolated_contigs.push_back(*contig);
-                }
-            }
-        }
-        nodeMap.erase(node->getKmer());// finally erase the node- since it's backpath wasn't touched yet getKmer shouldn't fail
+    if(!node->contigs[index]){
+        printf("ERROR: tried to cut nonexistant path.");
     }
-    else{ // if its not the backpath, simply break the path and move on
-        node->breakPath(index);
-    }
+    Contig* contig = node->contigs[index];
+    contig->setSide(contig->getSide(node, index), nullptr); //set to point to null instead of the node
+    node->breakPath(index);
 }
 
 void ContigGraph::collapseNode(ContigNode * node){

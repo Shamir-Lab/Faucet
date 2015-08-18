@@ -257,11 +257,7 @@ int main(int argc, char *argv[])
 
         contigGraph->checkGraph();
 
-        bool done = false;
-        while(!done){
-            contigGraph->deleteErrorContigs();
-            if(contigGraph->collapseDummyNodes() == 0) done = true;
-        }
+        while(contigGraph->cleanGraph());
 
         contigGraph->printContigs(file_prefix + ".contig_graph.contigs");
         contigGraph->printGraph(file_prefix + ".contig_graph.graph");
