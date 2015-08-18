@@ -159,10 +159,10 @@ void Contig::setSide(int side, ContigNode* node){
 	if(side == 1){
 		node1_p = node;
 	}
-	if(side == 2){
+	else if(side == 2){
 		node2_p = node;
 	}
-	printf("ERROR: tried to set side for side other than 1,2.\n");	
+	else printf("ERROR: tried to set side for side other than 1,2.\n");	
 }
 
 bool Contig::isIsolated(){
