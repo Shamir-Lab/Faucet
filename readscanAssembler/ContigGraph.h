@@ -33,6 +33,7 @@ public:
     bool isErrorContig(Contig* contig);
     void deleteContig(Contig* contig);
 
+    void checkGraph();
     void deleteErrorContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     void printContigs(string filename); //prints the contigs raw

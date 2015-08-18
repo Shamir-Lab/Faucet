@@ -255,6 +255,8 @@ int main(int argc, char *argv[])
         ContigGraph* contigGraph = junctionMap->buildContigGraph();
         delete(bloom);
 
+        contigGraph->checkGraph();
+
         bool done = false;
         while(!done){
             contigGraph->deleteErrorContigs();

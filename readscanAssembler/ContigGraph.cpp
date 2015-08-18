@@ -8,6 +8,52 @@ bool ContigGraph::isContigNode(kmer_type kmer){
 
 }
 
+void ContigGraph::checkGraph(){
+    printf("Checking node mapped contigs.\n");
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        kmer_type kmer = it->first;
+        ContigNode* node = &it->second;
+        if(kmer != node->getKmer()){
+            printf("GRAPHERROR: node kmer didn't match nodemap kmer.\n");
+        }
+        if(!node->contigs[4]){
+            printf("GRAPHERROR: node lacks backcontig.\n");
+        }
+        for(int i = 0; i < 5; i++){
+            if(node->contigs[i]){
+                Contig* contig = node->contigs[i];
+                int side = contig->getSide(node, i);
+                if(side == 1){
+                    if(contig->ind1 != i){
+                        printf("GRAPHERROR: contig has wrong index.\n");
+                    }
+                    if(contig->node1_p != node){
+                        printf("GRAPHERROR: contig points to wrong node.\n");
+                    }
+                }
+                if(side == 2){
+                    if(contig->ind2 != i){
+                        printf("GRAPHERROR: contig has wrong index.\n");
+                    }
+                    if(contig->node2_p != node){
+                        printf("GRAPHERROR: contig points to wrong node.\n");
+                    }
+                }
+            }
+        }
+    }
+
+    printf("Checking isolated contigs.\n");
+    //prints isolated contigs
+    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
+        Contig* contig = &*it;
+        if(contig->node1_p || contig->node2_p){
+            printf("GRAPHERROR: isolated contig has pointer to at least one node.\n");
+        }  
+    }
+
+}
+
 bool ContigGraph::isErrorContig(Contig* contig){
    // printf("Testing for error contig\n");
     if(!contig->juncDistances){
@@ -26,6 +72,7 @@ void ContigGraph::deleteContig(Contig* contig){
     if(contig->node1_p){
         cutPath(contig->node1_p, contig->ind1);
     }
+
     if(contig->node2_p){
         cutPath(contig->node2_p, contig->ind2);
     }
@@ -115,9 +162,11 @@ void ContigGraph::cutPath(ContigNode* node, int index){
 void ContigGraph::collapseNode(ContigNode * node){
     Contig* backContig = node->contigs[4];
     Contig* frontContig;
+    int fronti = 0;
     for(int i = 0; i < 4; i++){
         if(node->contigs[i]) {
             frontContig = node->contigs[i];
+            fronti = i;
         }
     }
     if(frontContig == backContig){ //circular sequence with a redundant node
@@ -128,8 +177,8 @@ void ContigGraph::collapseNode(ContigNode * node){
         ContigNode* frontNode = frontContig->otherEndNode(node);
 
 
-        int backSide = backContig->getSide(node);
-        int frontSide = frontContig->getSide(node);
+        int backSide = backContig->getSide(node, 4);
+        int frontSide = frontContig->getSide(node, fronti);
 
         Contig* newContig = backContig->concatenate(frontContig, backSide, frontSide);
         if(backNode){
@@ -170,7 +219,7 @@ void ContigGraph::printGraph(string fileName){
                         jFile << contig->getStringRep();;
                     }
               }
-                else if(contig->getSide(node) == 1){ //If it attaches to two distinct nodes, print when you're on side 1
+                else if(contig->getSide(node,i) == 1){ //If it attaches to two distinct nodes, print when you're on side 1
                         jFile << contig->getStringRep();
                 }
             }
@@ -206,7 +255,7 @@ void ContigGraph::printContigs(string fileName){
         for(int i = 0; i < 5; i++){
             if(node->contigs[i]){
                 Contig* contig = node->contigs[i];
-                if(contig->getSide(node) == 1){
+                if(contig->getSide(node,i) == 1){
                     //printf("Printing from node at index %d\n", i);
                     // std::cout << "Contig " << lineNum << ":\n";
                     // std::cout << contig->seq << "\n";
