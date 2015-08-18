@@ -44,6 +44,9 @@ public:
     kmer_type getNodeKmer(ContigNode * contigNode);    //Assumes the given contig node points to one end of this contig
     kmer_type getSideKmer(int side);    //either 1 or 2
     int getSide(ContigNode* node);
+    int getSide(ContigNode* node, int index);
+    bool isIsolated();//return true if both sides point to null
+    void setSide(int side, ContigNode* node);
     std::string getStringRep();
     Contig();
     ~Contig();

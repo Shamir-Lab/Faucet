@@ -24,10 +24,10 @@ bool ContigGraph::isErrorContig(Contig* contig){
 
 void ContigGraph::deleteContig(Contig* contig){
     if(contig->node1_p){
-        contig->node1_p->breakPath(contig->ind1);
+        cutPath(contig->node1_p, contig->ind1);
     }
     if(contig->node2_p){
-        contig->node2_p->breakPath(contig->ind2);
+        cutPath(contig->node2_p, contig->ind2);
     }
     delete(contig);
 }
@@ -94,6 +94,24 @@ int ContigGraph::collapseDummyNodes(){
     return numCollapsed;
 }
 
+void ContigGraph::cutPath(ContigNode* node, int index){
+    if(index == 4){ //if a node has no back path, it turns into sinks instead
+        for(int i = 0; i < 4; i++){ //so find all contigs that it points to in the forward direciton
+            if(node->contigs[i]){
+                Contig* contig = node->contigs[i];
+                contig->setSide(contig->getSide(node, i), nullptr); //set them to point to null instead of the node
+                if(contig->isIsolated()){ //and add them to isolated_contigs if they're now isolated
+                    isolated_contigs.push_back(*contig);
+                }
+            }
+        }
+        nodeMap.erase(node->getKmer());// finally erase the node- since it's backpath wasn't touched yet getKmer shouldn't fail
+    }
+    else{ // if its not the backpath, simply break the path and move on
+        node->breakPath(index);
+    }
+}
+
 void ContigGraph::collapseNode(ContigNode * node){
     Contig* backContig = node->contigs[4];
     Contig* frontContig;
@@ -122,6 +140,7 @@ void ContigGraph::collapseNode(ContigNode * node){
         }
         if(!backNode && !frontNode){
             addIsolatedContig(*newContig);
+            delete newContig; 
         }
     }
     kmer_type toErase = node->getKmer();

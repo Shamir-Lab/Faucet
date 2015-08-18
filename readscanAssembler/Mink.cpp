@@ -253,7 +253,8 @@ int main(int argc, char *argv[])
     }
     else {
         ContigGraph* contigGraph = junctionMap->buildContigGraph();
-        
+        delete(bloom);
+
         bool done = false;
         while(!done){
             contigGraph->deleteErrorContigs();
@@ -262,6 +263,7 @@ int main(int argc, char *argv[])
 
         contigGraph->printContigs(file_prefix + ".contig_graph.contigs");
         contigGraph->printGraph(file_prefix + ".contig_graph.graph");
+        delete(contigGraph);
     }
 
     //change to contig based representation

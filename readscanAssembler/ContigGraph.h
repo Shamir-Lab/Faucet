@@ -46,6 +46,7 @@ public:
 private:
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
     void collapseNode(ContigNode * node);
+    void cutPath(ContigNode* node, int index); //used on nodes with no backward contig
 };
 
 #endif

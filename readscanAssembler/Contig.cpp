@@ -143,6 +143,32 @@ int Contig::getSide(ContigNode* node){
 	return -1;
 }
 
+int Contig::getSide(ContigNode* node, int index){
+	if(node1_p == node && ind1 == index){
+		return 1;
+	}
+	if(node2_p == node && ind2 == index){
+		return 2;
+	}
+	printf("ERROR: tried to get the side of a contig node,index pair, but didn't find it on either side.\n");
+	std::cout << "Node1: " << node1_p << ", Node2: " << node2_p << " Input: " << node << "\n";
+	return -1;
+}
+
+void Contig::setSide(int side, ContigNode* node){
+	if(side == 1){
+		node1_p = node;
+	}
+	if(side == 2){
+		node2_p = node;
+	}
+	printf("ERROR: tried to set side for side other than 1,2.\n");	
+}
+
+bool Contig::isIsolated(){
+	return node1_p == nullptr && node2_p == nullptr;
+}
+
 string Contig::getStringRep(){
 	stringstream stream;
     stream << seq << "\n";
@@ -166,6 +192,7 @@ Contig::Contig(){
 }
 
 Contig::~Contig(){
+	juncDistances->clear();
 	delete juncDistances;
 }
 

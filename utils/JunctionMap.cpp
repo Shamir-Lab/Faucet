@@ -172,6 +172,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
         kmer_type toDestroy = *it;
         killJunction(toDestroy);
     }
+    kmers_to_destroy.clear();
 
     return contig;
 }
