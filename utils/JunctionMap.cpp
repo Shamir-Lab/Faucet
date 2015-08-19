@@ -108,41 +108,13 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     Contig* contig = new Contig();
     while(!done){
         result = findNeighbor(junc, kmer, index);
-        // results.push_back(result); //debugging
-
-        // //DEBUGGING
-        // if(result.contig.length() < sizeKmer){
-        //     printf("ERROR: contig less than k long in JunctionMap::getContig.\n");
-        //     std::cout << "Original junction: " << startJunc.toString() << "\n";
-        //     std::cout << "Original kmer: " << print_kmer(startKmer) << "\n";
-        //     std::cout << "Original index: " << startIndex << "\n";
-        //     std::cout << "Results: " << "\n";
-        //     for(auto it = results.begin(); it != results.end(); it++){
-        //         BfSearchResult theResult = *it;
-        //         std::cout << "Distance: " << theResult.distance << "\n";
-        //         std::cout << "Kmer: " << print_kmer(theResult.kmer) << "\n";
-        //         std::cout << "Index: " << theResult.index << "\n";
-        //     } 
-        //     std::cout << "Last search was on index " << index << "\n";
-        //     std::cout << "Junctions: " << "\n";
-        //     for(auto it = junctions.begin(); it != junctions.end(); it++){
-        //         Junction theJunc = *it;
-        //         std::cout << theJunc.toString() << "\n";
-        //     }
-        // }
-        // //END DEBUGGING
 
         contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off the first k chars to avoid repeats 
         contig->addJuncDistance((unsigned char) result.distance);
         if(result.isNode){
             Junction nextJunc = *getJunction(result.kmer);
-            //junctions.push_back(nextJunc);//debugging
             coverageSum += nextJunc.getCoverage(result.index);
             if (nextJunc.numPathsOut() == 1){
-                // if(kmer == result.kmer){
-                //     printf("Found a loop.\n"); //debugging
-                //     //done = true;
-                // }    
                 junc = nextJunc;
                 kmer = result.kmer;
                 index = junc.getOppositeIndex(result.index);

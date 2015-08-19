@@ -23,6 +23,7 @@ public:
     ContigNode();
     int numPathsOut();
     int getCoverage(int nucExt);
+    int getTotalCoverage();//returns getCoverage(4)
     void setCoverage(Junction junc);
     void update(int nucExt, Contig * contig);
 

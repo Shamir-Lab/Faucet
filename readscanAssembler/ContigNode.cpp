@@ -36,7 +36,9 @@ int ContigNode::numPathsOut(){
     return numPaths;
 }
 
-
+int ContigNode::getTotalCoverage(){
+    return getCoverage(4);
+}
 
 int ContigNode::getCoverage(int nucExt){
     if(nucExt < 4){

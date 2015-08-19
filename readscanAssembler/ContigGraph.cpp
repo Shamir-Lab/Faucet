@@ -69,12 +69,13 @@ void ContigGraph::checkGraph(){
 }
 
 bool ContigGraph::isErrorContig(Contig* contig){
-   // printf("Testing for error contig\n");
-    //printf("Contig length: %d\n", contig->seq.length());
-    //printf("Coverage sum: %d\n", contig->coverageSum);
-    //printf("Distances size: %d\n", contig->juncDistances->size());
-    //std::cout << "Average coverage: " << contig->getAvgCoverage() << "\n";
-    return contig->getAvgCoverage() < 3;
+    if(contig->getAvgCoverage()<3){
+        return true;
+    }
+    if (20*contig->getAvgCoverage() < contig->getMinAdjacentCoverage()) { //more deletion for chimeras
+        return true;
+    }   
+    return false;
 }
 
 void ContigGraph::deleteContig(Contig* contig){

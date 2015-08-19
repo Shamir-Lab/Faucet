@@ -72,6 +72,22 @@ float Contig::getAvgCoverage(){
 	return (float) coverageSum / (float) (juncDistances.size()+1);
 }
 
+int Contig::getMinAdjacentCoverage(){
+	if(isIsolated()) return 0;
+	int min = 1000000;
+	if(node1_p){
+		min = node1_p->getTotalCoverage();
+	}
+	if(node2_p){
+		min = std::min(min, node2_p->getTotalCoverage());
+	}
+	return min;
+}
+
+float Contig::getMass(){
+	return getAvgCoverage()*seq.length();
+}
+
 void Contig::addJuncDistances(std::vector<unsigned char>::iterator  start, std::vector<unsigned char>::iterator end){
 	for(auto it = start; it < end; it++){
 		unsigned char dist = *it;

@@ -41,6 +41,12 @@ public:
     void setCoverage(int cov);
     void addCoverage(int cov);
     float getAvgCoverage();
+
+    //gets the node coverages on each end, returns minimum as base line for how much this should be covered.
+    //If the contig is isolated, returns 0
+    int getMinAdjacentCoverage(); 
+    
+    float getMass();
     int getMinIndex();
     kmer_type getNodeKmer(ContigNode * contigNode);    //Assumes the given contig node points to one end of this contig
     kmer_type getSideKmer(int side);    //either 1 or 2
