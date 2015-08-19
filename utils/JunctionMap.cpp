@@ -102,10 +102,10 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     int coverageSum = junc.getCoverage(startIndex);
     string contigString(print_kmer(kmer));
     if(index == 4) contigString = print_kmer(revcomp(kmer));
-    std::vector<unsigned char>* distances = new std::vector<unsigned char>();
     BfSearchResult result;
 
     bool done = false;
+    Contig* contig = new Contig();
     while(!done){
         result = findNeighbor(junc, kmer, index);
         // results.push_back(result); //debugging
@@ -133,7 +133,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
         // //END DEBUGGING
 
         contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off the first k chars to avoid repeats 
-        distances->push_back((unsigned char) result.distance);
+        contig->addJuncDistance((unsigned char) result.distance);
         if(result.isNode){
             Junction nextJunc = *getJunction(result.kmer);
             //junctions.push_back(nextJunc);//debugging
@@ -156,9 +156,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             done = true;
         }
     }
-    Contig* contig = new Contig();
     contig->setSeq(contigString);
-    contig->setJuncDistances(distances);
     contig->setCoverage(coverageSum);
     if(result.isNode){
         contig->setIndices(startIndex, result.index);

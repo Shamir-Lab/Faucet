@@ -70,9 +70,6 @@ void ContigGraph::checkGraph(){
 
 bool ContigGraph::isErrorContig(Contig* contig){
    // printf("Testing for error contig\n");
-    if(!contig->juncDistances){
-        //printf("No junc distances\n");
-    }
     //printf("Contig length: %d\n", contig->seq.length());
     //printf("Coverage sum: %d\n", contig->coverageSum);
     //printf("Distances size: %d\n", contig->juncDistances->size());
