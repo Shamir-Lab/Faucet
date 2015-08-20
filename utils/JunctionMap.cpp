@@ -20,6 +20,12 @@ ContigGraph* JunctionMap::buildContigGraph(){
     printf("Building linear regions.\n");
     buildLinearRegions(contigGraph);
 
+    printf("Checking graph.\n");
+    contigGraph->checkGraph();
+    
+    // printf("Switching to node vector.\n");
+    // contigGraph->switchToNodeVector();
+
     printf("Done building contig graph.\n");
     return contigGraph;
 }

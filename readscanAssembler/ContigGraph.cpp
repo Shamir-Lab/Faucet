@@ -1,5 +1,26 @@
 #include "ContigGraph.h"
 
+void ContigGraph::switchToNodeVector(){
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
+        kmer_type kmer = it->first;
+        ContigNode* originalNode = &it->second;
+        nodeVector.push_back(*originalNode);
+        ContigNode* newNode = &nodeVector.back();
+        for(int i = 0; i < 5; i++){
+            if(newNode->contigs[i]){
+                if(newNode->contigs[i]->node1_p == originalNode){
+                    newNode->contigs[i]->node1_p = newNode;
+                } 
+                if(newNode->contigs[i]->node2_p == originalNode){
+                    newNode->contigs[i]->node2_p = newNode;
+                }
+            }
+        }
+        it++;
+        nodeMap.erase(kmer);
+    }
+}
+
 ContigNode * ContigGraph::getContigNode(kmer_type kmer){
 
 }
@@ -318,6 +339,7 @@ void ContigGraph::printContigs(string fileName){
 ContigGraph::ContigGraph(){
     nodeMap = {};
     isolated_contigs = {};
+    nodeVector = {};
 }
 
 //Creates a contig node and returns it or returns the already extant one if it's already extant

@@ -166,6 +166,10 @@ int handle_arguments(int argc, char *argv[]){
 
     printf("Size of junction: %d\n", sizeof(Junction));
     printf("Size of node: %d\n", sizeof(Node));
+    printf("Size of contigNode: %d\n", sizeof(ContigNode));
+    printf("Size of contig: %d\n", sizeof(Contig));
+    printf("Size of int: %d\n", sizeof(int));
+    printf("Size of long: %d\n", sizeof(long));
 }
  
 //create and load bloom filter
@@ -254,8 +258,6 @@ int main(int argc, char *argv[])
     else {
         ContigGraph* contigGraph = junctionMap->buildContigGraph();
         delete(bloom);
-
-        contigGraph->checkGraph();
 
         while(contigGraph->cleanGraph());
 

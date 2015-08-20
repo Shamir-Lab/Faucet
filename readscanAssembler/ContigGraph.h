@@ -24,9 +24,12 @@ using std::string;
 class ContigGraph 
 {
 unordered_map<kmer_type,ContigNode> nodeMap;
+std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
 
 public: 
+    void switchToNodeVector();
+
     void addIsolatedContig(Contig contig); 
     ContigNode * getContigNode(kmer_type kmer);//returns a pointer to the ContigNode if it exists or NULL otherwise
     bool isContigNode(kmer_type kmer); //true if a contig node exists for that kmer
