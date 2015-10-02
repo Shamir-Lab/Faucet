@@ -30,9 +30,12 @@ std::vector<Contig> isolated_contigs;
 public: 
     void switchToNodeVector();
 
+    //a,b are on backNode, c,d are on forwardNode
+    //a pairs with c, b pairs with d
+    //Does not go ahead with the operation if degeneracies are detected
+    //Returns true if it goes ahead with disentanglement
+    bool disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
     void addIsolatedContig(Contig contig); 
-    ContigNode * getContigNode(kmer_type kmer);//returns a pointer to the ContigNode if it exists or NULL otherwise
-    bool isContigNode(kmer_type kmer); //true if a contig node exists for that kmer
     bool isErrorContig(Contig* contig);
     void deleteContig(Contig* contig);
     bool cleanGraph(); //Cleans graph and returns true if any changes were made
@@ -46,11 +49,13 @@ public:
     //Creates a contig node if it doesn't already exist
     //If it exists, does nothing and returns the existing one.
     //Otherwise, returns the new one
-    ContigNode * createContigNode(kmer_type kmer, Junction junction); 
+    ContigNode * createContigNode(kmer_type kmer, Junction junction);    
+    int disentangle(Bloom* pair_filter);
 private:
     int deleteErrorContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
+
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
     void collapseNode(ContigNode * node);
     void cutPath(ContigNode* node, int index); //used on nodes with no backward contig

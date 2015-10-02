@@ -137,6 +137,9 @@ public:
       return hash &= bloomMask;
     }
 
+    void addPair(bloom_elem elem1, bloom_elem elem2);
+    bool containsPair(bloom_elem elem1, bloom_elem elem2);
+    
     //Add an element using the old hash function
     inline int oldAdd(bloom_elem elem)
     {

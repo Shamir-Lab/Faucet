@@ -23,6 +23,24 @@ using std::string;
 These are the important things that are currently being used.
 ***********************************************************************************/
 
+void Bloom::addPair(bloom_elem elem1, bloom_elem elem2){
+    uint64_t hA,hB;
+
+    hA = oldHash(elem1, 0) + oldHash(elem2, 0);
+    hB = oldHash(elem1, 1) + oldHash(elem2, 1);
+
+    add(hA, hB);
+}
+
+bool Bloom::containsPair(bloom_elem elem1, bloom_elem elem2){
+    uint64_t hA,hB;
+
+    hA = oldHash(elem1, 0) + oldHash(elem2, 0);
+    hB = oldHash(elem1, 1) + oldHash(elem2, 1);
+
+    return contains(hA, hB);
+}
+
 void Bloom::fakify(std::set<bloom_elem> valid_kmers){
     fake = true;
     valid_set = valid_kmers;
@@ -38,26 +56,25 @@ void Bloom::fakify(std::set<bloom_elem> valid_kmers){
     fake = false;
      //printf("custom construc \n");
     k = kVal;
-     n_hash_func = 4 ;//def
-     user_seed =0;
-     nb_elem = 0;
-     hashSize = (int) log2(tai_bloom)+1;
-     //printf("Hash size: %d \n", hashSize);
-     tai = pow(2, hashSize);
-     //printf("Tai: %lli \n", tai);
-     if(tai == 0){
-        tai = 1;
-     }
-     bloomMask = tai-1;
-     //printf("Mask: %lli \n", bloomMask);
-     nchar = (tai/8LL);
-     blooma =(unsigned char *)  malloc( nchar *sizeof(unsigned char)); // 1 bit per elem
-     //printf("Allocation for filter: %lli bits. \n",nchar *sizeof(unsigned char)*8);
-     memset(blooma,0,nchar *sizeof(unsigned char));
-     //fprintf(stderr,"malloc bloom %lli MB \n",(tai/8LL)/1024LL/1024LL);
-     this->generate_hash_seed();
+    n_hash_func = 4 ;//def
+    user_seed =0;
+    nb_elem = 0;
+    hashSize = (int) log2(tai_bloom)+1;
+    //printf("Hash size: %d \n", hashSize);
+    tai = pow(2, hashSize);
+    //printf("Tai: %lli \n", tai);
+    if(tai == 0){
+       tai = 1;
+    }
+    bloomMask = tai-1;
+    //printf("Mask: %lli \n", bloomMask);
+    nchar = (tai/8LL);
+    blooma =(unsigned char *)  malloc( nchar *sizeof(unsigned char)); // 1 bit per elem
+    //printf("Allocation for filter: %lli bits. \n",nchar *sizeof(unsigned char)*8);
+    memset(blooma,0,nchar *sizeof(unsigned char));
+    //fprintf(stderr,"malloc bloom %lli MB \n",(tai/8LL)/1024LL/1024LL);
+    this->generate_hash_seed();
  }
-
 
 float Bloom::weight()
 {

@@ -146,7 +146,8 @@ kmer_type Contig::getSideKmer(int side){
 	printf("ERROR: tried to get a kmer corresponding to a side other than one or two from a contig.\n");
 }
 
-int Contig::getSide(ContigNode* node){
+int Contig::getSide
+(ContigNode* node){
 	if(node1_p == node){
 		return 1;
 	}

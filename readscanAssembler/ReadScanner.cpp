@@ -9,7 +9,7 @@ using namespace std;
 ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* junc_bloom, JChecker* checker){
   reads_file = readFile;
   bloom = bloo1;
-  junc_bloom = junc_bloom;
+  pair_filter = junc_bloom;
   junctionMap = juncMap;
   jchecker = checker;
 }
@@ -99,8 +99,7 @@ void ReadScanner::scan_forward(string read){
     readKmer->forward();  
   }
 
-  ReadKmer* firstBackJunc;
-  ReadKmer* lastForJunc;
+  ReadKmer* backJunc;
   
   ReadKmer* lastKmer;
   Junction* lastJunc;
@@ -110,33 +109,22 @@ void ReadScanner::scan_forward(string read){
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
   while(find_next_junction(readKmer))
   { // mark first R junction and last F junction
-    
-    /*
     if(readKmer->direction == BACKWARD){
-
-      backwardSet.insert(readKmer->getRealExtension());
-      // if(!firstBackJunc){
-      //   firstBackJunc = new ReadKmer(readKmer); // copy construct called
-      // }
+      if(!backJunc){
+        backJunc = new ReadKmer(readKmer);
+      }
+      else{
+        *backJunc = readKmer;
+      }
     }
-    // else{
-    //   if(firstBackJunc){
-    //     delete(lastForJunc);
-    //     lastForJunc = new ReadKmer(readKmer);
-    //   }
-    // }
-
     else{
-      // for(auto backIt = backwardSet.begin(); backIt != backwardSet.end(); backIt++){
-      //   // juncPairSet.insert(std::pair<kmer_type, kmer_type>(readKmer->getRealExtension(), *backIt));
-      // }
-
-      // to get adjacent R-F pairs, always pair F with end of backward set 
-      auto backIt = backwardSet.end();
-      juncPairSet.insert(std::pair<kmer_type, kmer_type>(readKmer->getRealExtension(), *backIt));
+      if(backJunc){
+         pair_filter->addPair(backJunc->getRealExtension(), readKmer->getRealExtension());
+         //printf("Adding pair: %s,", print_kmer(backJunc->getRealExtension()));
+         //printf("%s\n", print_kmer(readKmer->getRealExtension()));
+      }
     }
-    */
-    
+   
     junc = junctionMap->getJunction(readKmer);
     //create a junction at the current spot if none exists
     if(!junc){
@@ -167,14 +155,6 @@ void ReadScanner::scan_forward(string read){
 
     NbProcessed++,  NbSkipped += dist-1;
   }   
-
-  // if(lastForJunc && firstBackJunc){
-  //   // juncPairSet.insert(std::pair<kmer_type, kmer_type>(lastForJunc->getKmer(), firstBackJunc->getKmer()));    
-  //   if(lastForJunc->getRealExtension() && firstBackJunc->getRealExtension()){
-  //     juncPairSet.insert(std::pair<kmer_type, kmer_type>(lastForJunc->getRealExtension(), firstBackJunc->getRealExtension()));
-  //   }
-  // }
-  // delete(firstBackJunc), delete(lastForJunc);
   
   //If there were no junctions on the read, add a fake junction
   if(!lastKmer){

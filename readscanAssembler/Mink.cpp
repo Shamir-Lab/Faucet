@@ -23,6 +23,7 @@ string read_load_file;
 string read_scan_file;
 string bloom_input_file;
 string junctions_input_file;
+string pair_filter_file;
 
 int read_length;
 uint64_t estimated_kmers;
@@ -38,7 +39,6 @@ int64_t nb_reads;
 #include "../utils/Kmer.h"
 #include "ReadScanner.h"
 #include "../utils/JChecker.h"
-#include "Graph.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -53,7 +53,7 @@ Then, type ./mink, followed by the following arguments:
 -read_scan_file <>, name of reads file  for read scan (current format is each line has a string of characters representing the read)
 -size_kmer k
 -max_read_length <>, upper bound on the size of a read
--estimaed_kmers <>, number of number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
+-estimated_kmers <>, number of number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
 -fp <>, false positive rate, default .01
 -j j, j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc. Default value 1
 -file_prefix <>, used for junctions file and contigs file and graph file
@@ -110,7 +110,8 @@ int handle_arguments(int argc, char *argv[]){
                 from_bloom = true, i++;
         }  
         else if(0 == strcmp(argv[i] , "-junctions_file")){
-                junctions_input_file = string(argv[i+1]);
+                junctions_input_file = string(argv[i+1]) + ".junctions";
+                pair_filter_file = string(argv[i+1]) + ".pair_filter";
                 from_junctions = true, i++;
         }
         else {
@@ -203,9 +204,8 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
 }
 
 //Builds the junction map from either a file or the readscan
-void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, JChecker* jchecker){
-    Bloom* junc_bloom;
-    ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, junc_bloom, jchecker);
+void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* pair_filter, JChecker* jchecker){
+    ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, pair_filter, jchecker);
      
     //scan reads, print summary
     scanner->scanReads(fastq);
@@ -229,6 +229,8 @@ int main(int argc, char *argv[])
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
 
+    Bloom* pair_filter = pair_filter->create_bloom_filter_optimal(estimated_kmers/10, fpRate);
+
     if(just_load) return 0;
     
     //create JChecker
@@ -238,45 +240,28 @@ int main(int argc, char *argv[])
     JunctionMap* junctionMap = new JunctionMap(bloom, jchecker, read_length);
     if(from_junctions){
         junctionMap->buildFromFile(junctions_input_file);
+        pair_filter->load(&pair_filter_file[0]);
     }
     else{
-        buildJunctionMapFromReads(junctionMap, bloom, jchecker);
+        buildJunctionMapFromReads(junctionMap, bloom, pair_filter, jchecker);
         junctionMap->writeToFile(file_prefix + ".junctions");
+        pair_filter->dump(&(file_prefix + ".pair_filter")[0]);
     }
     //dump junctions to file
-
-
-    //build raw graph, dump graph to file
-    if(node_graph) {
-        Graph* graph = new Graph(bloom, jchecker);
-        graph->buildNodeGraph(junctionMap);
-        
-        graph->linkNodes();
-        graph->printGraph(file_prefix + ".node_graph");
-        graph->printContigsFromNodeGraph(file_prefix + ".node_graph.contigs");
-    }
-    else {
-        ContigGraph* contigGraph = junctionMap->buildContigGraph();
-        delete(bloom);
-
-        while(contigGraph->cleanGraph());
-
-        contigGraph->printContigs(file_prefix + ".contig_graph.contigs");
-        contigGraph->printGraph(file_prefix + ".contig_graph.graph");
-        delete(contigGraph);
-    }
-
-    //change to contig based representation
-
-    //clean graph
-    //graph->cutTips(2*read_length-1);
     
-    //dump final graph and contigs to file 
-    //graph->printGraph(file_prefix + ".graph.final");
-    //graph->buildContigGraph();
-    //graph->printGraphFromContigs(file_prefix + ".contig_graph.final");
+    ContigGraph* contigGraph = junctionMap->buildContigGraph();
+    delete(bloom);
 
-    // //done!
+    contigGraph->printContigs(file_prefix + ".raw_contigs");
+
+    //while(contigGraph->cleanGraph());
+
+    printf("Weight of pair filter: %f\n", pair_filter->weight());
+    contigGraph->disentangle(pair_filter);
+
+    contigGraph->printContigs(file_prefix + ".cleaned_contigs");
+    contigGraph->printGraph(file_prefix + ".contig_graph.graph");
+
     printf("Program reached end. \n");
     return 0;
 }

@@ -1,5 +1,17 @@
 #include "ContigGraph.h"
 
+//returns true if there are no two identical non-null nodes in the list
+bool allDistinct(std::vector<ContigNode*> nodes){
+    for(int i = 0; i < nodes.size(); i++){
+        for(int j = i+1; j < nodes.size(); j++){
+            if(nodes[i] == nodes[j] && nodes[i]){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void ContigGraph::switchToNodeVector(){
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         kmer_type kmer = it->first;
@@ -19,14 +31,6 @@ void ContigGraph::switchToNodeVector(){
         it++;
         nodeMap.erase(kmer);
     }
-}
-
-ContigNode * ContigGraph::getContigNode(kmer_type kmer){
-
-}
-    
-bool ContigGraph::isContigNode(kmer_type kmer){
-
 }
 
 bool ContigGraph::cleanGraph(){
@@ -182,6 +186,136 @@ int ContigGraph::destroyDegenerateNodes(){
     return numDegen;
 }
 
+int ContigGraph::disentangle(Bloom* pair_filter){
+    int disentangled = 0;
+
+    //looks through all contigs adjacent to nodes
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
+        //printf("-1\n");
+        ContigNode* node = &it->second;
+        kmer_type kmer = it->first;
+       // printf("0\n");
+        if(node->numPathsOut() == 2){
+            //printf("1");
+            Contig* contig = node->contigs[4];
+            ContigNode* backNode = contig->otherEndNode(node);
+          // printf(".2");
+            if(node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
+                // printf("Found an outward facing pair: %s,", print_kmer(node->getKmer()));
+                // printf("%s\n", print_kmer(backNode->getKmer()));
+                int a,b,c,d;
+                a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
+                c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
+                kmer_type A,B,C,D;
+                A = backNode->getForwardExtension(a), B = backNode->getForwardExtension(b);
+                C = node->getForwardExtension(c), D = node->getForwardExtension(d);
+
+                // printf("A: %s\n", print_kmer(A));
+                // printf("B: %s\n", print_kmer(B));
+                // printf("C: %s\n", print_kmer(C));
+                // printf("D: %s\n", print_kmer(D));
+
+                // printf("Pair filter says:\n");
+                // printf("A/C: %d\n", pair_filter->containsPair(A,C));
+                // printf("B/D: %d\n", pair_filter->containsPair(B,D));
+                // printf("A/D: %d\n", pair_filter->containsPair(A,D));
+                // printf("B/C: %d\n", pair_filter->containsPair(B,C));
+                if(pair_filter->containsPair(A,C) && pair_filter->containsPair(B,D) && 
+                    ! pair_filter->containsPair(A,D) && !pair_filter->containsPair(B,C)){
+                   // printf("Found pair in filter in first orientation.\n");
+                    
+                    if(disentanglePair(contig, backNode, node, a, b, c, d)){
+                       // printf("Disentangled pair.\n");
+                        it = nodeMap.erase(it);
+                        //printf("1\n");
+                        if(it != nodeMap.end()){
+                            //printf("2\n");
+                            if(backNode->getKmer() == it->first){
+                                //printf("3\n");
+                                it++;
+                            }
+                        }
+                        //printf("4\n");
+                        nodeMap.erase(backNode->getKmer());
+                        //printf("5\n");
+                        disentangled++;
+                        //printf("6\n");
+                        continue;
+                    }
+                }
+                if(pair_filter->containsPair(A,D) && pair_filter->containsPair(B,C) && 
+                    ! pair_filter->containsPair(A,C) && !pair_filter->containsPair(B,D)){
+                    //printf("Found pair in filer in second orientation\n");
+                    if(disentanglePair(contig, backNode, node, a,b,d,c)){
+                       // printf("Disentangled pair.\n");
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        continue;
+                    } 
+                }
+            }
+       }
+       it++;
+    }
+
+    printf("Done disentangling %d pairs of nodes.\n", disentangled);
+    return disentangled;
+}
+
+//a,b are on backNode, c,d are on forwardNode
+//a pairs with c, b pairs with d
+/*
+       a\                       /c              a--------c
+         --------contig---------      ---->
+       b/                       \d              b--------d
+*/
+bool ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, 
+    int a, int b, int c, int d){
+    Contig* contigA = backNode->contigs[a];
+    Contig* contigB = backNode->contigs[b];
+    Contig* contigC = forwardNode->contigs[c];
+    Contig* contigD = forwardNode->contigs[d];
+
+    ContigNode* nodeA = contigA->otherEndNode(backNode);
+    ContigNode* nodeB = contigB->otherEndNode(backNode);
+    ContigNode* nodeC = contigC->otherEndNode(forwardNode);
+    ContigNode* nodeD = contigD->otherEndNode(forwardNode);
+
+    if(!allDistinct({backNode, forwardNode, nodeA, nodeB, nodeC, nodeD})){
+        return false;
+    }
+    Contig* contigAC = contigA->concatenate(contig, contigA->getSide(backNode), contig->getSide(backNode));
+    contigAC = contigAC->concatenate(contigC, contigAC->getSide(forwardNode), contigC->getSide(forwardNode));
+    if(nodeA){
+        nodeA->replaceContig(contigA, contigAC);
+    }
+    if(nodeC){
+        nodeC->replaceContig(contigC, contigAC);
+    }
+    if(!nodeA && !nodeC){
+        isolated_contigs.push_back(*contigAC);
+    }
+
+    Contig* contigBD = contigB->concatenate(contig, contigB->getSide(backNode), contig->getSide(backNode));
+    contigBD = contigBD->concatenate(contigD, contigBD->getSide(forwardNode), contigD->getSide(forwardNode));
+    if(nodeB){
+        nodeB->replaceContig(contigB, contigBD);
+    }
+    if(nodeD){
+        nodeD->replaceContig(contigD, contigBD);
+    }
+    if(!nodeB && !nodeD){
+        isolated_contigs.push_back(*contigBD);
+    }
+    return true;
+}
+    
 int ContigGraph::collapseDummyNodes(){
    printf("Collapsing dummy nodes.\n");
     int numCollapsed = 0;

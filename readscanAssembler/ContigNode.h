@@ -21,7 +21,11 @@ public:
     ContigNode(Junction junction);
     ContigNode(Node node);
     ContigNode();
+    void replaceContig(Contig* oldContig, Contig* newContig);
     int numPathsOut();
+    int indexOf(Contig* contig);
+    kmer_type getForwardExtension(int index);
+    std::vector<int> getIndicesOut();
     int getCoverage(int nucExt);
     int getTotalCoverage();//returns getCoverage(4)
     void setCoverage(Junction junc);

@@ -25,6 +25,11 @@ ContigNode::ContigNode(){
 		contigs[i] = nullptr;
 	}	
 }
+    
+
+kmer_type ContigNode::getForwardExtension(int index){
+    return next_kmer(getKmer(), index, FORWARD);
+}
 
 int ContigNode::numPathsOut(){
     int numPaths = 0;
@@ -34,6 +39,16 @@ int ContigNode::numPathsOut(){
         }
     }
     return numPaths;
+}
+
+std::vector<int> ContigNode::getIndicesOut(){
+    std::vector<int> paths = {};
+    for(int i = 0; i < 4; i++){
+        if(cov[i] > 0){
+            paths.push_back(i);
+        }
+    }
+    return paths;
 }
 
 int ContigNode::getTotalCoverage(){
@@ -51,6 +66,24 @@ void ContigNode::setCoverage(Junction junc){
     for(int i = 0; i < 4; i++){
         cov[i] = junc.getCoverage(i);
     }
+}
+
+void ContigNode::replaceContig(Contig* oldContig, Contig* newContig){
+     for(int i = 0; i < 5; i++){
+        if(contigs[i] == oldContig){
+            contigs[i] = newContig;
+        }
+    }
+}
+
+int ContigNode::indexOf(Contig* contig){
+    for(int i = 0; i < 5; i++){
+        if(contigs[i] == contig){
+            return i;
+        }
+    }
+    printf("ERROR: tried to find index of contig that's not present.");
+    return 5;
 }
 
 void ContigNode::update(int nucExt, Contig* contig){

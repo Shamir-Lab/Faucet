@@ -21,8 +21,5 @@ public:
     void reverse();
     
     DoubleKmer(kmer_type forwardKmer);
-
-
-
 };
 #endif 
