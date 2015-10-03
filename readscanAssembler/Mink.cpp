@@ -252,14 +252,15 @@ int main(int argc, char *argv[])
     ContigGraph* contigGraph = junctionMap->buildContigGraph();
     delete(bloom);
 
-    contigGraph->printContigs(file_prefix + ".raw_contigs");
-
     while(contigGraph->cleanGraph());
 
-    printf("Weight of pair filter: %f\n", pair_filter->weight());
+    contigGraph->printContigs(file_prefix + ".cleaned_contigs");
+
     while(contigGraph->disentangle(pair_filter) > 0);
 
-    contigGraph->printContigs(file_prefix + ".cleaned_contigs");
+    printf("Weight of pair filter: %f\n", pair_filter->weight());
+
+    contigGraph->printContigs(file_prefix + ".disentangled_contigs");
     contigGraph->printGraph(file_prefix + ".contig_graph.graph");
 
     printf("Program reached end. \n");
