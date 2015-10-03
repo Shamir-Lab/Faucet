@@ -254,10 +254,10 @@ int main(int argc, char *argv[])
 
     contigGraph->printContigs(file_prefix + ".raw_contigs");
 
-    //while(contigGraph->cleanGraph());
+    while(contigGraph->cleanGraph());
 
     printf("Weight of pair filter: %f\n", pair_filter->weight());
-    contigGraph->disentangle(pair_filter);
+    while(contigGraph->disentangle(pair_filter) > 0);
 
     contigGraph->printContigs(file_prefix + ".cleaned_contigs");
     contigGraph->printGraph(file_prefix + ".contig_graph.graph");

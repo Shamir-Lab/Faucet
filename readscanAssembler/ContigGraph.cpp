@@ -193,6 +193,7 @@ int ContigGraph::disentangle(Bloom* pair_filter){
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         //printf("-1\n");
         ContigNode* node = &it->second;
+        //printf("Testing %s\n", print_kmer(node->getKmer()));
         kmer_type kmer = it->first;
        // printf("0\n");
         if(node->numPathsOut() == 2){
@@ -200,7 +201,7 @@ int ContigGraph::disentangle(Bloom* pair_filter){
             Contig* contig = node->contigs[4];
             ContigNode* backNode = contig->otherEndNode(node);
           // printf(".2");
-            if(node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
+            if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
                 // printf("Found an outward facing pair: %s,", print_kmer(node->getKmer()));
                 // printf("%s\n", print_kmer(backNode->getKmer()));
                 int a,b,c,d;
@@ -222,10 +223,10 @@ int ContigGraph::disentangle(Bloom* pair_filter){
                 // printf("B/C: %d\n", pair_filter->containsPair(B,C));
                 if(pair_filter->containsPair(A,C) && pair_filter->containsPair(B,D) && 
                     ! pair_filter->containsPair(A,D) && !pair_filter->containsPair(B,C)){
-                   // printf("Found pair in filter in first orientation.\n");
+                    //printf("Found pair in filter in first orientation.\n");
                     
                     if(disentanglePair(contig, backNode, node, a, b, c, d)){
-                       // printf("Disentangled pair.\n");
+                        //printf("Disentangled pair.\n");
                         it = nodeMap.erase(it);
                         //printf("1\n");
                         if(it != nodeMap.end()){
@@ -247,7 +248,7 @@ int ContigGraph::disentangle(Bloom* pair_filter){
                     ! pair_filter->containsPair(A,C) && !pair_filter->containsPair(B,D)){
                     //printf("Found pair in filer in second orientation\n");
                     if(disentanglePair(contig, backNode, node, a,b,d,c)){
-                       // printf("Disentangled pair.\n");
+                        //printf("Disentangled pair.\n");
                         it = nodeMap.erase(it);
                         if(it != nodeMap.end()){
                             if(backNode->getKmer() == it->first){

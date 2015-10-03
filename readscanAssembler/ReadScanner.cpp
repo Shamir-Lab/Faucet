@@ -122,6 +122,12 @@ void ReadScanner::scan_forward(string read){
          pair_filter->addPair(backJunc->getRealExtension(), readKmer->getRealExtension());
          //printf("Adding pair: %s,", print_kmer(backJunc->getRealExtension()));
          //printf("%s\n", print_kmer(readKmer->getRealExtension()));
+         if(!pair_filter->containsPair(backJunc->getRealExtension(), readKmer->getRealExtension())){
+            printf("FILTER ERROR 1\n");
+         }
+         if(!pair_filter->containsPair(readKmer->getRealExtension(),backJunc->getRealExtension())){
+            printf("FILTER ERROR 2\n");
+         }
       }
     }
    

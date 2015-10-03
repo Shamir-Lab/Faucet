@@ -29,14 +29,17 @@ void Bloom::addPair(bloom_elem elem1, bloom_elem elem2){
     hA = oldHash(elem1, 0) + oldHash(elem2, 0);
     hB = oldHash(elem1, 1) + oldHash(elem2, 1);
 
+    //printf("Adding %lli, %lli\n", hA, hB);
     add(hA, hB);
 }
 
-bool Bloom::containsPair(bloom_elem elem1, bloom_elem elem2){
+int Bloom::containsPair(bloom_elem elem1, bloom_elem elem2){
     uint64_t hA,hB;
 
     hA = oldHash(elem1, 0) + oldHash(elem2, 0);
     hB = oldHash(elem1, 1) + oldHash(elem2, 1);
+
+    //printf("Checking %lli, %lli\n", hA, hB);
 
     return contains(hA, hB);
 }

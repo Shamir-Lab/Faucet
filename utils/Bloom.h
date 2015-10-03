@@ -138,7 +138,7 @@ public:
     }
 
     void addPair(bloom_elem elem1, bloom_elem elem2);
-    bool containsPair(bloom_elem elem1, bloom_elem elem2);
+    int containsPair(bloom_elem elem1, bloom_elem elem2);
     
     //Add an element using the old hash function
     inline int oldAdd(bloom_elem elem)
@@ -213,6 +213,7 @@ public:
         for(int i=0; i<n_hash_func; i++, h += h1)
         {
             h %= tai;
+            //printf("Setting array position %lli\n", h);
             blooma [h >> 3] |= bit_mask[h & 7];
         }
     }
@@ -237,9 +238,10 @@ public:
         return (valid_hash0.find(h0) != valid_hash0.end()) 
           && (valid_hash1.find(h1) != valid_hash1.end());
       }
-        uint64_t h = h0;
+        uint64_t h = h0 % tai;
         for(int i=0; i<n_hash_func; i++, h = (h+h1)%tai)
         {
+            //printf("Checking array position %lli\n", h);
             if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
                 return 0;
             }
