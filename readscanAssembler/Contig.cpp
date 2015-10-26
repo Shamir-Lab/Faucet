@@ -146,8 +146,7 @@ kmer_type Contig::getSideKmer(int side){
 	printf("ERROR: tried to get a kmer corresponding to a side other than one or two from a contig.\n");
 }
 
-int Contig::getSide
-(ContigNode* node){
+int Contig::getSide(ContigNode* node){
 	if(node1_p == node){
 		return 1;
 	}
@@ -183,6 +182,37 @@ void Contig::setSide(int side, ContigNode* node){
 
 bool Contig::isIsolated(){
 	return node1_p == nullptr && node2_p == nullptr;
+}
+
+std::vector<std::string> Contig::getNeighbors(bool forward){
+	std::vector<std::string> result = {};
+	if(forward){ //forward node continuations 
+	    if(node2_p){ //if node exists in forward direction 
+	    	result = node2_p->getFastGNeighbors(ind2);
+		}
+	}
+	else{ //backward node continuations
+		if(node1_p){ //if node exists in backward direction
+			result = node1_p->getFastGNeighbors(ind1);
+		}
+	}
+	return result;
+}
+
+string Contig::getFastGLine(){
+	stringstream stream;
+    stream << ">" << this << ":";
+
+    //forward node continuations
+    std::vector<string> allNeighbors = getNeighbors(true);
+    auto backNeighbors = getNeighbors(false);
+    allNeighbors.insert(allNeighbors.end(), backNeighbors.begin(), backNeighbors.end());
+    for(auto it = allNeighbors.begin(); it != allNeighbors.end(); it++){
+    	stream << *it << ",";
+    }
+    string result = stream.str();
+    result[result.length()-1] = ';';
+    return result;
 }
 
 string Contig::getStringRep(){

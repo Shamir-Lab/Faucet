@@ -100,7 +100,8 @@ void ReadScanner::scan_forward(string read){
   }
 
   ReadKmer* backJunc;
-  
+  ReadKmer* firstBackJunc;
+  ReadKmer* lastForwardJunc;
   ReadKmer* lastKmer;
   Junction* lastJunc;
   Junction* junc;
@@ -112,6 +113,7 @@ void ReadScanner::scan_forward(string read){
     if(readKmer->direction == BACKWARD){
       if(!backJunc){
         backJunc = new ReadKmer(readKmer);
+        firstBackJunc = new ReadKmer(readKmer);
       }
       else{
         *backJunc = readKmer;
@@ -120,14 +122,12 @@ void ReadScanner::scan_forward(string read){
     else{
       if(backJunc){
          pair_filter->addPair(backJunc->getRealExtension(), readKmer->getRealExtension());
-         //printf("Adding pair: %s,", print_kmer(backJunc->getRealExtension()));
-         //printf("%s\n", print_kmer(readKmer->getRealExtension()));
-         if(!pair_filter->containsPair(backJunc->getRealExtension(), readKmer->getRealExtension())){
-            printf("FILTER ERROR 1\n");
-         }
-         if(!pair_filter->containsPair(readKmer->getRealExtension(),backJunc->getRealExtension())){
-            printf("FILTER ERROR 2\n");
-         }
+      }
+      if(!lastForwardJunc){
+        lastForwardJunc = new ReadKmer(readKmer);
+      }
+      else{
+        *lastForwardJunc = readKmer;
       }
     }
    
@@ -172,8 +172,14 @@ void ReadScanner::scan_forward(string read){
     lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
   }
 
+  if(firstBackJunc && lastForwardJunc){
+    //pair_filter->addPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension());
+  }
+
   delete(lastKmer);
   delete(readKmer);
+  delete(firstBackJunc);
+  delete(lastForwardJunc);
 }
 
 bool ReadScanner::isValidRead(string read){

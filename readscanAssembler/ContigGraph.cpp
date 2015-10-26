@@ -1,5 +1,9 @@
 #include "ContigGraph.h"
 
+unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
+    return &nodeMap;
+}
+
 //returns true if there are no two identical non-null nodes in the list
 bool allDistinct(std::vector<ContigNode*> nodes){
     for(int i = 0; i < nodes.size(); i++){
@@ -392,45 +396,33 @@ void ContigGraph::collapseNode(ContigNode * node){
     delete(frontContig);
 }
 
+
 void ContigGraph::printGraph(string fileName){
-    printf("Printing graph from contig graph.\n");
+    printf("Printing graph from contig graph to fastg with iterator.\n");
     ofstream jFile;
     jFile.open(fileName);
-    int lineNum = 1;
-    //printf("Printing contigs from contig graph of %d nodes.\n", nodeMap.size());
+
+    ContigIterator* contigIt = new ContigIterator(this);
 
     //prints contigs that are adjacent to nodes
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-        ContigNode* node = &it->second;
-        for(int i = 0; i < 5; i++){
-            if(node->contigs[i]){
-                Contig* contig = node->contigs[i];
-                if(!contig->node1_p || !contig->node2_p){ //if one side is a sink, always print
-                    jFile << contig->getStringRep();
-                }
-                else if(contig->node1_p == contig->node2_p){ //if the contig attaches to the same node twice, print when you see lower index
-                    if(i == contig->getMinIndex()){
-                        jFile << contig->getStringRep();;
-                    }
-              }
-                else if(contig->getSide(node,i) == 1){ //If it attaches to two distinct nodes, print when you're on side 1
-                        jFile << contig->getStringRep();
-                }
-            }
-        }
+    while(contigIt->hasNextContig()){
+        Contig* contig = contigIt->getContig();
+        jFile << contig->getFastGLine() << "\n";
+        jFile << contig->seq << "\n";
     }
 
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
         Contig contig = *it;
-        //printf("Printing isolated contig.\n");
-         jFile << contig.getStringRep();
+        jFile << contig.getFastGLine() << "\n";
+        jFile << contig.seq << "\n";
     }
 
     //printf("Done printing contigs from contig graph.\n");
     jFile.close();
-    printf("Done printing graph from contig graph.\n");
+    printf("Done printing graph from contig graph iterator.\n");
 }
+
 
 void ContigGraph::addIsolatedContig(Contig contig){
     isolated_contigs.push_back(contig);

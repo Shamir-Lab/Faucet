@@ -1,6 +1,7 @@
 #include <fstream>
 #include "ContigNode.h"
 using std::ofstream;
+using std::stringstream;
 #include <sstream> //for std::stringstream 
 #include <string>  //for std::string
 
@@ -26,6 +27,39 @@ ContigNode::ContigNode(){
 	}	
 }
     
+std::vector<std::string> ContigNode::getFastGNeighbors(int contigIndex){
+    std::vector<std::string> result = {};
+    std::string baseString = "";
+    if(contigs[contigIndex]->getSide(this, contigIndex) == 1){
+        baseString = "~";
+    }
+    stringstream stringBuilder;
+    if(contigIndex == 4){
+        for(int i = 0; i < 4; i++){
+            if(contigs[i]){
+                stringBuilder.str("");
+                stringBuilder << baseString;
+                stringBuilder << contigs[i];
+                if(contigs[i]->getSide(this,i) == 2) {
+                   stringBuilder << "'";
+                }
+                result.push_back(stringBuilder.str());
+            }
+        }
+    }
+    else{
+        if(contigs[4]){
+            stringBuilder.str("");
+            stringBuilder << baseString;
+            stringBuilder << contigs[4];
+            if(contigs[4]->getSide(this) == 2) {
+               stringBuilder << "'";
+            }
+            result.push_back(stringBuilder.str());
+        }
+    }
+    return result;
+}
 
 kmer_type ContigNode::getForwardExtension(int index){
     return next_kmer(getKmer(), index, FORWARD);

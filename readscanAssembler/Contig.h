@@ -10,6 +10,7 @@ class ContigNode; // forward declaration
 
 using std::ofstream;
 
+
 class Contig{
 private:
     //utility for linking if they're both facing forward
@@ -17,7 +18,12 @@ private:
     //Doesn't change the value of either contig- just returns the concatenation.
     Contig* concatenate(Contig* otherContig);
 
+    std::vector<std::string> getNeighbors(bool forward);
+
 public:
+
+    std::string getFastGLine();
+
     // coverage can be obtained by end nodes
     // length from sequence
     ContigNode * node1_p; 

@@ -17,17 +17,19 @@ class ContigGraph; //forward declare
 #include "Contig.h"
 #include "ContigNode.h"
 #include "BfSearchResult.h"
+#include "ContigIterator.h"
 using std::unordered_set;
 using std::unordered_map;
 using std::string;
 
 class ContigGraph 
 {
-unordered_map<kmer_type,ContigNode> nodeMap;
 std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
+unordered_map<kmer_type,ContigNode> nodeMap;
 
 public: 
+    unordered_map<kmer_type, ContigNode> * getNodeMap();
     void switchToNodeVector();
 
     //a,b are on backNode, c,d are on forwardNode
@@ -43,7 +45,7 @@ public:
     void checkGraph();
     
     void printContigs(string filename); //prints the contigs raw
-    void printGraph(string fileName); //prints graph : TBD print format- fastg?
+     void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();
 
     //Creates a contig node if it doesn't already exist
