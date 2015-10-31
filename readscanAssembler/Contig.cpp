@@ -184,31 +184,49 @@ bool Contig::isIsolated(){
 	return node1_p == nullptr && node2_p == nullptr;
 }
 
-std::vector<std::string> Contig::getNeighbors(bool forward){
-	std::vector<std::string> result = {};
-	if(forward){ //forward node continuations 
+std::vector<std::pair<Contig*, bool>> Contig::getNeighbors(bool RC){
+	if(!RC){ //forward node continuations 
 	    if(node2_p){ //if node exists in forward direction 
-	    	result = node2_p->getFastGNeighbors(ind2);
+	    	return node2_p->getFastGNeighbors(ind2);
 		}
 	}
 	else{ //backward node continuations
 		if(node1_p){ //if node exists in backward direction
-			result = node1_p->getFastGNeighbors(ind1);
+			return node1_p->getFastGNeighbors(ind1);
 		}
 	}
-	return result;
+	return {};
 }
 
-string Contig::getFastGLine(){
+string Contig::getFastGName(bool RC){
 	stringstream stream;
-    stream << ">" << this << ":";
+    stream << "NODE_" << this << "_length_" << seq.length() << "_cov_" << getAvgCoverage();
+    if(RC){
+    	stream << "'";
+    }
+    return stream.str();
+}
 
-    //forward node continuations
-    std::vector<string> allNeighbors = getNeighbors(true);
-    auto backNeighbors = getNeighbors(false);
-    allNeighbors.insert(allNeighbors.end(), backNeighbors.begin(), backNeighbors.end());
-    for(auto it = allNeighbors.begin(); it != allNeighbors.end(); it++){
-    	stream << *it << ",";
+string Contig::getFastGHeader(bool RC){
+	stringstream stream;
+	stream << ">";
+    stream << getFastGName(RC);
+
+    //get neighbors in direction corresponding to RC value
+    std::vector<std::pair<Contig*, bool>> neighbors = getNeighbors(RC);
+
+    //if empty return now
+    if(neighbors.empty()){
+    	stream << ";" ;
+    	return stream.str();
+    }
+
+    //not empty, add neighbors to line
+    stream << ":";
+    for(auto it = neighbors.begin(); it != neighbors.end(); it++){
+    	Contig* neighbor = it->first;
+    	bool RC = it->second;
+    	stream << neighbor->getFastGName(RC) << ",";
     }
     string result = stream.str();
     result[result.length()-1] = ';';

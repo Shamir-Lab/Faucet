@@ -27,35 +27,27 @@ ContigNode::ContigNode(){
 	}	
 }
     
-std::vector<std::string> ContigNode::getFastGNeighbors(int contigIndex){
-    std::vector<std::string> result = {};
-    std::string baseString = "";
-    if(contigs[contigIndex]->getSide(this, contigIndex) == 1){
-        baseString = "~";
-    }
-    stringstream stringBuilder;
+
+std::vector<std::pair<Contig*, bool>> ContigNode::getFastGNeighbors(int contigIndex){
+    std::vector<std::pair<Contig*, bool>> result = {};
     if(contigIndex == 4){
         for(int i = 0; i < 4; i++){
             if(contigs[i]){
-                stringBuilder.str("");
-                stringBuilder << baseString;
-                stringBuilder << contigs[i];
+                bool RC = false;
                 if(contigs[i]->getSide(this,i) == 2) {
-                   stringBuilder << "'";
+                    RC = true;
                 }
-                result.push_back(stringBuilder.str());
+                result.push_back(std::pair<Contig*, bool>(contigs[i], RC));
             }
         }
     }
     else{
         if(contigs[4]){
-            stringBuilder.str("");
-            stringBuilder << baseString;
-            stringBuilder << contigs[4];
-            if(contigs[4]->getSide(this) == 2) {
-               stringBuilder << "'";
+            bool RC = false;
+            if(contigs[4]->getSide(this,4) == 2) {
+                RC = true;
             }
-            result.push_back(stringBuilder.str());
+            result.push_back(std::pair<Contig*, bool>(contigs[4], RC));
         }
     }
     return result;

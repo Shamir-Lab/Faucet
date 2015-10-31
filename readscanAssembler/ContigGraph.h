@@ -43,7 +43,7 @@ public:
     bool cleanGraph(); //Cleans graph and returns true if any changes were made
 
     void checkGraph();
-    
+    void printContigFastG(ofstream* fastgFile, Contig * contig);
     void printContigs(string filename); //prints the contigs raw
      void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();

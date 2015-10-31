@@ -399,30 +399,34 @@ void ContigGraph::collapseNode(ContigNode * node){
 
 void ContigGraph::printGraph(string fileName){
     printf("Printing graph from contig graph to fastg with iterator.\n");
-    ofstream jFile;
-    jFile.open(fileName);
+    ofstream fastgFile;
+    fastgFile.open(fileName);
 
     ContigIterator* contigIt = new ContigIterator(this);
 
     //prints contigs that are adjacent to nodes
     while(contigIt->hasNextContig()){
         Contig* contig = contigIt->getContig();
-        jFile << contig->getFastGLine() << "\n";
-        jFile << contig->seq << "\n";
+        printContigFastG(&fastgFile, contig);
     }
 
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
         Contig contig = *it;
-        jFile << contig.getFastGLine() << "\n";
-        jFile << contig.seq << "\n";
+        printContigFastG(&fastgFile, &contig);
     }
 
     //printf("Done printing contigs from contig graph.\n");
-    jFile.close();
+    fastgFile.close();
     printf("Done printing graph from contig graph iterator.\n");
 }
 
+void ContigGraph::printContigFastG(ofstream* fastgFile, Contig * contig){
+    *fastgFile << contig->getFastGHeader(true) << "\n";
+    *fastgFile << contig->seq << "\n";
+    *fastgFile << contig->getFastGHeader(false) << "\n";
+    *fastgFile << contig->seq << "\n";
+}
 
 void ContigGraph::addIsolatedContig(Contig contig){
     isolated_contigs.push_back(contig);

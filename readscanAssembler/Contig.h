@@ -18,11 +18,12 @@ private:
     //Doesn't change the value of either contig- just returns the concatenation.
     Contig* concatenate(Contig* otherContig);
 
-    std::vector<std::string> getNeighbors(bool forward);
+    std::vector<std::pair<Contig*, bool>> getNeighbors(bool forward);
 
 public:
 
-    std::string getFastGLine();
+    std::string getFastGName(bool RC);
+    std::string getFastGHeader(bool RC);
 
     // coverage can be obtained by end nodes
     // length from sequence
