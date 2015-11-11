@@ -1,5 +1,5 @@
 #include "ReadKmer.h"
-
+#include <iostream>
 #include <algorithm>
 #include <string>
 

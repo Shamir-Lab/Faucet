@@ -99,17 +99,18 @@ void ReadScanner::scan_forward(string read){
     readKmer->forward();  
   }
 
-  ReadKmer* backJunc;
-  ReadKmer* firstBackJunc;
-  ReadKmer* lastForwardJunc;
-  ReadKmer* lastKmer;
-  Junction* lastJunc;
-  Junction* junc;
+  ReadKmer* backJunc = nullptr;
+  ReadKmer* firstBackJunc = nullptr;
+  ReadKmer* lastForwardJunc = nullptr;
+  ReadKmer* lastKmer = nullptr;
+  Junction* lastJunc = nullptr;
+  Junction* junc = nullptr;
   int numBackward = 0;
 
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
   while(find_next_junction(readKmer))
-  { // mark first R junction and last F junction
+  { 
+    // mark first R junction and last F junction
     if(readKmer->direction == BACKWARD){
       if(!backJunc){
         backJunc = new ReadKmer(readKmer);
