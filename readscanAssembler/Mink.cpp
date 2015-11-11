@@ -33,6 +33,7 @@ bool from_junctions = false;
 bool just_load = false;
 bool fastq = false;
 bool node_graph = false;
+bool paired_ends = false;
 int64_t nb_reads;
 
 #include "../utils/Bloom.h"
@@ -62,6 +63,7 @@ Then, type ./mink, followed by the following arguments:
 -junctions_file <>, used to shortcut the readscan if you have access to a junctions file
 --just_load_bloom, if this option is selected the bloom will be loaded and dumped, then the program will terminate
 --fastq, use fastq files
+--paired_ends, file is given as interleaved paired end data.  Beginning of each read corresponds to end of overall fragment.
 
 Note: cannot use junctions_file option without also using bloom_file option
 
@@ -75,7 +77,7 @@ file_prefix.contigs, file_prefix.graph.
 void argumentError(){
     fprintf (stderr,"usage:\n");
     fprintf (stderr,"./mink -read_load_file filename -read_scan_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers -file_prefix prefix");
-    fprintf(stderr, "Optional arguments: -fp rate -j j  --two_hash -bloom_file filename -junctions_file filename\n");
+    fprintf(stderr, "Optional arguments: --fastq -fp rate -j j  --two_hash -bloom_file filename -junctions_file filename --paired_ends\n");
 }
 
 int handle_arguments(int argc, char *argv[]){
@@ -104,7 +106,9 @@ int handle_arguments(int argc, char *argv[]){
         else if(0 == strcmp(argv[i] , "--fastq")) //stop after loading blom
                 fastq = true;
         else if(0 == strcmp(argv[i], "--node_graph")) //use node graph rather tha ncontig graph
-                node_graph = true;
+                node_graph = true; 
+        else if(0 == strcmp(argv[i], "--paired_ends")) //use node graph rather tha ncontig graph
+                paired_ends = true;
         else if(0 == strcmp(argv[i] , "-bloom_file")){
                 bloom_input_file = string(argv[i+1]);
                 from_bloom = true, i++;
@@ -165,6 +169,7 @@ int handle_arguments(int argc, char *argv[]){
         printf("Using space-optimal hash settings.\n");
     }
 
+    std::cout <<  "Paired ends: " << paired_ends << "\n";
     printf("Size of junction: %d\n", sizeof(Junction));
     printf("Size of node: %d\n", sizeof(Node));
     printf("Size of contigNode: %d\n", sizeof(ContigNode));
@@ -208,7 +213,7 @@ void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* pa
     ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, pair_filter, jchecker);
      
     //scan reads, print summary
-    scanner->scanReads(fastq);
+    scanner->scanReads(fastq, paired_ends);
     scanner->printScanSummary();
 }
 

@@ -43,7 +43,7 @@ private:
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
         NbSkipped, NbProcessed, readsProcessed, NbSolidKmer,readsNoErrors,
-         NbJuncPairs;
+         NbJuncPairs, unambiguousReads;
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
@@ -56,7 +56,11 @@ private:
 public:
     JunctionMap* getJunctionMap();
 
-    void scanReads(bool fastq); //scans all the reads.  Fastq if fastq, otherwise fasta
+    //Scans one input read; breaks into small segments and calls scan_forward
+    //Returns back junctions along read from beginning to end
+    std::list<kmer_type> scanInputRead(string read);
+
+    void scanReads(bool fastq, bool paired_ends); //scans all the reads.  Fastq if fastq, otherwise fasta
     void printScanSummary(); //prints statistics from the readscan
     
     //Determines if the given ReadKmer is a junction.
@@ -79,7 +83,8 @@ public:
     //Also updates the relevant distance field on the first junction to point to the start of the read, and on the last
     //Junction to point to the end of the read.
     //If there are no junctions, add_fake_junction is called
-    void scan_forward(string read); 
+    //Returns back junctions along the read from beginning to end
+    std::list<kmer_type> scan_forward(string read); 
 
     ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* pair_filter, JChecker* jchecker);
 };

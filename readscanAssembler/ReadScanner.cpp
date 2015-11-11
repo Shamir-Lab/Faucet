@@ -90,8 +90,8 @@ void ReadScanner::add_fake_junction(string read){
 //Also updates the relevant distance field on the first junction to point to the start of the read, and on the last
 //Junction to point to the end of the read.
 //If there are no junctions, add_fake_junction is called
-void ReadScanner::scan_forward(string read){
-
+std::list<kmer_type> ReadScanner::scan_forward(string read){
+  std::list<kmer_type> result = {};
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
   backwardSet = {};
 
@@ -119,6 +119,7 @@ void ReadScanner::scan_forward(string read){
       else{
         *backJunc = readKmer;
       }
+      result.push_back(backJunc->getRealExtension());
     }
     else{
       if(backJunc){
@@ -181,6 +182,8 @@ void ReadScanner::scan_forward(string read){
   delete(readKmer);
   delete(firstBackJunc);
   delete(lastForwardJunc);
+
+  return result;
 }
 
 bool ReadScanner::isValidRead(string read){
@@ -194,12 +197,31 @@ bool ReadScanner::isValidRead(string read){
   return true;
 }
 
-void ReadScanner::scanReads(bool fastq)
+//returns back junctions for use in paired end info
+std::list<kmer_type> ReadScanner::scanInputRead(string read){
+  std::list<kmer_type> result = {};
+  std::list<string> readList = getUnambiguousReads(read);
+    while(!readList.empty()){
+        read = readList.front();
+        readList.pop_front();
+        if(read.length() >= sizeKmer + 2*jchecker->j + 1){
+          unambiguousReads++;
+            //printf("Checking for errors.\n");
+          if(isValidRead(read)){
+            //printf("None! Scanning\n");
+            result.splice(result.end(),scan_forward(read));
+            readsNoErrors++;
+          }
+        }
+    }
+    return result;
+}
+
+void ReadScanner::scanReads(bool fastq, bool paired_ends)
 {
   NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, 
   NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0, 
-  readsNoErrors = 0,  NbJuncPairs = 0;
-  uint64_t unambiguousReads = 0;
+  readsNoErrors = 0,  NbJuncPairs = 0, unambiguousReads = 0;
 
   time_t start;
   time_t stop;
@@ -213,27 +235,35 @@ void ReadScanner::scanReads(bool fastq)
   // write all positive extensions in disk file
   printf("Weight before read scan: %f \n", bloom->weight());
   int lastSum = 0, thisSum = 0;
+  bool firstEnd = true;
+  std::list<kmer_type> backJuncs1;
+  std::list<kmer_type> backJuncs2;
   while (getline(solidReads, read))
   {
     getline(solidReads, read);//since it's a fasta we skip the first of every pair of lines
-    std::list<string> readList = getUnambiguousReads(read);
-    while(!readList.empty()){
-        read = readList.front();
-        readList.pop_front();
-        if(read.length() >= sizeKmer + 2*jchecker->j + 1){
-          unambiguousReads++;
-            //printf("Checking for errors.\n");
-          if(isValidRead(read)){
-            //printf("None! Scanning\n");
-            scan_forward(read);
-            readsNoErrors++;
-          }
-        }
+    
+    if(firstEnd){
+      backJuncs1 = scanInputRead(read);
     }
+    else{
+      backJuncs2 = scanInputRead(read);
+    }
+    
+    if(paired_ends && !firstEnd){
+      for(auto it = backJuncs1.begin(); it != backJuncs1.end(); it++){
+          kmer_type pair1 = *it;
+          for(auto it2 = backJuncs2.begin(); it2 != backJuncs2.end(); it2++){
+            kmer_type pair2 = *it2;
+            pair_filter->addPair(pair1,pair2);
+          }
+      }
+    }
+
     if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;
     if(fastq) getline(solidReads, read), getline(solidReads, read); //if fastq skip two more lines
-}
+    firstEnd = !firstEnd;
+  }
 
   solidReads.close();
   time(&stop);
