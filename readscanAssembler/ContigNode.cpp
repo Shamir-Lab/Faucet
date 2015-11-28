@@ -28,6 +28,36 @@ ContigNode::ContigNode(){
 }
     
 
+bool ContigNode::checkValidity(){
+    for(int i = 0; i < 5; i++){
+        if(contigs[i]){
+            Contig* contig = contigs[i];
+            int side = contig->getSide(this, i);
+            if(side == 1){
+                if(contig->ind1 != i){
+                    printf("GRAPHERROR: contig has wrong index.\n");
+                    return false;
+                }
+                if(contig->node1_p != this){
+                    printf("GRAPHERROR: contig points to wrong node.\n");
+                    return false;
+                }
+            }
+            if(side == 2){
+                if(contig->ind2 != i){
+                    printf("GRAPHERROR: contig has wrong index.\n");
+                    return false;
+                }
+                if(contig->node2_p != this){
+                    printf("GRAPHERROR: contig points to wrong node.\n");
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
 std::vector<std::pair<Contig*, bool>> ContigNode::getFastGNeighbors(int contigIndex){
     std::vector<std::pair<Contig*, bool>> result = {};
     if(contigIndex == 4){

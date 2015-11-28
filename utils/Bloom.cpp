@@ -143,10 +143,6 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
 
     int readsProcessed = 0;
 
-    //should fix this.. just because right now there's no empty constructor
-    string fake = "FAKE";
-    ReadKmer kmer(&fake);
-
     string read;
     time_t start, stop;
     time(&start);
@@ -162,7 +158,7 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
             read = readList.front();
             readList.pop_front();
             unambiguousReads++;
-            for(kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
+            for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
                 canonKmer = kmer.getCanon();
                 hashA = bloo1->oldHash(canonKmer, 0);
                 hashB = bloo1->oldHash(canonKmer, 1);
@@ -253,6 +249,9 @@ void Bloom::load_from_kmers(const char* kmers_filename){
     printf("Weight after load: %f \n", weight()); 
 }
 
+int Bloom::getNumHash(){
+    return n_hash_func;
+}
 
 int Bloom::getHashSize(){
     return hashSize;

@@ -1,4 +1,5 @@
 #include "ContigGraph.h"
+#include <math.h>
 
 unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
@@ -59,41 +60,28 @@ void ContigGraph::checkGraph(){
         if(kmer != node->getKmer()){
             printf("GRAPHERROR: node kmer didn't match nodemap kmer.\n");
         }
-        if(!node->contigs[4]){
-            printf("GRAPHERROR: node lacks backcontig.\n");
-        }
+
+        // if(!node->contigs[4]){
+        //     printf("GRAPHERROR: node lacks backcontig.\n");
+        // }
+        node->checkValidity();
         for(int i = 0; i < 5; i++){
             if(node->contigs[i]){
-                Contig* contig = node->contigs[i];
-                int side = contig->getSide(node, i);
-                if(side == 1){
-                    if(contig->ind1 != i){
-                        printf("GRAPHERROR: contig has wrong index.\n");
-                    }
-                    if(contig->node1_p != node){
-                        printf("GRAPHERROR: contig points to wrong node.\n");
-                    }
-                }
-                if(side == 2){
-                    if(contig->ind2 != i){
-                        printf("GRAPHERROR: contig has wrong index.\n");
-                    }
-                    if(contig->node2_p != node){
-                        printf("GRAPHERROR: contig points to wrong node.\n");
-                    }
-                }
+                node->contigs[i]->checkValidity();
             }
-        }
+        }                
     }
 
-    printf("Checking isolated contigs.\n");
+    printf("Checking %d isolated contigs.\n", isolated_contigs.size());
     //prints isolated contigs
-    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
+    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
         Contig* contig = &*it;
         if(contig->node1_p || contig->node2_p){
             printf("GRAPHERROR: isolated contig has pointer to at least one node.\n");
         }  
     }
+
+    printf("Done checking graph\n");
 
 }
 
@@ -108,15 +96,40 @@ bool ContigGraph::isErrorContig(Contig* contig){
 }
 
 void ContigGraph::deleteContig(Contig* contig){
+    //std::cout << contig << "\n";
     if(contig->node1_p){
-        cutPath(contig->node1_p, contig->ind1);
+        contig->node1_p->breakPath(contig->ind1);
     }
     if(contig->node2_p){
-        cutPath(contig->node2_p, contig->ind2);
+        contig->node2_p->breakPath(contig->ind2);
     }
-    if(contig){ //shouldn't be necessary but we'll see
-        delete contig;
+    delete(contig);
+}
+
+
+void ContigGraph::cutPath(ContigNode* node, int index){
+    //std::cout << "Node: " << node << "\n";
+    //std::cout << "Cov: \n" << node->getCoverage(0) << "\n";
+    if(!node->contigs[index]){
+        printf("ERROR: tried to cut nonexistant path.");
     }
+    //printf("Did error check \n");
+    Contig* contig = node->contigs[index];
+    //printf("Getting side\n");
+    int side = contig->getSide(node, index);
+    int otherSide = 3 - side;
+    //printf("A\n");
+    if(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2){ //to handle hairpins
+       // printf("A1\n");
+        contig->setSide(side, nullptr); //set to point to null instead of the node
+        contig->setSide(otherSide, nullptr);
+    }
+    else{
+        //printf("A2\n");
+        contig->setSide(side, nullptr);
+    }
+    //printf("To break path.\n");
+    node->breakPath(index);
 }
 
 int ContigGraph::deleteErrorContigs(){
@@ -136,8 +149,14 @@ int ContigGraph::deleteErrorContigs(){
                 if(isErrorContig(contig)){
                    // printf("Is error contig.\n");
                     numDeleted++;
+                    printf("Deleting contig %d \n" , numDeleted);
+                    std::cout << "Sequence: " << contig->seq << "\n";
+                    std::cout << "Header: " << contig->getFastGHeader(true) << "\n";
                     deleteContig(contig);
-                   // printf("Deleted contig.\n");
+
+                    checkGraph();
+                    // printGraph("lastValidGraph.fastg");
+                    //printf("Deleted contig.\n");
                 }
             }
         }
@@ -190,8 +209,56 @@ int ContigGraph::destroyDegenerateNodes(){
     return numDegen;
 }
 
+//trivial implementation that returns a list of the immediatley adjacent kmer
+std::list<kmer_type> ContigGraph::getPairCandidates(ContigNode* node, int index){
+    std::list<kmer_type> result = {};
+    Contig* contig = node->contigs[index];
+    result.push_back(node->getForwardExtension(index));
+    return result;
+}
+
+double ContigGraph::getTailBound(int numTrials, double p, int result){
+    double mean = 1.0*numTrials*p;
+    double delta = (1.0*result / mean) - 1;
+    double chernoffBound;
+    if( delta < 0){
+        chernoffBound = 1.0;
+    }
+    else if(delta < 1){
+        chernoffBound = exp(-delta*delta*mean/3);
+    }
+    else if (delta > 1){
+        chernoffBound = exp(-delta*mean/3);
+    }
+    //std::cout <<" Chernoff: " << chernoffBound << " \n";
+    double markovBound = 1.0;
+    if (result >  mean){
+        markovBound = mean/result;
+    }
+    //std::cout <<" Markov: " << markovBound << " \n";
+    //std::cout << "Min: " << std::min(chernoffBound, markovBound) << "\n";
+    return std::min(chernoffBound, markovBound);
+}
+
+//returns a score based on how many pairs of kmers from the first and second lists are in the filter,
+//relative to the FP rate of the filter
+double ContigGraph::getScore(std::list<kmer_type> leftCand, std::list<kmer_type> rightCand, Bloom* pair_filter, double fpRate){
+    double score = 0;
+    for(auto itL = leftCand.begin(); itL != leftCand.end(); itL++){
+        kmer_type leftKmer = *itL;
+        for(auto itR = rightCand.begin(); itR != rightCand.end(); itR++){
+            kmer_type rightKmer = *itR;
+            if(pair_filter->containsPair(leftKmer, rightKmer)){
+                score += 1;
+            }
+        }
+    }
+    return getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
+}
+
 int ContigGraph::disentangle(Bloom* pair_filter){
     int disentangled = 0;
+    double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
@@ -211,10 +278,11 @@ int ContigGraph::disentangle(Bloom* pair_filter){
                 int a,b,c,d;
                 a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
                 c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
-                kmer_type A,B,C,D;
-                A = backNode->getForwardExtension(a), B = backNode->getForwardExtension(b);
-                C = node->getForwardExtension(c), D = node->getForwardExtension(d);
-
+                std::list<kmer_type> A = getPairCandidates(backNode, a);
+                std::list<kmer_type> B = getPairCandidates(backNode, b);
+                std::list<kmer_type> C = getPairCandidates(node,c);
+                std::list<kmer_type> D = getPairCandidates(node, d);
+              
                 // printf("A: %s\n", print_kmer(A));
                 // printf("B: %s\n", print_kmer(B));
                 // printf("C: %s\n", print_kmer(C));
@@ -225,8 +293,12 @@ int ContigGraph::disentangle(Bloom* pair_filter){
                 // printf("B/D: %d\n", pair_filter->containsPair(B,D));
                 // printf("A/D: %d\n", pair_filter->containsPair(A,D));
                 // printf("B/C: %d\n", pair_filter->containsPair(B,C));
-                if(pair_filter->containsPair(A,C) && pair_filter->containsPair(B,D) && 
-                    ! pair_filter->containsPair(A,D) && !pair_filter->containsPair(B,C)){
+                double scoreAC = getScore(A,C, pair_filter, fpRate);
+                double scoreAD = getScore(A,D, pair_filter, fpRate);
+                double scoreBC = getScore(B,C, pair_filter, fpRate);
+                double scoreBD = getScore(B,D, pair_filter, fpRate);
+                //std::cout << "Score: " << scoreAC << "," << scoreBD << "," << scoreAD << "," << scoreBC << "\n";
+                if(scoreAC <.05 && scoreBD < .05 && scoreAD > .3 && scoreBC > .3){
                     //printf("Found pair in filter in first orientation.\n");
                     
                     if(disentanglePair(contig, backNode, node, a, b, c, d)){
@@ -248,8 +320,7 @@ int ContigGraph::disentangle(Bloom* pair_filter){
                         continue;
                     }
                 }
-                if(pair_filter->containsPair(A,D) && pair_filter->containsPair(B,C) && 
-                    ! pair_filter->containsPair(A,C) && !pair_filter->containsPair(B,D)){
+                if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
                     //printf("Found pair in filer in second orientation\n");
                     if(disentanglePair(contig, backNode, node, a,b,d,c)){
                         //printf("Disentangled pair.\n");
@@ -338,23 +409,6 @@ int ContigGraph::collapseDummyNodes(){
 
     printf("Done collapsing %d nodes.\n", numCollapsed);
     return numCollapsed;
-}
-
-void ContigGraph::cutPath(ContigNode* node, int index){
-    if(!node->contigs[index]){
-        printf("ERROR: tried to cut nonexistant path.");
-    }
-    Contig* contig = node->contigs[index];
-    int side = contig->getSide(node, index);
-    int otherSide = 3 - side;
-    if(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2){ //to handle hairpins
-        contig->setSide(side, nullptr); //set to point to null instead of the node
-        contig->setSide(otherSide, nullptr);
-    }
-    else{
-        contig->setSide(side, nullptr);
-    }
-    node->breakPath(index);
 }
 
 void ContigGraph::collapseNode(ContigNode * node){

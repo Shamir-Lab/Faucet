@@ -88,7 +88,7 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             delete(backwardContig);
         }
         else{
-            printf("ERROR: shouldn't be any complex junctions let during linear region build.\n");
+            printf("ERROR: shouldn't be any complex junctions left during linear region build.\n");
         }
     }  
 }
@@ -150,7 +150,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     }
     kmers_to_destroy.clear();
 
-    return contig;
+     return contig;
 }
 
 
@@ -174,7 +174,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     if(index == 4){
         doubleKmer.reverse(); 
         for(int i = 0; i < sizeKmer; i++){
-            contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
+            contig.append(1,getNucChar(code2nucleotide(doubleKmer.kmer, i)));
         }
         //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
         if(isJunction(doubleKmer.kmer)){

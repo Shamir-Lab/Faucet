@@ -98,6 +98,7 @@ protected:
     std::set<uint64_t> valid_hash1;
 
 public:
+    int getNumHash();
     int getHashSize();
     uint64_t getBloomMask();
 

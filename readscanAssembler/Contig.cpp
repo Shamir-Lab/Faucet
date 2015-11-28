@@ -24,8 +24,8 @@ Contig* Contig::concatenate(Contig* otherContig){
 		printf("ERROR: seq less than k long in Contig::Concatenate.\n");
 	}
 	result->setSeq(seq.substr(0, seq.length()-sizeKmer) + otherContig->seq);
-	result->addJuncDistances(juncDistances.begin(), juncDistances.end());
-	result->addJuncDistances(otherContig->juncDistances.begin(), otherContig->juncDistances.end());
+	result->addJuncDistances(juncDistances);
+	result->addJuncDistances(otherContig->juncDistances);
 	result->setCoverage(coverageSum + otherContig->coverageSum);
 	return result;
 }
@@ -68,8 +68,13 @@ void Contig::addCoverage(int cov){
 	coverageSum += cov;
 }
 
-float Contig::getAvgCoverage(){
-	return (float) coverageSum / (float) (juncDistances.size()+1);
+long int Contig::getAvgCoverage(){
+	//printf("Cov: %d\n", coverageSum);
+	//printf("Junc dist size: %u\n", juncDistances.size());
+	if( juncDistances.size() < 0){
+		return -1;
+	}
+	return (long int) coverageSum / (long int)(juncDistances.size()+1);
 }
 
 int Contig::getMinAdjacentCoverage(){
@@ -88,8 +93,8 @@ float Contig::getMass(){
 	return getAvgCoverage()*seq.length();
 }
 
-void Contig::addJuncDistances(std::vector<unsigned char>::iterator  start, std::vector<unsigned char>::iterator end){
-	for(auto it = start; it < end; it++){
+void Contig::addJuncDistances(std::vector<unsigned char> distances){
+	for(auto it = distances.begin(); it != distances.end(); it++){
 		unsigned char dist = *it;
 		juncDistances.push_back(dist);
 	}
@@ -198,6 +203,24 @@ std::vector<std::pair<Contig*, bool>> Contig::getNeighbors(bool RC){
 	return {};
 }
 
+bool Contig::checkValidity(){
+	if(node1_p){
+		if(node1_p->contigs[ind1] != this){
+			printf("CONTIG_ERROR: adjacent node at specified index doesn't point back to this contig.\n");
+			std::cout << "At " << getFastGName(true) << "\n";			
+			return false;
+		}
+	}
+	if(node2_p){
+		if(node2_p->contigs[ind2] != this){
+			printf("CONTIG_ERROR: adjacent node at specified index doesn't point back to this contig.\n");
+			std::cout << "At " << getFastGName(true) << "\n";
+			return false;
+		}
+	}
+	return true;
+}
+
 string Contig::getFastGName(bool RC){
 	stringstream stream;
     stream << "NODE_" << this << "_length_" << seq.length() << "_cov_" << getAvgCoverage();
@@ -255,3 +278,6 @@ Contig::Contig(){
 	juncDistances = {};
 }
 
+Contig::~Contig(){
+	juncDistances.clear();
+}

@@ -32,6 +32,20 @@ public:
     unordered_map<kmer_type, ContigNode> * getNodeMap();
     void switchToNodeVector();
 
+    //Returns a list of kmers that could be in a junction pair that would help to
+    //disentangle a contig.  
+    //Specifically all recorded branch junctions on the contig on index index of node node
+    std::list<kmer_type> getPairCandidates(ContigNode* node, int index);
+
+    //Gets tail bound for binomia ldistribution with number of trials, probability,
+    //and for result specified
+    double getTailBound(int numTrials, double p, int result);
+
+    //Gets number of supporting pairs given candidate list
+    //TODO: normalize by expected FP rate of filter
+    double getScore(std::list<kmer_type> leftCand, std::list<kmer_type> rightCand, Bloom* pair_filter, double fpRate);
+   
+
     //a,b are on backNode, c,d are on forwardNode
     //a pairs with c, b pairs with d
     //Does not go ahead with the operation if degeneracies are detected

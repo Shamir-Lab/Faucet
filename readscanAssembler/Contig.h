@@ -21,7 +21,7 @@ private:
     std::vector<std::pair<Contig*, bool>> getNeighbors(bool forward);
 
 public:
-
+    ~Contig();
     std::string getFastGName(bool RC);
     std::string getFastGHeader(bool RC);
 
@@ -34,6 +34,8 @@ public:
     std::string seq;
     std::vector<unsigned char> juncDistances;
     int coverageSum;
+    
+    bool checkValidity();
 
     //Concatenates the two contigs, gluing together the specified sides
     Contig* concatenate(Contig* otherContig, int thisSide, int otherSide);
@@ -43,11 +45,11 @@ public:
     void setEnds(ContigNode* n1, int i1, ContigNode* n2, int i2);
     void setIndices(int i1, int i2);
     void setSeq(std::string cont);
-    void addJuncDistances(std::vector<unsigned char>::iterator  start, std::vector<unsigned char>::iterator end);
+    void addJuncDistances(std::vector<unsigned char> distances);
     void addJuncDistance(unsigned char dist);
     void setCoverage(int cov);
     void addCoverage(int cov);
-    float getAvgCoverage();
+    long int getAvgCoverage();
 
     //gets the node coverages on each end, returns minimum as base line for how much this should be covered.
     //If the contig is isolated, returns 0

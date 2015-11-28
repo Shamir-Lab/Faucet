@@ -74,7 +74,10 @@ void ReadKmer::forward(){
     if(direction == FORWARD){
         return; //switching from facing backward to forward doesn't entail a shift
     }
-    int newNuc = NT2int((*read)[pos + sizeKmer]);
+    int newNuc = 0;
+    if(pos + sizeKmer <  read->length()){
+        newNuc = NT2int((*read)[pos + sizeKmer]);   
+    }
     doubleKmer.forward(newNuc);
     pos++;
 }
@@ -117,7 +120,7 @@ kmer_type ReadKmer::getRealExtension(){
 //Starts all the way at the front- facing off the read
 ReadKmer::ReadKmer(string* theRead): doubleKmer(0){
     read = theRead;
-    kmer_type kmer;
+    kmer_type kmer = 0;
     getFirstKmerFromRead(&kmer,&((*read)[0]));
     doubleKmer = DoubleKmer(kmer);
     pos = 0;

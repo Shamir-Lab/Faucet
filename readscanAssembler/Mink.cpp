@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -257,16 +258,20 @@ int main(int argc, char *argv[])
     ContigGraph* contigGraph = junctionMap->buildContigGraph();
     delete(bloom);
 
+    contigGraph->checkGraph();
+
+    contigGraph->printGraph(file_prefix + ".raw_graph");
+
     while(contigGraph->cleanGraph());
 
-    contigGraph->printContigs(file_prefix + ".cleaned_contigs");
+    contigGraph->checkGraph();
 
     while(contigGraph->disentangle(pair_filter) > 0);
 
     printf("Weight of pair filter: %f\n", pair_filter->weight());
 
     contigGraph->printContigs(file_prefix + ".disentangled_contigs");
-    contigGraph->printGraph(file_prefix + ".contig_graph.graph");
+    contigGraph->printGraph(file_prefix + ".cleaned_graph");
 
     printf("Program reached end. \n");
     return 0;
