@@ -36,6 +36,7 @@ public:
     int coverageSum;
     
     bool checkValidity();
+    bool isDegenerateLoop();//returns true if both sides have same node and same index
 
     //Concatenates the two contigs, gluing together the specified sides
     Contig* concatenate(Contig* otherContig, int thisSide, int otherSide);

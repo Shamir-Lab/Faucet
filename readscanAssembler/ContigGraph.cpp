@@ -1,5 +1,6 @@
 #include "ContigGraph.h"
 #include <math.h>
+#include <stdlib.h>
 
 unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
@@ -52,22 +53,33 @@ bool ContigGraph::cleanGraph(){
     return result;
 }
 
-void ContigGraph::checkGraph(){
+bool ContigGraph::checkGraph(){
     printf("Checking node mapped contigs.\n");
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         kmer_type kmer = it->first;
         ContigNode* node = &it->second;
-        if(kmer != node->getKmer()){
-            printf("GRAPHERROR: node kmer didn't match nodemap kmer.\n");
+
+        //since it uses the back contig to generate the kmer, can't run this check without one
+        if(node->contigs[4]){
+            if(kmer != node->getKmer()){
+                printf("GRAPHERROR: node kmer didn't match nodemap kmer.\n");
+                return false;
+            }
         }
 
+        //Want to run this check during cleaning, so can't look for this -it'll be violated till we destroy degenerate nodes
         // if(!node->contigs[4]){
         //     printf("GRAPHERROR: node lacks backcontig.\n");
         // }
-        node->checkValidity();
+        
+        if(!node->checkValidity()){
+            return false;
+        }
         for(int i = 0; i < 5; i++){
             if(node->contigs[i]){
-                node->contigs[i]->checkValidity();
+                if(!node->contigs[i]->checkValidity()){
+                    return false;
+                }
             }
         }                
     }
@@ -78,10 +90,12 @@ void ContigGraph::checkGraph(){
         Contig* contig = &*it;
         if(contig->node1_p || contig->node2_p){
             printf("GRAPHERROR: isolated contig has pointer to at least one node.\n");
+            return false;
         }  
     }
 
     printf("Done checking graph\n");
+    return true;
 
 }
 
@@ -103,7 +117,8 @@ void ContigGraph::deleteContig(Contig* contig){
     if(contig->node2_p){
         contig->node2_p->breakPath(contig->ind2);
     }
-    delete(contig);
+    delete contig;
+    contig = nullptr;
 }
 
 
@@ -139,22 +154,25 @@ int ContigGraph::deleteErrorContigs(){
     printf("Deleting node mapped contigs.\n");
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-        ContigNode* node = &it->second;
+        ContigNode& node = it->second;
         //printf("Got node.\n");
         for(int i = 0; i < 5; i++){
-            if(node->contigs[i]){
+            if(node.contigs[i]){
                  //printf("Checking contig %d.\n", i);
-                Contig* contig = node->contigs[i];
+                Contig* contig = node.contigs[i];
                 //printf("Got contig. \n");
                 if(isErrorContig(contig)){
                    // printf("Is error contig.\n");
                     numDeleted++;
-                    printf("Deleting contig %d \n" , numDeleted);
-                    std::cout << "Sequence: " << contig->seq << "\n";
-                    std::cout << "Header: " << contig->getFastGHeader(true) << "\n";
+                    // printf("Deleting contig %d \n" , numDeleted);
+                    // std::cout << "Sequence: " << contig->seq << "\n";
+                    // std::cout << "Header: " << contig->getFastGHeader(true) << "\n";
                     deleteContig(contig);
 
-                    checkGraph();
+                    // if(!checkGraph()){
+                    //     std::cout << " Graph Check failed. Exiting.\n";
+                    //     exit(1);
+                    // }
                     // printGraph("lastValidGraph.fastg");
                     //printf("Deleted contig.\n");
                 }
@@ -441,13 +459,16 @@ void ContigGraph::collapseNode(ContigNode * node){
         }
         if(!backNode && !frontNode){
             addIsolatedContig(*newContig);
-            delete newContig; 
+            delete newContig;
+            newContig = nullptr;
         }
     }
     kmer_type toErase = node->getKmer();
     if(!nodeMap.erase(toErase)) printf("ERROR: tried to erase node %s but there was no node.\n", print_kmer(toErase));
-    delete(backContig);
-    delete(frontContig);
+    delete backContig;
+    backContig = nullptr;
+    delete frontContig;
+    frontContig = nullptr;
 }
 
 

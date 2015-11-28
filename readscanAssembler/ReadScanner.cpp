@@ -81,7 +81,8 @@ void ReadScanner::add_fake_junction(string read){
   junc->addCoverage(middleKmer->getRealExtensionNuc());
   junc->update(middleKmer->getExtensionIndex(BACKWARD), middleKmer->getTotalPos()-2*jchecker->j);
   junc->update(middleKmer->getExtensionIndex(FORWARD), middleKmer->getDistToEnd()-2*jchecker->j);
-  delete(middleKmer);
+  delete middleKmer;
+  middleKmer = nullptr;
 }
 
 
@@ -178,10 +179,11 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
     //pair_filter->addPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension());
   }
 
-  delete(lastKmer);
-  delete(readKmer);
-  delete(firstBackJunc);
-  delete(lastForwardJunc);
+  delete lastKmer;
+  delete readKmer;
+  delete firstBackJunc;
+  delete lastForwardJunc;
+  lastKmer = nullptr, readKmer = nullptr, firstBackJunc = nullptr, lastForwardJunc = nullptr;
 
   return result;
 }

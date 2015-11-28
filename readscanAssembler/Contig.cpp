@@ -186,7 +186,7 @@ void Contig::setSide(int side, ContigNode* node){
 }
 
 bool Contig::isIsolated(){
-	return node1_p == nullptr && node2_p == nullptr;
+	return ((node1_p == nullptr) && (node2_p == nullptr));
 }
 
 std::vector<std::pair<Contig*, bool>> Contig::getNeighbors(bool RC){
@@ -203,6 +203,10 @@ std::vector<std::pair<Contig*, bool>> Contig::getNeighbors(bool RC){
 	return {};
 }
 
+bool Contig::isDegenerateLoop(){
+	return (node1_p == node2_p && ind1 == ind2);
+}
+
 bool Contig::checkValidity(){
 	if(node1_p){
 		if(node1_p->contigs[ind1] != this){
@@ -210,11 +214,23 @@ bool Contig::checkValidity(){
 			std::cout << "At " << getFastGName(true) << "\n";			
 			return false;
 		}
+		if(getSide(node1_p, ind1) != 1 && !isDegenerateLoop()){
+			printf("CONTIG_ERROR: getSide incorrect on node1p, ind1.\n");
+			std::cout << "Node1: " << node1_p << ", Ind1: " << ind1 << ", Side: " << getSide(node1_p, ind1) << "\n";
+			std::cout << "Node2: " << node2_p << ", Ind2: " << ind2 << ", Side: " << getSide(node2_p, ind2) << "\n";
+			return false;
+		}
 	}
 	if(node2_p){
 		if(node2_p->contigs[ind2] != this){
 			printf("CONTIG_ERROR: adjacent node at specified index doesn't point back to this contig.\n");
 			std::cout << "At " << getFastGName(true) << "\n";
+			return false;
+		}
+		if(getSide(node2_p, ind2) != 2 && !isDegenerateLoop()){
+			printf("CONTIG_ERROR: getSide incorrect on node2p, ind2.\n");
+			std::cout << "Node1: " << node1_p << ", Ind1: " << ind1 << ", Side: " << getSide(node1_p, ind1) << "\n";
+			std::cout << "Node2: " << node2_p << ", Ind2: " << ind2 << ", Side: " << getSide(node2_p, ind2) << "\n";
 			return false;
 		}
 	}
@@ -279,5 +295,7 @@ Contig::Contig(){
 }
 
 Contig::~Contig(){
+	node1_p = nullptr;
+	node2_p = nullptr;
 	juncDistances.clear();
 }
