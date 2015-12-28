@@ -1,5 +1,6 @@
 #include "ContigGraph.h"
 #include <math.h>
+#include <time.h>
 #include <stdlib.h>
 
 unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
@@ -16,6 +17,10 @@ bool allDistinct(std::vector<ContigNode*> nodes){
         }
     }
     return true;
+}
+
+void ContigGraph::setReadLength(int length){
+    read_length = length;
 }
 
 void ContigGraph::switchToNodeVector(){
@@ -39,9 +44,27 @@ void ContigGraph::switchToNodeVector(){
     }
 }
 
-bool ContigGraph::cleanGraph(){
+bool ContigGraph::deleteTipsAndClean(){
     bool result = false;
-    if(deleteErrorContigs() > 0){
+    if(deleteTipsAndLowCoverageContigs() > 0){
+        result = true;
+    }   
+    if(destroyDegenerateNodes() > 0){
+        result = true;
+    }
+    if(collapseDummyNodes() > 0){
+        result = true;
+    }
+    return result;
+}
+
+bool ContigGraph::cleanGraph(Bloom* pair_filter){
+    bool result = deleteTipsAndClean();
+
+    // Contig* longContig = getLongestContig();
+    // longContig->printPairStatistics(pair_filter);
+
+    if(breakUnsupportedPaths(pair_filter) > 0){
         result = true;
     }
     if(destroyDegenerateNodes() > 0){
@@ -50,6 +73,10 @@ bool ContigGraph::cleanGraph(){
     if(collapseDummyNodes() > 0){
         result = true;
     }
+
+    // longContig = getLongestContig();
+    // longContig->printPairStatistics(pair_filter);
+
     return result;
 }
 
@@ -99,13 +126,43 @@ bool ContigGraph::checkGraph(){
 
 }
 
-bool ContigGraph::isErrorContig(Contig* contig){
+//Returns a list of extensions which are there but have no support
+std::vector<int> ContigGraph::getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter){
+    if(!node->contigs[4]){
+        printf("GRAPHERROR: tried to test support at node with no backcontig.\n");
+        return {};
+    }
+    int insertSize = 500;
+    std::list<JuncResult> backResults = node->getPairCandidates(4, insertSize);
+    std::list<JuncResult> forResults;
+    std::vector<int> results = {};
+    for (int i = 0; i < 4; i++){
+        if(node->contigs[i]){
+            Contig* contig = node->contigs[i];
+            forResults = node->getPairCandidates(i, insertSize);
+            if(getScore(backResults, forResults, pair_filter, .01)==0){
+                results.push_back(i);
+            }
+        }   
+    }
+    return results;
+}
+
+bool ContigGraph::isTip(ContigNode* node, int index){
+    Contig* contig = node->contigs[index];
+    if(contig->getSeq().length() < read_length && contig->otherEndNode(node) == nullptr){
+        return true;
+    }
+    return false;
+}
+
+bool ContigGraph::isLowCovContig(Contig* contig){
     if(contig->getAvgCoverage()<3){
         return true;
     }
-    if (20*contig->getAvgCoverage() < contig->getMinAdjacentCoverage()) { //more deletion for chimeras
-        return true;
-    }   
+    // if (20*contig->getAvgCoverage() < contig->getMinAdjacentCoverage()) { //more deletion for chimeras
+    //     return true;
+    // }   
     return false;
 }
 
@@ -147,22 +204,66 @@ void ContigGraph::cutPath(ContigNode* node, int index){
     node->breakPath(index);
 }
 
-int ContigGraph::deleteErrorContigs(){
-    printf("Deleting error contigs.\n");
+
+
+int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter){
+    printf("Breaking unsupported paths contigs. Starting with %d nodes. \n", nodeMap.size());
+    int numBroken = 0;
+    clock_t t = clock();
+    //looks through all contigs adjacent to nodes
+    int j = 1;
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        if(j % 1000 == 0){
+            std::cout << j << " nodes processed. Time: "<< clock()-t << "\n";
+            t = clock();
+        }
+        j++;
+        ContigNode* node = &it->second;
+        //printf("Got node.\n");
+        std::vector<int> unsupported = getUnsupportedExtensions(node, pair_filter);
+        for(auto it = unsupported.begin(); it != unsupported.end(); it++){
+                    numBroken++;
+                    // printf("Deleting contig %d \n" , numDeleted);
+                    // std::cout << "Sequence: " << contig->seq << "\n";
+                    // std::cout << "Header: " << contig->getFastGHeader(true) << "\n";
+                    cutPath(node,*it);
+
+                    // if(!checkGraph()){
+                    //     std::cout << " Graph Check failed. Exiting.\n";
+                    //     exit(1);
+                    // }
+                    // printGraph("lastValidGraph.fastg");
+                    // printf("Deleted contig.\n");
+                
+            
+        }
+    }
+
+    printf("Done breaking %d unsupported paths.\n", numBroken);
+    return numBroken;
+}   
+
+
+
+int ContigGraph::deleteTipsAndLowCoverageContigs(){
+    printf("Deleting error contigs. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0;
 
     printf("Deleting node mapped contigs.\n");
     //looks through all contigs adjacent to nodes
+    int j = 1;
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-        ContigNode& node = it->second;
+        if(j % 10000 == 0){
+            std::cout << j << " nodes processed.\n";
+        }
+        j++;
+        ContigNode* node = &it->second;
         //printf("Got node.\n");
         for(int i = 0; i < 5; i++){
-            if(node.contigs[i]){
-                 //printf("Checking contig %d.\n", i);
-                Contig* contig = node.contigs[i];
-                //printf("Got contig. \n");
-                if(isErrorContig(contig)){
-                   // printf("Is error contig.\n");
+            Contig* contig = node->contigs[i];
+            if(contig){
+                //printf("Checking contig %d.\n", i);
+                if(isLowCovContig(contig) || isTip(node, i)){
                     numDeleted++;
                     // printf("Deleting contig %d \n" , numDeleted);
                     // std::cout << "Sequence: " << contig->seq << "\n";
@@ -181,13 +282,13 @@ int ContigGraph::deleteErrorContigs(){
     }
 
     printf("Done deleting node mapped contigs.\n");
-    printf("Deleting isolated contigs.\n");
+    printf("Deleting isolated contigs. Starting with %d.\n", isolated_contigs.size());
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
         Contig* contig = &*it;
-        if(isErrorContig(contig)){
-            numDeleted++, it++;
-            isolated_contigs.erase(it);
+        if(isLowCovContig(contig)){
+            numDeleted++;
+            it = isolated_contigs.erase(it);
         }
         else it++;
     }
@@ -197,7 +298,7 @@ int ContigGraph::deleteErrorContigs(){
 }   
 
 int ContigGraph::destroyDegenerateNodes(){
-    printf("Destroying degenerate nodes.\n");
+    printf("Destroying degenerate nodes. Starting with %d nodes.\n", nodeMap.size());
     int numDegen = 0;
 
     //looks through all contigs adjacent to nodes
@@ -227,14 +328,6 @@ int ContigGraph::destroyDegenerateNodes(){
     return numDegen;
 }
 
-//trivial implementation that returns a list of the immediatley adjacent kmer
-std::list<kmer_type> ContigGraph::getPairCandidates(ContigNode* node, int index){
-    std::list<kmer_type> result = {};
-    Contig* contig = node->contigs[index];
-    result.push_back(node->getForwardExtension(index));
-    return result;
-}
-
 double ContigGraph::getTailBound(int numTrials, double p, int result){
     double mean = 1.0*numTrials*p;
     double delta = (1.0*result / mean) - 1;
@@ -260,63 +353,85 @@ double ContigGraph::getTailBound(int numTrials, double p, int result){
 
 //returns a score based on how many pairs of kmers from the first and second lists are in the filter,
 //relative to the FP rate of the filter
-double ContigGraph::getScore(std::list<kmer_type> leftCand, std::list<kmer_type> rightCand, Bloom* pair_filter, double fpRate){
+double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate){
     double score = 0;
-    for(auto itL = leftCand.begin(); itL != leftCand.end(); itL++){
-        kmer_type leftKmer = *itL;
-        for(auto itR = rightCand.begin(); itR != rightCand.end(); itR++){
-            kmer_type rightKmer = *itR;
-            if(pair_filter->containsPair(leftKmer, rightKmer)){
+    int insertSize = 500;
+    int readLength = 100;
+    int counter = 0;
+
+    //Looks for junction pairs from a single read, within readlength of the junction either way
+    for(auto itL = leftCand.begin(); itL != leftCand.end() && itL->distance < readLength; itL++){
+        for(auto itR = rightCand.begin(); itR != rightCand.end()  && itR->distance < readLength; itR++){
+            counter++;
+            if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+                //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
                 score += 1;
-            }
+            } 
         }
     }
-    return getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
+
+    //Looks for junction pairs one full insert size apart
+    //Only searches for pairs at distances [IS-readLength, IS+readLength]
+    //TODO: come up with way of gauging variance in IS and redefine this based on that
+    std::reverse(leftCand.begin(), leftCand.end());
+    auto rightStart = rightCand.begin();
+    for(auto itL = leftCand.begin(); itL != leftCand.end(); itL++){
+        while(rightStart != rightCand.end() && rightStart->distance + itL->distance < insertSize - readLength){
+            rightStart++;
+        }
+        if(rightStart == rightCand.end()) {break;}
+        for(auto itR = rightStart; itR != rightCand.end() 
+            && itR->distance + itL->distance < insertSize + readLength; itR++){
+            counter++;
+            if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+                //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
+                score += 1;
+            } 
+        }
+    }
+
+    //std::cout << "Total pairs: " << rightCand.size()*leftCand.size() << ", counter: " << counter << "\n";
+    //std::cout << "Junctions: " << leftCand.size() << "," << rightCand.size() << ". Score: " << score << "\n";
+    return score; //getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
 }
 
 int ContigGraph::disentangle(Bloom* pair_filter){
     int disentangled = 0;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
+    std::cout << "About to disentangle.  Starting with " << nodeMap.size() << " nodes.\n";
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         //printf("-1\n");
         ContigNode* node = &it->second;
         //printf("Testing %s\n", print_kmer(node->getKmer()));
         kmer_type kmer = it->first;
-       // printf("0\n");
+        //printf("0\n");
         if(node->numPathsOut() == 2){
-            //printf("1");
+            //printf("1\n");
             Contig* contig = node->contigs[4];
             ContigNode* backNode = contig->otherEndNode(node);
-          // printf(".2");
+            //printf("2\n");
             if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
+                //printf("3\n");
                 // printf("Found an outward facing pair: %s,", print_kmer(node->getKmer()));
                 // printf("%s\n", print_kmer(backNode->getKmer()));
                 int a,b,c,d;
                 a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
                 c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
-                std::list<kmer_type> A = getPairCandidates(backNode, a);
-                std::list<kmer_type> B = getPairCandidates(backNode, b);
-                std::list<kmer_type> C = getPairCandidates(node,c);
-                std::list<kmer_type> D = getPairCandidates(node, d);
+                int insertSize = 500;
+                std::list<JuncResult> A = backNode->getPairCandidates(a, insertSize);
+                std::list<JuncResult> B = backNode->getPairCandidates(b, insertSize);
+                std::list<JuncResult> C = node->getPairCandidates(c, insertSize);
+                std::list<JuncResult> D = node->getPairCandidates(d, insertSize);
               
-                // printf("A: %s\n", print_kmer(A));
-                // printf("B: %s\n", print_kmer(B));
-                // printf("C: %s\n", print_kmer(C));
-                // printf("D: %s\n", print_kmer(D));
-
-                // printf("Pair filter says:\n");
-                // printf("A/C: %d\n", pair_filter->containsPair(A,C));
-                // printf("B/D: %d\n", pair_filter->containsPair(B,D));
-                // printf("A/D: %d\n", pair_filter->containsPair(A,D));
-                // printf("B/C: %d\n", pair_filter->containsPair(B,C));
                 double scoreAC = getScore(A,C, pair_filter, fpRate);
                 double scoreAD = getScore(A,D, pair_filter, fpRate);
                 double scoreBC = getScore(B,C, pair_filter, fpRate);
                 double scoreBD = getScore(B,D, pair_filter, fpRate);
                 //std::cout << "Score: " << scoreAC << "," << scoreBD << "," << scoreAD << "," << scoreBC << "\n";
-                if(scoreAC <.05 && scoreBD < .05 && scoreAD > .3 && scoreBC > .3){
+                //if(scoreAC <.05 && scoreBD < .05 && scoreAD > .3 && scoreBC > .3){
+                if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                     //printf("Found pair in filter in first orientation.\n");
                     
                     if(disentanglePair(contig, backNode, node, a, b, c, d)){
@@ -338,7 +453,8 @@ int ContigGraph::disentangle(Bloom* pair_filter){
                         continue;
                     }
                 }
-                if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
+                if(std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0){
+                //if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
                     //printf("Found pair in filer in second orientation\n");
                     if(disentanglePair(contig, backNode, node, a,b,d,c)){
                         //printf("Disentangled pair.\n");
@@ -421,7 +537,7 @@ int ContigGraph::collapseDummyNodes(){
         it++;
         if(node->numPathsOut() == 1){
             numCollapsed++;
-            collapseNode(node);
+            collapseNode(node, kmer);
         }
     }
 
@@ -429,9 +545,12 @@ int ContigGraph::collapseDummyNodes(){
     return numCollapsed;
 }
 
-void ContigGraph::collapseNode(ContigNode * node){
+void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
     Contig* backContig = node->contigs[4];
     Contig* frontContig;
+    if(!backContig){
+        printf("WTF no back\n");
+    }
     int fronti = 0;
     for(int i = 0; i < 4; i++){
         if(node->contigs[i]) {
@@ -439,10 +558,16 @@ void ContigGraph::collapseNode(ContigNode * node){
             fronti = i;
         }
     }
-    if(frontContig == backContig){ //circular sequence with a redundant node
-        addIsolatedContig(*frontContig);
+    if(!frontContig){
+        printf("WTF no front\n");
     }
-    else{ //normal case of collapsing a node between two other nodes
+    if(frontContig == backContig){ //circular sequence with a redundant node
+        frontContig->node1_p=nullptr;
+        frontContig->node2_p=nullptr;
+        addIsolatedContig(*frontContig);
+        delete backContig;
+    }
+    else { //normal case of collapsing a node between two other nodes
         ContigNode* backNode = backContig->otherEndNode(node);
         ContigNode* frontNode = frontContig->otherEndNode(node);
 
@@ -460,15 +585,11 @@ void ContigGraph::collapseNode(ContigNode * node){
         if(!backNode && !frontNode){
             addIsolatedContig(*newContig);
             delete newContig;
-            newContig = nullptr;
-        }
+        } 
+        delete backContig;
+        delete frontContig;
     }
-    kmer_type toErase = node->getKmer();
-    if(!nodeMap.erase(toErase)) printf("ERROR: tried to erase node %s but there was no node.\n", print_kmer(toErase));
-    delete backContig;
-    backContig = nullptr;
-    delete frontContig;
-    frontContig = nullptr;
+    if(!nodeMap.erase(kmer)) printf("ERROR: tried to erase node %s but there was no node.\n", print_kmer(kmer));
 }
 
 
@@ -498,9 +619,9 @@ void ContigGraph::printGraph(string fileName){
 
 void ContigGraph::printContigFastG(ofstream* fastgFile, Contig * contig){
     *fastgFile << contig->getFastGHeader(true) << "\n";
-    *fastgFile << contig->seq << "\n";
+    *fastgFile << contig->getSeq() << "\n";
     *fastgFile << contig->getFastGHeader(false) << "\n";
-    *fastgFile << contig->seq << "\n";
+    *fastgFile << contig->getSeq() << "\n";
 }
 
 void ContigGraph::addIsolatedContig(Contig contig){
@@ -524,7 +645,7 @@ void ContigGraph::printContigs(string fileName){
                     //printf("Printing from node at index %d\n", i);
                     // std::cout << "Contig " << lineNum << ":\n";
                     // std::cout << contig->seq << "\n";
-                    jFile << canon_contig(contig->seq) << "\n";
+                    jFile << canon_contig(contig->getSeq() ) << "\n";
                 }
             }
         }
@@ -534,7 +655,7 @@ void ContigGraph::printContigs(string fileName){
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
         Contig contig = *it;
         //printf("Printing isolated contig.\n");
-        jFile << canon_contig(contig.seq) << "\n";
+        jFile << canon_contig(contig.getSeq()) << "\n";
     }
 
     //printf("Done printing contigs from contig graph.\n");
@@ -552,4 +673,19 @@ ContigGraph::ContigGraph(){
 //Uses coverage info from junction to create the node
 ContigNode * ContigGraph::createContigNode(kmer_type kmer, Junction junc){
     return &(nodeMap.insert(std::pair<kmer_type, ContigNode>(kmer, ContigNode(junc))).first->second);
+}
+
+Contig* ContigGraph::getLongestContig(){
+    ContigIterator* contigIt = new ContigIterator(this);
+    Contig* result;
+    int maxLength = 0;
+    while(contigIt->hasNextContig()){
+        Contig* contig = contigIt->getContig();
+        int length = contig->length();
+        if(length > maxLength){
+            result = contig;
+            maxLength = length;
+        }
+    }
+    return result;
 }

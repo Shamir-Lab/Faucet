@@ -14,6 +14,7 @@ class ContigGraph; //forward declare
 #include "../utils/Bloom.h"
 #include "../utils/JunctionMap.h"
 #include "../utils/JChecker.h"
+#include "../utils/JuncPairs.h"
 #include "Contig.h"
 #include "ContigNode.h"
 #include "BfSearchResult.h"
@@ -27,15 +28,12 @@ class ContigGraph
 std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
 unordered_map<kmer_type,ContigNode> nodeMap;
+int read_length;
 
 public: 
     unordered_map<kmer_type, ContigNode> * getNodeMap();
     void switchToNodeVector();
-
-    //Returns a list of kmers that could be in a junction pair that would help to
-    //disentangle a contig.  
-    //Specifically all recorded branch junctions on the contig on index index of node node
-    std::list<kmer_type> getPairCandidates(ContigNode* node, int index);
+    void setReadLength(int length);
 
     //Gets tail bound for binomia ldistribution with number of trials, probability,
     //and for result specified
@@ -43,7 +41,7 @@ public:
 
     //Gets number of supporting pairs given candidate list
     //TODO: normalize by expected FP rate of filter
-    double getScore(std::list<kmer_type> leftCand, std::list<kmer_type> rightCand, Bloom* pair_filter, double fpRate);
+    double getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate);
    
 
     //a,b are on backNode, c,d are on forwardNode
@@ -51,10 +49,12 @@ public:
     //Does not go ahead with the operation if degeneracies are detected
     //Returns true if it goes ahead with disentanglement
     bool disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
-    void addIsolatedContig(Contig contig); 
-    bool isErrorContig(Contig* contig);
+    void addIsolatedContig(Contig contig);
+    std::vector<int> getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter);
+    bool isLowCovContig(Contig* contig);
+    bool isTip(ContigNode* node, int i);
     void deleteContig(Contig* contig);
-    bool cleanGraph(); //Cleans graph and returns true if any changes were made
+    bool cleanGraph(Bloom* pair_filter); //Cleans graph and returns true if any changes were made
 
     bool checkGraph();
     void printContigFastG(ofstream* fastgFile, Contig * contig);
@@ -62,18 +62,24 @@ public:
      void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();
 
+    Contig* getLongestContig();
+
     //Creates a contig node if it doesn't already exist
     //If it exists, does nothing and returns the existing one.
     //Otherwise, returns the new one
     ContigNode * createContigNode(kmer_type kmer, Junction junction);    
     int disentangle(Bloom* pair_filter);
+    bool deleteTipsAndClean();
+
 private:
-    int deleteErrorContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
+
+    int deleteTipsAndLowCoverageContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
+    int breakUnsupportedPaths(Bloom* pair_filter); //removes extensions of junctions not supported by paired ends
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
 
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
-    void collapseNode(ContigNode * node);
+    void collapseNode(ContigNode * node, kmer_type kmer);
     void cutPath(ContigNode* node, int index); //used on nodes with no backward contig
 };
 

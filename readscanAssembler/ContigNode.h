@@ -1,25 +1,27 @@
 #ifndef CONTIGNODE
 #define CONTIGNODE
 
- class Contig; // forward declare to avoid circ. dependency
+class Contig; // forward declare to avoid circ. dependency
 // following http://www.cplusplus.com/forum/articles/10627/#msg49679
 
 #include <iostream>
 #include <vector>
-#include "Node.h"
+#include <set>
+#include <queue>
 #include "Contig.h"
 #include "../utils/Kmer.h"
+#include "../utils/JuncPairs.h"
+#include "../utils/Junction.h" 
 using std::ofstream;
 
 
 class ContigNode{
     
-    unsigned char cov[4];
 public:
+    unsigned char cov[4];
     Contig * contigs[5];
 
     ContigNode(Junction junction);
-    ContigNode(Node node);
     ContigNode();
 
 
@@ -27,8 +29,12 @@ public:
     
     //gets the neighbors of the specified contig- if contigIndex is 4, returns all forward neighbors
     //If contig index isn't 4, only returns back contig as a neighbor
-    std::vector<std::pair<Contig*, bool>> getFastGNeighbors(int contigIndex);
+    std::vector<std::pair<Contig*, bool> > getFastGNeighbors(int contigIndex);
 
+
+
+    std::list<JuncResult> getPairCandidates(int index, int maxDist);
+      
     void replaceContig(Contig* oldContig, Contig* newContig);
     int numPathsOut();
     int indexOf(Contig* contig);
@@ -38,6 +44,7 @@ public:
     int getTotalCoverage();//returns getCoverage(4)
     void setCoverage(Junction junc);
     void update(int nucExt, Contig * contig);
+    kmer_type getUniqueKmer(int index);//returns base kmer for backward, or extension for forward index
 
     //removes the given path out of this node.
     //Removes contig pointer, set coverage to 0
@@ -50,4 +57,16 @@ public:
     kmer_type getKmer();
 };
 
+class NodeQueueEntry{ //contains all info for an entry in the queue for a node BFS
+public:
+    ContigNode* node;
+    int index;
+    int startDist;
+
+    NodeQueueEntry(ContigNode* n, int i, int s);
+
+    std::list<JuncResult> getJuncResults(int m); //returns immediate junc results from contig along this index
+
+    void addNeighbors(std::deque<NodeQueueEntry> & queue); //searches forward one step, adds relevant nodes to the queue
+};
 #endif

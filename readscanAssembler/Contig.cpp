@@ -6,6 +6,40 @@
 using std::stringstream;
 using std::ofstream;
 
+void Contig::printPairStatistics(Bloom* pair_filter){
+	std::list<JuncResult> results = getJuncResults(1, 0, 3*length());
+	std::cout << "Length " << length() << ", results " << results.size() << "\n";
+	const int maxDist = 2000;
+	int posNegPairCounts [2][maxDist/50] = {};
+
+	for(int i = 0; i < maxDist/50; i++){
+		posNegPairCounts[0][i] = 0;
+		posNegPairCounts[1][i] = 0;
+	}
+
+	for(auto itL = results.begin(); itL != results.end(); itL++){
+		for(auto itR = itL; itR != results.end(); itR++){
+			int index = (itR->distance - itL->distance)/50;
+			if(index < maxDist/50 && index >= 0){
+				if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+					posNegPairCounts[0][index] += 1;
+				}
+				else{
+					posNegPairCounts[1][index] += 1;
+				}
+			}
+		}
+	}
+
+	printf("Pair pos/neg char, aggregated over buckets of length 50:\n");
+	for(int i = 0; i < maxDist / 50; i++){
+		std::cout << posNegPairCounts[0][i] << ",";
+		std::cout << posNegPairCounts[1][i] << "\n";
+	}
+}
+
+//Reverses if needed to get "canonical" concatenation of two in the same direction
+//Reverses again at the end to ensure no mutation of contigs
 Contig* Contig::concatenate(Contig* otherContig, int thisSide, int otherSide){
 	if(thisSide == 1){
 		reverse();
@@ -13,20 +47,24 @@ Contig* Contig::concatenate(Contig* otherContig, int thisSide, int otherSide){
 	if(otherSide == 2){
 		otherContig->reverse();
 	}
-	return concatenate(otherContig);
+	Contig* concatenation =  concatenate(otherContig);
+	if(thisSide == 1){
+		reverse();
+	}
+	if(otherSide == 2){
+		otherContig->reverse();
+	}
+	return concatenation;
 }
 
 //utility for linking them if they're both facing "forward"
 Contig* Contig::concatenate(Contig* otherContig){
 	Contig* result = new Contig();
 	result->setEnds(node1_p, ind1, otherContig->node2_p, otherContig->ind2);
-	if(seq.length() < sizeKmer){
+	if(getSeq().length() < sizeKmer){
 		printf("ERROR: seq less than k long in Contig::Concatenate.\n");
 	}
-	result->setSeq(seq.substr(0, seq.length()-sizeKmer) + otherContig->seq);
-	result->addJuncDistances(juncDistances);
-	result->addJuncDistances(otherContig->juncDistances);
-	result->setCoverage(coverageSum + otherContig->coverageSum);
+	result->setContigJuncs(contigJuncs.concatenate(otherContig->contigJuncs));
 	return result;
 }
 
@@ -39,9 +77,7 @@ void Contig::reverse(){
 		ind1 = ind2;
 		ind2 = temp;}
 
-	seq = revcomp_string(seq);
-
-	std::reverse(juncDistances.begin(), juncDistances.end());
+	contigJuncs.reverse();
 }
 
 void Contig::setEnds( ContigNode* n1, int i1, ContigNode* n2, int i2){
@@ -56,25 +92,25 @@ void Contig::setEnds( ContigNode* n1, int i1, ContigNode* n2, int i2){
 	}
 }
 
-void Contig::setSeq(std::string cont){
-	seq = cont;
-}
-
-void Contig::setCoverage(int cov){
-	coverageSum = cov;
-}
-
-void Contig::addCoverage(int cov){
-	coverageSum += cov;
-}
-
-long int Contig::getAvgCoverage(){
-	//printf("Cov: %d\n", coverageSum);
-	//printf("Junc dist size: %u\n", juncDistances.size());
-	if( juncDistances.size() < 0){
-		return -1;
+//Assumes this is startDist away from the real start, so increments all by startDist
+//Side refers to which side of the contig to start from
+std::list<JuncResult> Contig::getJuncResults(int side, int startDist, int maxDist){
+	if(side == 2){
+		reverse();
 	}
-	return (long int) coverageSum / (long int)(juncDistances.size()+1);
+	auto result = contigJuncs.getJuncResults(ind1 != 4, startDist, maxDist); //forward if ind1 != 4, backward if ind1 == 4
+	if(side == 2){
+		reverse();
+	}
+	return result;
+}
+
+int Contig::length(){
+	return contigJuncs.length();
+}
+
+double Contig::getAvgCoverage(){
+	return contigJuncs.getAvgCoverage();
 }
 
 int Contig::getMinAdjacentCoverage(){
@@ -90,18 +126,7 @@ int Contig::getMinAdjacentCoverage(){
 }
 
 float Contig::getMass(){
-	return getAvgCoverage()*seq.length();
-}
-
-void Contig::addJuncDistances(std::vector<unsigned char> distances){
-	for(auto it = distances.begin(); it != distances.end(); it++){
-		unsigned char dist = *it;
-		juncDistances.push_back(dist);
-	}
-}
-
-void Contig::addJuncDistance(unsigned char dist){
-	juncDistances.push_back(dist);
+	return getAvgCoverage()*getSeq().length();
 }
 
 void Contig::setIndices(int i1, int i2){
@@ -136,15 +161,35 @@ kmer_type Contig::getNodeKmer(ContigNode * contigNode){
 	printf("ERROR: tried to get the kmer corresponding to a node not adjacent to this contig from this contig.\n");
 }
 
+ContigNode* Contig::getNode(int side){
+	if (side == 1){
+		return node1_p;
+	}
+	if(side == 2){
+		return node2_p;
+	}
+	printf("ERROR: called getNode on contignode with side other than 1,2\n");
+}
+
+int Contig::getIndex(int side){
+	if (side == 1){
+		return ind1;
+	}
+	if(side == 2){
+		return ind2;
+	}
+	printf("ERROR: called getSide on contignode with side other than 1,2\n");
+}
+
 //Gets kmer for node1_p if side == 1, node2_p if side == 2
 kmer_type Contig::getSideKmer(int side){
 	if(side == 1){
-		kmer_type kmer = getKmerFromRead(seq, 0);
+		kmer_type kmer = getKmerFromRead(getSeq(), 0);
 		if(ind1 == 4) return revcomp(kmer);
 		return kmer;
 	}
 	if(side == 2){
-		kmer_type kmer = getKmerFromRead(seq, seq.length()-sizeKmer);
+		kmer_type kmer = getKmerFromRead(getSeq(), getSeq().length()-sizeKmer);
 		if(ind2 == 4) return kmer;
 		return revcomp(kmer);
 	}
@@ -239,7 +284,7 @@ bool Contig::checkValidity(){
 
 string Contig::getFastGName(bool RC){
 	stringstream stream;
-    stream << "NODE_" << this << "_length_" << seq.length() << "_cov_" << getAvgCoverage();
+    stream << "NODE_" << this << "_length_" << getSeq().length() << "_cov_" << getAvgCoverage();
     if(RC){
     	stream << "'";
     }
@@ -274,28 +319,22 @@ string Contig::getFastGHeader(bool RC){
 
 string Contig::getStringRep(){
 	stringstream stream;
-    stream << seq << "\n";
     stream << node1_p << "," << ind1 << " " << node2_p << "," << ind2 << "\n";
-    for(auto it = juncDistances.begin(); it != juncDistances.end(); it++){
-        stream << (int)*it << " ";
-    }
+    stream << contigJuncs.getStringRep();
     stream << "\n";
-    stream << coverageSum << "\n";
     return stream.str();
 }
 
 Contig::Contig(){
-	seq = "";
+	setSeq("");
 	node1_p = nullptr;
 	node2_p = nullptr;
 	ind1 = -1;
 	ind2 = -1;
-	coverageSum = 0;
-	juncDistances = {};
+	contigJuncs = ContigJuncList();
 }
 
 Contig::~Contig(){
 	node1_p = nullptr;
 	node2_p = nullptr;
-	juncDistances.clear();
 }

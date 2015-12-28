@@ -7,7 +7,7 @@
 #include "../utils/Kmer.h"
 #include <iterator>
 
-class ContigIterator{
+class ContigIterator{ 
 private:
     ContigGraph* graph;
     std::unordered_map<kmer_type,ContigNode>::iterator nodeIt;

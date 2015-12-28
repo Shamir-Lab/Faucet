@@ -106,7 +106,7 @@ int handle_arguments(int argc, char *argv[]){
                 just_load = true;
         else if(0 == strcmp(argv[i] , "--fastq")) //stop after loading blom
                 fastq = true;
-        else if(0 == strcmp(argv[i], "--node_graph")) //use node graph rather tha ncontig graph
+        else if(0 == strcmp(argv[i], "--node_graph")) //use node graph rather than contig graph
                 node_graph = true; 
         else if(0 == strcmp(argv[i], "--paired_ends")) //use node graph rather tha ncontig graph
                 paired_ends = true;
@@ -172,7 +172,6 @@ int handle_arguments(int argc, char *argv[]){
 
     std::cout <<  "Paired ends: " << paired_ends << "\n";
     printf("Size of junction: %d\n", sizeof(Junction));
-    printf("Size of node: %d\n", sizeof(Node));
     printf("Size of contigNode: %d\n", sizeof(ContigNode));
     printf("Size of contig: %d\n", sizeof(Contig));
     printf("Size of int: %d\n", sizeof(int));
@@ -235,7 +234,7 @@ int main(int argc, char *argv[])
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
 
-    Bloom* pair_filter = pair_filter->create_bloom_filter_optimal(estimated_kmers/10, fpRate);
+    Bloom* pair_filter = pair_filter->create_bloom_filter_optimal(estimated_kmers, fpRate);
 
     if(just_load) return 0;
     
@@ -255,20 +254,25 @@ int main(int argc, char *argv[])
     }
     //dump junctions to file
     
+    printf("Weight of pair filter: %f\n", pair_filter->weight());
+    printf("Number of junctions: %d\n", junctionMap->junctionMap.size());
     ContigGraph* contigGraph = junctionMap->buildContigGraph();
+    contigGraph->setReadLength(read_length);
     delete(bloom);
 
     contigGraph->checkGraph();
 
     contigGraph->printGraph(file_prefix + ".raw_graph");
 
-    while(contigGraph->cleanGraph());
+    while(contigGraph->cleanGraph(pair_filter));
+
+    Contig* longContig = contigGraph->getLongestContig();
+    longContig->printPairStatistics(pair_filter);
 
     contigGraph->checkGraph();
 
     while(contigGraph->disentangle(pair_filter) > 0);
 
-    printf("Weight of pair filter: %f\n", pair_filter->weight());
 
     contigGraph->printContigs(file_prefix + ".disentangled_contigs");
     contigGraph->printGraph(file_prefix + ".cleaned_graph");

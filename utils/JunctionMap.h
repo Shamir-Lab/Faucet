@@ -11,12 +11,13 @@
 #include "Bloom.h"
 #include "JChecker.h"
 #include "Kmer.h"
+#include "JuncPairs.h"
+
 #include "../readscanAssembler/Contig.h"
 #include "../readscanAssembler/ContigNode.h"
 #include "../readscanAssembler/ContigGraph.h"
 #include <fstream>
 #include "../readscanAssembler/BfSearchResult.h"
-
 using std::ofstream;
 using std::unordered_map;
 using std::string;

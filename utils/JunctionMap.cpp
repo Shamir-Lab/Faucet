@@ -104,8 +104,10 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     std::list<kmer_type> kmers_to_destroy = {};
     Junction junc = startJunc;
     kmer_type kmer = startKmer;
+    std::deque<unsigned char> coverages;
+    std::deque<unsigned char> distances;
     int index = startIndex;
-    int coverageSum = junc.getCoverage(startIndex);
+    coverages.push_back(junc.getCoverage(startIndex));
     string contigString(print_kmer(kmer));
     if(index == 4) contigString = print_kmer(revcomp(kmer));
     BfSearchResult result;
@@ -115,16 +117,20 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     while(!done){
         result = findNeighbor(junc, kmer, index);
 
-        contigString += result.contig.substr(sizeKmer, result.contig.length()-sizeKmer); //trim off the first k chars to avoid repeats 
-        contig->addJuncDistance((unsigned char) result.distance);
+        if(result.contig.length() > sizeKmer){
+            contigString += result.contig.substr(sizeKmer); //trim off the first k chars to avoid repeats 
+        }
+        distances.push_back((unsigned char) result.distance);
         if(result.isNode){
             Junction nextJunc = *getJunction(result.kmer);
-            coverageSum += nextJunc.getCoverage(result.index);
+           
+            coverages.push_back(nextJunc.getCoverage(result.index));
+            
             if (nextJunc.numPathsOut() == 1){
                 junc = nextJunc;
                 kmer = result.kmer;
                 index = junc.getOppositeIndex(result.index);
-                kmers_to_destroy.push_back(kmer);
+                kmers_to_destroy.push_back(kmer); 
             }
             else{
                 done = true;
@@ -134,8 +140,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             done = true;
         }
     }
-    contig->setSeq(contigString);
-    contig->setCoverage(coverageSum);
+    contig->setContigJuncs(ContigJuncList(contigString, distances, coverages));
     if(result.isNode){
         contig->setIndices(startIndex, result.index);
     }
@@ -489,7 +494,7 @@ int JunctionMap::getSkipDist(ReadKmer* readKmer, bool direction){
 Junction* JunctionMap::getJunction(kmer_type kmer){
   auto juncIt = junctionMap.find(kmer);
   if(juncIt == junctionMap.end()){
-    return NULL;
+    return nullptr;
   }
   else{
     return &(juncIt->second);

@@ -14,6 +14,8 @@
 #include <string>
 #include "Kmer.h"
 #include "ReadKmer.h"
+#include "JuncPairs.h"
+
 // not using kmer_type from Kmer.h because I don't want this class to depend on Kmer.h
 #ifdef _largeint
 #include "LargeInt.h"
@@ -138,8 +140,8 @@ public:
       return hash &= bloomMask;
     }
 
-    void addPair(bloom_elem elem1, bloom_elem elem2);
-    int containsPair(bloom_elem elem1, bloom_elem elem2);
+    void addPair(JuncPair pair);
+    int containsPair(JuncPair pair);
     
     //Add an element using the old hash function
     inline int oldAdd(bloom_elem elem)

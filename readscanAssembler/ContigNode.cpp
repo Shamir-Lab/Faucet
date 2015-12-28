@@ -1,5 +1,6 @@
 #include <fstream>
 #include "ContigNode.h"
+#include <time.h>
 using std::ofstream;
 using std::stringstream;
 #include <sstream> //for std::stringstream 
@@ -13,20 +14,41 @@ ContigNode::ContigNode(Junction junction){
     contigs[4] = nullptr;
 }
 
-ContigNode::ContigNode(Node node){
-	for(int i  = 0; i < 5; i++){
-		cov[i] = node.cov[i];
-		contigs[i] = nullptr;
-	}
-}
-
 ContigNode::ContigNode(){
 	for(int i  = 0; i < 5; i++){
-		cov[i] = -1;
+		cov[i] = 0;
 		contigs[i] = nullptr;
 	}	
 }
     
+std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
+    //std::cout << "Getting candidate pairs.\n";
+    clock_t t = clock();
+    std::set<kmer_type> seenKmers = {};
+    std::deque<NodeQueueEntry> queue= {};
+    queue.push_back(NodeQueueEntry(this, index, 0));
+    std::list<JuncResult> results = {};
+
+    while (!queue.empty()){
+        NodeQueueEntry entry = queue.front();
+        queue.pop_front();
+        kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
+        if(seenKmers.find(unique_kmer) == seenKmers.end()){
+            seenKmers.insert(unique_kmer);
+            if(entry.startDist <= maxDist){
+                std::list<JuncResult> newResults = entry.getJuncResults(maxDist);
+                results.insert(results.end(), newResults.begin(), newResults.end());
+                entry.addNeighbors(queue);
+            }
+        }
+   }
+   //std::cout << "Seen kmers: " << seenKmers.size() << "\n";
+   //std::cout << "Results: " << results.size() << "\n";
+    //std::cout << "Time: "<< clock()-t << " tics.\n";
+    results.sort();
+
+    return results;
+}
 
 bool ContigNode::checkValidity(){
     for(int i = 0; i < 5; i++){
@@ -85,6 +107,15 @@ std::vector<std::pair<Contig*, bool>> ContigNode::getFastGNeighbors(int contigIn
 
 kmer_type ContigNode::getForwardExtension(int index){
     return next_kmer(getKmer(), index, FORWARD);
+}
+
+kmer_type ContigNode::getUniqueKmer(int index){
+    if(index != 4){
+        return getForwardExtension(index);
+    }
+    else{
+        return getKmer();
+    }
 }
 
 int ContigNode::numPathsOut(){
@@ -163,23 +194,44 @@ ContigNode* ContigNode::getNeighbor(int index){
 }
 
 std::string ContigNode::getString(){
-    std::string result = "";
-    result += print_kmer(getKmer());
+    std::stringstream result;
     for(int i = 0; i < 5; i++){
-        result += " ";
-        result +=  getCoverage(i);
+        result <<  (int)getCoverage(i) << " ";
+       result << contigs[i] << " ";
     }
-    // for(int i = 0; i < 5; i++){
-    //     result += " ";
-    //     ContigNode * neighbor = getNeighbor(i);
-    //     if(neighbor){
-    //         result += print_kmer(neighbor->getKmer());
-    //     }
-    //     else{
-    //         result += "X";
-    //     }
-    // }
-    result += "\n";
+    return result.str();
 }
 
 
+NodeQueueEntry::NodeQueueEntry(ContigNode* n, int i, int s){
+    node = n;
+    index = i;
+    startDist = s;
+}  
+
+std::list<JuncResult> NodeQueueEntry::getJuncResults(int maxDist){
+    Contig* contig = node->contigs[index];
+     return contig->getJuncResults(contig->getSide(node, index),startDist, maxDist);
+}
+
+void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
+    Contig* contig = node->contigs[index];
+    int otherSide = 3 - contig->getSide(node,index);    
+    ContigNode* nextNode = contig->getNode(otherSide);
+    int nextIndex = contig->getIndex(otherSide);
+    
+    if(nextNode){
+        if(nextIndex != 4){
+            if(nextNode->contigs[4]){
+                queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));
+            }
+        }
+        else{
+            for (int i = 0; i < 4; i++){
+                if(nextNode->contigs[i]){
+                    queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
+                }
+            }
+        }
+    }
+}

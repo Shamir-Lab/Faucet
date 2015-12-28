@@ -23,7 +23,9 @@ using std::string;
 These are the important things that are currently being used.
 ***********************************************************************************/
 
-void Bloom::addPair(bloom_elem elem1, bloom_elem elem2){
+void Bloom::addPair(JuncPair pair){
+    bloom_elem elem1 = pair.kmer1;
+    bloom_elem elem2 = pair.kmer2;
     uint64_t hA,hB;
 
     hA = oldHash(elem1, 0) + oldHash(elem2, 0);
@@ -33,7 +35,9 @@ void Bloom::addPair(bloom_elem elem1, bloom_elem elem2){
     add(hA, hB);
 }
 
-int Bloom::containsPair(bloom_elem elem1, bloom_elem elem2){
+int Bloom::containsPair(JuncPair pair){
+    bloom_elem elem1 = pair.kmer1;
+    bloom_elem elem2 = pair.kmer2;
     uint64_t hA,hB;
 
     hA = oldHash(elem1, 0) + oldHash(elem2, 0);

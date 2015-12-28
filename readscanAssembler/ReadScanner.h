@@ -25,6 +25,7 @@ using std::ofstream;
 #include "../utils/Junction.h"
 #include "../utils/ReadKmer.h"
 #include "../utils/Cap.h"
+#include "../utils/JuncPairs.h"
 
 #define DEBUGE(a)  //printf a
 
@@ -51,7 +52,7 @@ private:
     //Should only be called on a read with no real junctions
     //Adds a fake junction in the middle and points it to the two ends.  This ensures we have coverage of long linear regions, and that we capture
     //sinks at the end of such regions.
-    void add_fake_junction(string read);
+    kmer_type add_fake_junction(string read);
     
 public:
     JunctionMap* getJunctionMap();
@@ -74,9 +75,8 @@ public:
     //or to the end of the read.
     bool find_next_junction(ReadKmer * kmer);
 
-    //Returns true if the entire read is in the bloom filter.  Otherweise returns false, implying we should
-    //simply discard the read rather than try to scan it.
-    bool isValidRead(string read);
+    //Returns substrings of the read that are valid with BF and longer than sizeKmer
+    std::list<string> getValidReads(string read);
 
     //Scans a read. 
     //Identifies all junctions on the read, and links adjacent junctions to each other.
