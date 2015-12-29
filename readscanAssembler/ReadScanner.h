@@ -33,7 +33,8 @@ class ReadScanner{
 
 private:
     Bloom* bloom;
-    Bloom* pair_filter;
+    Bloom* short_pair_filter;
+    Bloom* long_pair_filter;
     set<kmer_type> jcheckedSet;
     set<kmer_type> nextRealSet;
     set<std::pair<kmer_type, kmer_type> > juncPairSet;
@@ -86,6 +87,6 @@ public:
     //Returns back junctions along the read from beginning to end
     std::list<kmer_type> scan_forward(string read); 
 
-    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* pair_filter, JChecker* jchecker);
+    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker);
 };
 #endif

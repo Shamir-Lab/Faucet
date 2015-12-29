@@ -24,7 +24,8 @@ string read_load_file;
 string read_scan_file;
 string bloom_input_file;
 string junctions_input_file;
-string pair_filter_file;
+string short_pair_filter_file;
+string long_pair_filter_file;
 
 int read_length;
 uint64_t estimated_kmers;
@@ -116,7 +117,8 @@ int handle_arguments(int argc, char *argv[]){
         }  
         else if(0 == strcmp(argv[i] , "-junctions_file")){
                 junctions_input_file = string(argv[i+1]) + ".junctions";
-                pair_filter_file = string(argv[i+1]) + ".pair_filter";
+                short_pair_filter_file = string(argv[i+1]) + ".short_pair_filter";
+                long_pair_filter_file = string(argv[i+1]) + ".long_pair_filter";
                 from_junctions = true, i++;
         }
         else {
@@ -209,8 +211,8 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
 }
 
 //Builds the junction map from either a file or the readscan
-void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* pair_filter, JChecker* jchecker){
-    ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, pair_filter, jchecker);
+void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker){
+    ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker);
      
     //scan reads, print summary
     scanner->scanReads(fastq, paired_ends);
@@ -234,8 +236,8 @@ int main(int argc, char *argv[])
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
 
-    Bloom* pair_filter = pair_filter->create_bloom_filter_optimal(estimated_kmers, fpRate);
-
+    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/9, fpRate);
+    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/6, fpRate);
     if(just_load) return 0;
     
     //create JChecker
@@ -245,16 +247,19 @@ int main(int argc, char *argv[])
     JunctionMap* junctionMap = new JunctionMap(bloom, jchecker, read_length);
     if(from_junctions){
         junctionMap->buildFromFile(junctions_input_file);
-        pair_filter->load(&pair_filter_file[0]);
+        short_pair_filter->load(&short_pair_filter_file[0]);
+        long_pair_filter->load(&long_pair_filter_file[0]);
     }
     else{
-        buildJunctionMapFromReads(junctionMap, bloom, pair_filter, jchecker);
+        buildJunctionMapFromReads(junctionMap, bloom, short_pair_filter, long_pair_filter, jchecker);
         junctionMap->writeToFile(file_prefix + ".junctions");
-        pair_filter->dump(&(file_prefix + ".pair_filter")[0]);
+        short_pair_filter->dump(&(file_prefix + ".short_pair_filter")[0]);
+        long_pair_filter->dump(&(file_prefix + ".long_pair_filter")[0]);
     }
     //dump junctions to file
     
-    printf("Weight of pair filter: %f\n", pair_filter->weight());
+    printf("Weight of short pair filter: %f\n", short_pair_filter->weight());
+    printf("Weight of long pair filter: %f\n", long_pair_filter->weight());
     printf("Number of junctions: %d\n", junctionMap->junctionMap.size());
     ContigGraph* contigGraph = junctionMap->buildContigGraph();
     contigGraph->setReadLength(read_length);
@@ -264,15 +269,15 @@ int main(int argc, char *argv[])
 
     contigGraph->printGraph(file_prefix + ".raw_graph");
 
-    while(contigGraph->cleanGraph(pair_filter));
+    while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter));
 
     Contig* longContig = contigGraph->getLongestContig();
-    longContig->printPairStatistics(pair_filter);
+    printf("Short pair filter info:\n");
+    longContig->printPairStatistics(short_pair_filter);
+    printf("Long pair filter info:\n");
+    longContig->printPairStatistics(long_pair_filter);
 
     contigGraph->checkGraph();
-
-    while(contigGraph->disentangle(pair_filter) > 0);
-
 
     contigGraph->printContigs(file_prefix + ".disentangled_contigs");
     contigGraph->printGraph(file_prefix + ".cleaned_graph");

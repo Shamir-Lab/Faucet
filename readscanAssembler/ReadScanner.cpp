@@ -6,10 +6,11 @@
 #include <time.h>
 using namespace std;
 
-ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* junc_bloom, JChecker* checker){
+ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* short_filter, Bloom* long_filter, JChecker* checker){
   reads_file = readFile;
   bloom = bloo1;
-  pair_filter = junc_bloom;
+  short_pair_filter = short_filter;
+  long_pair_filter = long_filter;
   junctionMap = juncMap;
   jchecker = checker;
 }
@@ -135,7 +136,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
     }
     else{
       if(backJunc){
-         pair_filter->addPair(JuncPair(backJunc->getRealExtension(), readKmer->getRealExtension()));
+         short_pair_filter->addPair(JuncPair(backJunc->getRealExtension(), readKmer->getRealExtension()));
       }
       if(!lastForwardJunc){
         lastForwardJunc = new ReadKmer(readKmer);
@@ -180,7 +181,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
   }
 
   if(firstBackJunc && lastForwardJunc){
-    pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
+    short_pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
   }
 
   delete lastKmer;
@@ -286,12 +287,12 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends)
                //printf("Adding pair\n");
                //pair_filter->addPair(JuncPair(pair1, pair2));
             
-              if(pair_filter->containsPair(JuncPair(pair1,pair2))){
+              if(long_pair_filter->containsPair(JuncPair(pair1,pair2))){
                   paired = true;
               }
             }
             if (!paired){
-              pair_filter->addPair(JuncPair(pair1, *backJuncs2.begin()));
+              long_pair_filter->addPair(JuncPair(pair1, *backJuncs2.begin()));
             }
         }
       }

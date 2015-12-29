@@ -56,7 +56,6 @@ public:
 
     //gets the node coverages on each end, returns minimum as base line for how much this should be covered.
     //If the contig is isolated, returns 0
-    int getMinAdjacentCoverage(); 
     int getTotalDistance(){ return contigJuncs.getTotalDistance(); }
 
     float getMass();

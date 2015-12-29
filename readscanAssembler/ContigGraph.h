@@ -54,7 +54,7 @@ public:
     bool isLowCovContig(Contig* contig);
     bool isTip(ContigNode* node, int i);
     void deleteContig(Contig* contig);
-    bool cleanGraph(Bloom* pair_filter); //Cleans graph and returns true if any changes were made
+    bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter); //Cleans graph and returns true if any changes were made
 
     bool checkGraph();
     void printContigFastG(ofstream* fastgFile, Contig * contig);
@@ -70,6 +70,8 @@ public:
     ContigNode * createContigNode(kmer_type kmer, Junction junction);    
     int disentangle(Bloom* pair_filter);
     bool deleteTipsAndClean();
+    bool breakPathsAndClean(Bloom* pair_filter);
+    bool disentangleAndClean(Bloom* pair_filter);
 
 private:
 

@@ -6,21 +6,24 @@
 using std::stringstream;
 using std::ofstream;
 
+//Looks at all junction pairs on this contig, and prints a histogram of how many BF positives and BF negatives there are
+//for pairs at different distances.
 void Contig::printPairStatistics(Bloom* pair_filter){
 	std::list<JuncResult> results = getJuncResults(1, 0, 3*length());
 	std::cout << "Length " << length() << ", results " << results.size() << "\n";
 	const int maxDist = 2000;
-	int posNegPairCounts [2][maxDist/50] = {};
+	const int increment = 20;
+	int posNegPairCounts [2][maxDist/increment] = {};
 
-	for(int i = 0; i < maxDist/50; i++){
+	for(int i = 0; i < maxDist/increment; i++){
 		posNegPairCounts[0][i] = 0;
 		posNegPairCounts[1][i] = 0;
 	}
 
 	for(auto itL = results.begin(); itL != results.end(); itL++){
 		for(auto itR = itL; itR != results.end(); itR++){
-			int index = (itR->distance - itL->distance)/50;
-			if(index < maxDist/50 && index >= 0){
+			int index = (itR->distance - itL->distance)/increment;
+			if(index < maxDist/increment && index >= 0){
 				if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
 					posNegPairCounts[0][index] += 1;
 				}
@@ -31,8 +34,9 @@ void Contig::printPairStatistics(Bloom* pair_filter){
 		}
 	}
 
-	printf("Pair pos/neg char, aggregated over buckets of length 50:\n");
-	for(int i = 0; i < maxDist / 50; i++){
+	printf("Pair pos/neg char, aggregated over buckets of length %d:\n", increment);
+	for(int i = 0; i < maxDist / increment; i++){
+		std::cout << "Distance " << i*increment << ": ";
 		std::cout << posNegPairCounts[0][i] << ",";
 		std::cout << posNegPairCounts[1][i] << "\n";
 	}
@@ -92,6 +96,7 @@ void Contig::setEnds( ContigNode* n1, int i1, ContigNode* n2, int i2){
 	}
 }
 
+//Gets all of the interior junctions on this contig, as a list of JuncResult objects
 //Assumes this is startDist away from the real start, so increments all by startDist
 //Side refers to which side of the contig to start from
 std::list<JuncResult> Contig::getJuncResults(int side, int startDist, int maxDist){
@@ -111,18 +116,6 @@ int Contig::length(){
 
 double Contig::getAvgCoverage(){
 	return contigJuncs.getAvgCoverage();
-}
-
-int Contig::getMinAdjacentCoverage(){
-	if(isIsolated()) return 0;
-	int min = 1000000;
-	if(node1_p){
-		min = node1_p->getTotalCoverage();
-	}
-	if(node2_p){
-		min = std::min(min, node2_p->getTotalCoverage());
-	}
-	return min;
 }
 
 float Contig::getMass(){

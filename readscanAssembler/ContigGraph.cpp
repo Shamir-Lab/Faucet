@@ -58,11 +58,8 @@ bool ContigGraph::deleteTipsAndClean(){
     return result;
 }
 
-bool ContigGraph::cleanGraph(Bloom* pair_filter){
-    bool result = deleteTipsAndClean();
-
-    // Contig* longContig = getLongestContig();
-    // longContig->printPairStatistics(pair_filter);
+bool ContigGraph::breakPathsAndClean(Bloom* pair_filter){
+    bool result = false;
 
     if(breakUnsupportedPaths(pair_filter) > 0){
         result = true;
@@ -74,8 +71,34 @@ bool ContigGraph::cleanGraph(Bloom* pair_filter){
         result = true;
     }
 
-    // longContig = getLongestContig();
-    // longContig->printPairStatistics(pair_filter);
+    return result;
+}
+
+bool ContigGraph::disentangleAndClean(Bloom* pair_filter){
+    bool result = false;
+    if(disentangle(pair_filter) > 0){
+        result = true;
+    }
+    if(destroyDegenerateNodes() > 0){
+        result = true;
+    }
+    if(collapseDummyNodes() > 0){
+        result = true;
+    }
+
+    return result;
+}
+
+bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
+    deleteTipsAndClean();
+
+    bool result = false;
+    if(breakPathsAndClean(short_pair_filter)){
+        result = true;
+    }
+    if(disentangleAndClean(short_pair_filter)){
+        result = true;
+    }
 
     return result;
 }
