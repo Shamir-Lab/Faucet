@@ -4,33 +4,31 @@ from utils import *
 def extend_walk(walk, G, W):
 	# assumes walk is list of nodes
 	if walk==None: return
+	edge_set = {(walk[i],walk[i+1]) for i in range(len(walk)-1)}
 	print walk
 	v_t = walk[-1]
 	extended = False
-	extensions = G.out_edges(v_t)
+	extensions = G.successors(v_t)
 	for ext in extensions:
-		INs = G.in_edges(walk)
+		INs = G.in_edges(walk[1:])
 		X = [a[0] for a in INs] # sources
-		# nodes entering first node s in walk (s_ins)
-		# should not be in X
-		s_ins = G.predecessors(walk[0]) 
-		# s_ins = [a[0] for a in s_ins]
 		X = set(X)
 		X -= set(walk)
-		X -= set(s_ins)
 		G_p = G.copy()
-		G_p.remove_edge(ext[0],ext[1])
+		G_p.remove_edge(v_t,ext)
 		# SP is returned as dict; keys are targets, 
 		# vals are lists of nodes in shortest path
 		# assume only keys for reachable targets
 		SP = nx.shortest_path(G_p,source=v_t)
 		# print SP
-		if all([target not in SP for target in X]):
+		if all([target not in SP for target in X]) and \
+		(v_t, ext) not in edge_set:
 			# print "got to extend", walk + (ext[1],)
-			extend_walk(walk + (ext[1],), G, W)
+			extend_walk(walk + (ext,), G, W)
 			extended = True
 	if extended==False:
 		W.add(walk)
+		return
 
 def get_omnitigs(G):
 	""" given assembly graph G
