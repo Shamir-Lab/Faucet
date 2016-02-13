@@ -11,7 +11,7 @@ def extend_walk(walk, G, W, W_reps):
 	# assumes walk is list of nodes
 	if walk==None: return
 	edge_set = {(walk[i],walk[i+1]) for i in range(len(walk)-1)}
-	print walk
+	# print walk
 	v_t = walk[-1]
 	extended = False
 	extensions = G.successors(v_t)
@@ -29,7 +29,6 @@ def extend_walk(walk, G, W, W_reps):
 
 		if all([target not in SP for target in X]) and \
 		(v_t, ext) not in edge_set:
-			# print "got to extend", walk + (ext[1],)
 			extend_walk(walk + (ext,), G, W, W_reps)
 			extended = True
 	if walk[0]==walk[-1]:
