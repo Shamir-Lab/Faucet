@@ -1,7 +1,13 @@
 from utils import *
 
-
-def extend_walk(walk, G, W):
+def extend_walk(walk, G, W, W_reps):
+	""" given walk as list of nodes, 
+		extends recursively until omnitig property
+		is violated (next extension e has 
+		alternate e' that begins path to intermed. 
+		node in current walk), or walk includes next
+		extension already (avoids repeated walks)
+	"""
 	# assumes walk is list of nodes
 	if walk==None: return
 	edge_set = {(walk[i],walk[i+1]) for i in range(len(walk)-1)}
@@ -20,14 +26,19 @@ def extend_walk(walk, G, W):
 		# vals are lists of nodes in shortest path
 		# assume only keys for reachable targets
 		SP = nx.shortest_path(G_p,source=v_t)
-		# print SP
+
 		if all([target not in SP for target in X]) and \
 		(v_t, ext) not in edge_set:
 			# print "got to extend", walk + (ext[1],)
-			extend_walk(walk + (ext,), G, W)
+			extend_walk(walk + (ext,), G, W, W_reps)
 			extended = True
-	if extended==False:
+	if walk[0]==walk[-1]:
+		walk_rep = get_unoriented_sorted_str(walk[1:])
+	else: 
+		walk_rep = get_unoriented_sorted_str(walk)
+	if extended==False and walk_rep not in W_reps:
 		W.add(walk)
+		W_reps.add(walk_rep)
 		return
 
 def get_omnitigs(G):
@@ -37,8 +48,9 @@ def get_omnitigs(G):
 		omnitigs or initial Y-to-V reduction
 	"""
 	W = set([])
+	W_reps = set([]) # unique reps to avoid cyclic rotations
 	for e in G.edges():
-		extend_walk(e,G,W)
+		extend_walk(e,G,W,W_reps)
 	return W
 
 def get_sample_graph_comp_seqs():
