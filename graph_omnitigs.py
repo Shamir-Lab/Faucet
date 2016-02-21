@@ -52,10 +52,10 @@ def get_omnitigs(G):
 		extend_walk(e,G,W,W_reps)
 	return W
 
-def get_sample_graph_comp_seqs():
+def get_sample_graph_comp_seqs(fastg, test_node):
 	# load test graph
-	fastg = "assembly_graph.fastg"
-	test_node = "EDGE_1243_length_1496_cov_78.6919"
+	# fastg = "JJ1886_graph.fastg"
+	# test_node = "EDGE_1243_length_1496_cov_78.6919"
 	G = get_fastg_digraph(fastg)
 	comps = nx.strongly_connected_component_subgraphs(G)
 	COMP = nx.DiGraph()
@@ -69,7 +69,10 @@ def get_sample_graph_comp_seqs():
 	return G,COMP,SEQS
 
 # read/build graph
-G,COMP,SEQS = get_sample_graph_comp_seqs()
+# G,COMP,SEQS = get_sample_graph_comp_seqs("JJ1886_graph.fastg", "EDGE_1243_length_1496_cov_78.6919")
+G,COMP,SEQS = get_sample_graph_comp_seqs("E2022_graph.fastg", "EDGE_286_length_92_cov_109.162")
+# G,COMP,SEQS = get_sample_graph_comp_seqs("KPN_graph.fastg", "EDGE_137_length_40951_cov_36.5289")
+
 # get & print omnitigs
 W = get_omnitigs(COMP)
 print "omnitigs are:"
