@@ -27,14 +27,17 @@ def extend_walk(walk, G, W, W_reps):
 		# assume only keys for reachable targets
 		SP = nx.shortest_path(G_p,source=v_t)
 
+		# 2 cases where we should extend:
+		# 1. following the omnitig extension rule to unvisited edges
+		# 2. the only available extensions are some node and its rc 
 		if all([target not in SP for target in X]) and \
-		(v_t, ext) not in edge_set:
+		(v_t, ext) not in edge_set or \
+		len(extensions)==2 and \
+		extensions[0] == rc_node(extensions[1]):
 			extend_walk(walk + (ext,), G, W, W_reps)
 			extended = True
-	if walk[0]==walk[-1]:
-		walk_rep = get_unoriented_sorted_str(walk[1:])
-	else: 
-		walk_rep = get_unoriented_sorted_str(walk)
+	# avoid cyclic rotationgs of same cycle:
+	walk_rep = get_unoriented_sorted_str(walk)
 	if extended==False and walk_rep not in W_reps:
 		W.add(walk)
 		W_reps.add(walk_rep)
@@ -50,6 +53,21 @@ def get_omnitigs(G):
 	W_reps = set([]) # unique reps to avoid cyclic rotations
 	for e in G.edges():
 		extend_walk(e,G,W,W_reps)
+	return W
+
+def get_maximal_omnitigs(W):
+	""" removes any omnitigs completely contained
+		in some other omnitig
+	"""
+	max_tigs = set([])
+	# make set out of each walk
+	for w in W:
+		if any([set(w) < set(x) for x in W]):
+			continue
+		else:
+			max_tigs.add(w)
+	return max_tigs	
+
 	return W
 
 def get_sample_graph_comp_seqs(fastg, test_node):
@@ -69,12 +87,17 @@ def get_sample_graph_comp_seqs(fastg, test_node):
 	return G,COMP,SEQS
 
 # read/build graph
-# G,COMP,SEQS = get_sample_graph_comp_seqs("JJ1886_graph.fastg", "EDGE_1243_length_1496_cov_78.6919")
+# G,COMP,SEQS = get_sample_graph_comp_seqs("JJ1886_graph.fastg", "EDGE_1243_length_1496_cov_78.6919") #"EDGE_216_length_72_cov_28.2941")#
 G,COMP,SEQS = get_sample_graph_comp_seqs("E2022_graph.fastg", "EDGE_286_length_92_cov_109.162")
-# G,COMP,SEQS = get_sample_graph_comp_seqs("KPN_graph.fastg", "EDGE_137_length_40951_cov_36.5289")
+# G,COMP,SEQS = get_sample_graph_comp_seqs("KPN_graph.fastg", "EDGE_137_length_40951_cov_36.5289") #"EDGE_52_length_308692_cov_66.7584")
 
 # get & print omnitigs
 W = get_omnitigs(COMP)
 print "omnitigs are:"
 for tig in W:
+	print tig
+
+W2 = get_maximal_omnitigs(W)
+print "maximal omnitigs are:"
+for tig in W2:
 	print tig
