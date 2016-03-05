@@ -31,13 +31,14 @@ def extend_walk(walk, G, W, W_reps):
 		# 1. following the omnitig extension rule to unvisited edges
 		# 2. the only available extensions are some node and its rc 
 		if all([target not in SP for target in X]) and \
-		(v_t, ext) not in edge_set or \
-		len(extensions)==2 and \
-		extensions[0] == rc_node(extensions[1]):
+		(v_t, ext) not in edge_set: # or \
+		# len(extensions)==2 and \
+		# extensions[0] == rc_node(extensions[1]):
 			extend_walk(walk + (ext,), G, W, W_reps)
 			extended = True
-	# avoid cyclic rotationgs of same cycle:
-	walk_rep = get_unoriented_sorted_str(walk)
+	# avoid cyclic rotationgs of same cycle - include 
+	# all but re-entered last node in walk rep:
+	walk_rep = get_unoriented_sorted_str(walk[:-1])
 	if extended==False and walk_rep not in W_reps:
 		W.add(walk)
 		W_reps.add(walk_rep)
@@ -60,15 +61,15 @@ def get_maximal_omnitigs(W):
 		in some other omnitig
 	"""
 	max_tigs = set([])
-	# make set out of each walk
 	for w in W:
-		if any([set(w) < set(x) for x in W]):
+		# want to get rid of all walks having all nodes 
+		# or all rcs of nodes in some other walk
+		rc_path = [rc_node(a) for a in w]
+		if any([(set(w) < set(x)) or (set(rc_path) < set(x)) for x in W]):
 			continue
 		else:
 			max_tigs.add(w)
 	return max_tigs	
-
-	return W
 
 def get_sample_graph_comp_seqs(fastg, test_node):
 	# load test graph
@@ -86,17 +87,20 @@ def get_sample_graph_comp_seqs(fastg, test_node):
 	SEQS = get_fastg_seqs_dict(fastg, G)
 	return G,COMP,SEQS
 
+
+def peel_omnitigs(G, W, C):
+	""" given component G and a set of maximal omnitigs W
+		peels omnitigs by subtracting genome coverage C 
+		until no covered nodes remain
+	"""
+
 # read/build graph
 # G,COMP,SEQS = get_sample_graph_comp_seqs("JJ1886_graph.fastg", "EDGE_1243_length_1496_cov_78.6919") #"EDGE_216_length_72_cov_28.2941")#
-G,COMP,SEQS = get_sample_graph_comp_seqs("E2022_graph.fastg", "EDGE_286_length_92_cov_109.162")
-# G,COMP,SEQS = get_sample_graph_comp_seqs("KPN_graph.fastg", "EDGE_137_length_40951_cov_36.5289") #"EDGE_52_length_308692_cov_66.7584")
+# G,COMP,SEQS = get_sample_graph_comp_seqs("E2022_graph.fastg", "EDGE_286_length_92_cov_109.162")
+G,COMP,SEQS = get_sample_graph_comp_seqs("KPN_graph.fastg", "EDGE_137_length_40951_cov_36.5289") #"EDGE_52_length_308692_cov_66.7584")
 
-# get & print omnitigs
+# get omnitigs
 W = get_omnitigs(COMP)
-print "omnitigs are:"
-for tig in W:
-	print tig
-
 W2 = get_maximal_omnitigs(W)
 print "maximal omnitigs are:"
 for tig in W2:
