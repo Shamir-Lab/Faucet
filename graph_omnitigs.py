@@ -27,13 +27,8 @@ def extend_walk(walk, G, W, W_reps):
 		# assume only keys for reachable targets
 		SP = nx.shortest_path(G_p,source=v_t)
 
-		# 2 cases where we should extend:
-		# 1. following the omnitig extension rule to unvisited edges
-		# 2. the only available extensions are some node and its rc 
 		if all([target not in SP for target in X]) and \
-		(v_t, ext) not in edge_set: # or \
-		# len(extensions)==2 and \
-		# extensions[0] == rc_node(extensions[1]):
+		(v_t, ext) not in edge_set:
 			extend_walk(walk + (ext,), G, W, W_reps)
 			extended = True
 	# avoid cyclic rotationgs of same cycle - include 
@@ -97,7 +92,7 @@ def peel_omnitigs(G, W, C):
 # read/build graph
 # G,COMP,SEQS = get_sample_graph_comp_seqs("JJ1886_graph.fastg", "EDGE_1243_length_1496_cov_78.6919") #"EDGE_216_length_72_cov_28.2941")#
 # G,COMP,SEQS = get_sample_graph_comp_seqs("E2022_graph.fastg", "EDGE_286_length_92_cov_109.162")
-G,COMP,SEQS = get_sample_graph_comp_seqs("KPN_graph.fastg", "EDGE_137_length_40951_cov_36.5289") #"EDGE_52_length_308692_cov_66.7584")
+G,COMP,SEQS = get_sample_graph_comp_seqs("KPN_graph.fastg", "EDGE_52_length_308692_cov_66.7584") #"EDGE_137_length_40951_cov_36.5289") #
 
 # get omnitigs
 W = get_omnitigs(COMP)
