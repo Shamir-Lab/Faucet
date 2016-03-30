@@ -1,4 +1,4 @@
-CFLAGS+= --std=c++0x -O4 -D_FILE_OFFSET_BITS=64# needed to handle files > 2 GB on 32 bits systems
+CFLAGS+= --std=c++0x -g -O4 -D_FILE_OFFSET_BITS=64# needed to handle files > 2 GB on 32 bits systems
 SRC_UTILS =../utils/Cap.cpp ../utils/DoubleKmer.cpp ../utils/ReadKmer.cpp ../utils/Bloom.cpp ../utils/Kmer.cpp \
 ../utils/JChecker.cpp ../utils/JunctionMap.cpp ../utils/Junction.cpp ../utils/JuncPairs.cpp 
 SRC_READSCAN= ReadScanner.cpp Contig.cpp ContigNode.cpp ContigGraph.cpp ContigIterator.cpp

@@ -88,7 +88,7 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             delete(backwardContig);
         }
         else{
-            printf("ERROR: shouldn't be any complex junctions left during linear region build.\n");
+            printf("ERROR: shouldn't be any complex junctions left during linear region build. %d paths out\n", junction.numPathsOut());
         }
     }  
 }
@@ -130,7 +130,13 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
                 junc = nextJunc;
                 kmer = result.kmer;
                 index = junc.getOppositeIndex(result.index);
-                kmers_to_destroy.push_back(kmer); 
+                // kmers_to_destroy.push_back(kmer); 
+                if (result.kmer == startKmer){
+                    done = true;
+                }
+                else{ // isolated self-loop --> nothing to destroy
+                    kmers_to_destroy.push_back(kmer);
+                }
             }
             else{
                 done = true;
