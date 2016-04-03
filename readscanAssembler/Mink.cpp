@@ -267,7 +267,8 @@ int main(int argc, char *argv[])
 
     contigGraph->checkGraph();
 
-    contigGraph->printGraph(file_prefix + ".raw_graph");
+    contigGraph->printGraph(file_prefix + ".raw_graph.fastg");
+    contigGraph->printContigs(file_prefix + ".raw_contigs.fasta");
 
     while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter));
 
@@ -279,8 +280,8 @@ int main(int argc, char *argv[])
 
     contigGraph->checkGraph();
 
-    contigGraph->printContigs(file_prefix + ".disentangled_contigs");
-    contigGraph->printGraph(file_prefix + ".cleaned_graph");
+    contigGraph->printContigs(file_prefix + ".cleaned_contigs.fasta");
+    contigGraph->printGraph(file_prefix + ".cleaned_graph.fastg");
 
     printf("Program reached end. \n");
     return 0;

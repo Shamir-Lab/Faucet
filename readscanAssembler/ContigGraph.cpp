@@ -93,10 +93,13 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
     deleteTipsAndClean();
 
     bool result = false;
-    if(breakPathsAndClean(short_pair_filter)){
+    // if(breakPathsAndClean(short_pair_filter)){
+    //     result = true;
+    // }
+    if(disentangleAndClean(short_pair_filter)){
         result = true;
     }
-    if(disentangleAndClean(short_pair_filter)){
+    if(disentangleAndClean(long_pair_filter)){
         result = true;
     }
 
@@ -666,7 +669,8 @@ void ContigGraph::printContigs(string fileName){
                 Contig* contig = node->contigs[i];
                 if(contig->getSide(node,i) == 1){
                     //printf("Printing from node at index %d\n", i);
-                    // std::cout << "Contig " << lineNum << ":\n";
+                    jFile << ">Contig" << lineNum << "\n";
+                    lineNum++;
                     // std::cout << contig->seq << "\n";
                     jFile << canon_contig(contig->getSeq() ) << "\n";
                 }

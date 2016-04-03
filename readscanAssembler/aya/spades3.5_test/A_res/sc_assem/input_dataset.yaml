@@ -1,6 +1,0 @@
-- left reads: [/specific/a/home/cc/cs/rozovr/bf_experiments/readscanAssembler/aya/spades_test/B_1_trimmed.fastq.gz]
-  orientation: fr
-  right reads: [/specific/a/home/cc/cs/rozovr/bf_experiments/readscanAssembler/aya/spades_test/B_2_trimmed.fastq.gz]
-  single reads: [/specific/a/home/cc/cs/rozovr/bf_experiments/readscanAssembler/aya/spades_test/B_U1_trimmed.fastq.gz,
-    /specific/a/home/cc/cs/rozovr/bf_experiments/readscanAssembler/aya/spades_test/B_U2_trimmed.fastq.gz]
-  type: paired-end
