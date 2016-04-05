@@ -58,10 +58,10 @@ bool ContigGraph::deleteTipsAndClean(){
     return result;
 }
 
-bool ContigGraph::breakPathsAndClean(Bloom* pair_filter){
+bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
     bool result = false;
 
-    if(breakUnsupportedPaths(pair_filter) > 0){
+    if(breakUnsupportedPaths(pair_filter, insertSize) > 0){
         result = true;
     }
     if(destroyDegenerateNodes() > 0){
@@ -74,9 +74,9 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter){
     return result;
 }
 
-bool ContigGraph::disentangleAndClean(Bloom* pair_filter){
+bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     bool result = false;
-    if(disentangle(pair_filter) > 0){
+    if(disentangle(pair_filter, insertSize) > 0){
         result = true;
     }
     if(destroyDegenerateNodes() > 0){
@@ -89,17 +89,17 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter){
     return result;
 }
 
-bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
+bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
     deleteTipsAndClean();
 
     bool result = false;
-    // if(breakPathsAndClean(short_pair_filter)){
+    // if(breakPathsAndClean(short_pair_filter, insertSize)){
     //     result = true;
     // }
-    if(disentangleAndClean(short_pair_filter)){
+    if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    if(disentangleAndClean(long_pair_filter)){
+    if(disentangleAndClean(long_pair_filter, insertSize)){
         result = true;
     }
 
@@ -153,12 +153,12 @@ bool ContigGraph::checkGraph(){
 }
 
 //Returns a list of extensions which are there but have no support
-std::vector<int> ContigGraph::getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter){
+std::vector<int> ContigGraph::getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter, int insertSize){
     if(!node->contigs[4]){
         printf("GRAPHERROR: tried to test support at node with no backcontig.\n");
         return {};
     }
-    int insertSize = 500;
+    // int insertSize = 500;
     std::list<JuncResult> backResults = node->getPairCandidates(4, insertSize);
     std::list<JuncResult> forResults;
     std::vector<int> results = {};
@@ -166,7 +166,7 @@ std::vector<int> ContigGraph::getUnsupportedExtensions(ContigNode* node, Bloom* 
         if(node->contigs[i]){
             Contig* contig = node->contigs[i];
             forResults = node->getPairCandidates(i, insertSize);
-            if(getScore(backResults, forResults, pair_filter, .01)==0){
+            if(getScore(backResults, forResults, pair_filter, .01, insertSize)==0){
                 results.push_back(i);
             }
         }   
@@ -232,7 +232,7 @@ void ContigGraph::cutPath(ContigNode* node, int index){
 
 
 
-int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter){
+int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
     printf("Breaking unsupported paths contigs. Starting with %d nodes. \n", nodeMap.size());
     int numBroken = 0;
     clock_t t = clock();
@@ -246,7 +246,7 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter){
         j++;
         ContigNode* node = &it->second;
         //printf("Got node.\n");
-        std::vector<int> unsupported = getUnsupportedExtensions(node, pair_filter);
+        std::vector<int> unsupported = getUnsupportedExtensions(node, pair_filter,insertSize);
         for(auto it = unsupported.begin(); it != unsupported.end(); it++){
                     numBroken++;
                     // printf("Deleting contig %d \n" , numDeleted);
@@ -379,10 +379,10 @@ double ContigGraph::getTailBound(int numTrials, double p, int result){
 
 //returns a score based on how many pairs of kmers from the first and second lists are in the filter,
 //relative to the FP rate of the filter
-double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate){
+double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate, int insertSize){
     double score = 0;
-    int insertSize = 500;
-    int readLength = 100;
+    // int insertSize = 500;
+    int readLength = read_length; //100;
     int counter = 0;
 
     //Looks for junction pairs from a single read, within readlength of the junction either way
@@ -421,7 +421,7 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
     return score; //getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
 }
 
-int ContigGraph::disentangle(Bloom* pair_filter){
+int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     int disentangled = 0;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
@@ -445,16 +445,16 @@ int ContigGraph::disentangle(Bloom* pair_filter){
                 int a,b,c,d;
                 a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
                 c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
-                int insertSize = 500;
+                // int insertSize = 500;
                 std::list<JuncResult> A = backNode->getPairCandidates(a, insertSize);
                 std::list<JuncResult> B = backNode->getPairCandidates(b, insertSize);
                 std::list<JuncResult> C = node->getPairCandidates(c, insertSize);
                 std::list<JuncResult> D = node->getPairCandidates(d, insertSize);
               
-                double scoreAC = getScore(A,C, pair_filter, fpRate);
-                double scoreAD = getScore(A,D, pair_filter, fpRate);
-                double scoreBC = getScore(B,C, pair_filter, fpRate);
-                double scoreBD = getScore(B,D, pair_filter, fpRate);
+                double scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
+                double scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
+                double scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
+                double scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
                 //std::cout << "Score: " << scoreAC << "," << scoreBD << "," << scoreAD << "," << scoreBC << "\n";
                 //if(scoreAC <.05 && scoreBD < .05 && scoreAD > .3 && scoreBC > .3){
                 if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
@@ -681,6 +681,8 @@ void ContigGraph::printContigs(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
         Contig contig = *it;
+        jFile << ">Contig" << lineNum << "\n";
+        lineNum++;
         //printf("Printing isolated contig.\n");
         jFile << canon_contig(contig.getSeq()) << "\n";
     }

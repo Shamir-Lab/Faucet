@@ -41,7 +41,7 @@ public:
 
     //Gets number of supporting pairs given candidate list
     //TODO: normalize by expected FP rate of filter
-    double getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate);
+    double getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate, int insertSize);
    
 
     //a,b are on backNode, c,d are on forwardNode
@@ -50,11 +50,11 @@ public:
     //Returns true if it goes ahead with disentanglement
     bool disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
     void addIsolatedContig(Contig contig);
-    std::vector<int> getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter);
+    std::vector<int> getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter, int insertSize);
     bool isLowCovContig(Contig* contig);
     bool isTip(ContigNode* node, int i);
     void deleteContig(Contig* contig);
-    bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter); //Cleans graph and returns true if any changes were made
+    bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize); //Cleans graph and returns true if any changes were made
 
     bool checkGraph();
     void printContigFastG(ofstream* fastgFile, Contig * contig);
@@ -68,15 +68,15 @@ public:
     //If it exists, does nothing and returns the existing one.
     //Otherwise, returns the new one
     ContigNode * createContigNode(kmer_type kmer, Junction junction);    
-    int disentangle(Bloom* pair_filter);
+    int disentangle(Bloom* pair_filter, int insertSize);
     bool deleteTipsAndClean();
-    bool breakPathsAndClean(Bloom* pair_filter);
-    bool disentangleAndClean(Bloom* pair_filter);
+    bool breakPathsAndClean(Bloom* pair_filter, int insertSize);
+    bool disentangleAndClean(Bloom* pair_filter, int insertSize);
 
 private:
 
     int deleteTipsAndLowCoverageContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
-    int breakUnsupportedPaths(Bloom* pair_filter); //removes extensions of junctions not supported by paired ends
+    int breakUnsupportedPaths(Bloom* pair_filter, int insertSize); //removes extensions of junctions not supported by paired ends
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
 
