@@ -48,7 +48,10 @@ bool ContigGraph::deleteTipsAndClean(){
     bool result = false;
     if(deleteTipsAndLowCoverageContigs() > 0){
         result = true;
-    }   
+    } 
+    if(popBubblesByCoverageRatio() > 0){
+        result = true;
+    }  
     if(destroyDegenerateNodes() > 0){
         result = true;
     }
@@ -182,6 +185,10 @@ bool ContigGraph::isTip(ContigNode* node, int index){
     return false;
 }
 
+// bool ContigGraph::isBubbleNode(ContigNode* node){
+
+// }
+
 bool ContigGraph::isLowCovContig(Contig* contig){
     if(contig->getAvgCoverage()<3){
         return true;
@@ -268,6 +275,43 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
     printf("Done breaking %d unsupported paths.\n", numBroken);
     return numBroken;
 }   
+
+int ContigGraph::popBubblesByCoverageRatio(){
+    printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
+
+    int numDeleted = 0;
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        // is bubble node if has 2 children a,b (assume cov(a)>cov(b))
+        // and a and b both lead to one grandchild c
+        // pop if a/b > 5, keep a
+        ContigNode* node = &it->second;
+        if(node->numPathsOut() == 2){
+            int a,b;
+            double ratio;
+            a = node->getIndicesOut()[0], b = node->getIndicesOut()[1];
+            Contig* contig_a = node->contigs[a];
+            Contig* contig_b = node->contigs[b];
+            Contig* minContig;
+            ContigNode* a_far_node = contig_a->otherEndNode(node);
+            ContigNode* b_far_node = contig_b->otherEndNode(node); 
+            ratio = contig_a->getAvgCoverage()/contig_b->getAvgCoverage();           
+            if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
+                minContig = contig_b;
+            }
+            else{
+                minContig = contig_a;
+                ratio = 1.0 / ratio;
+            }
+            if(a_far_node == b_far_node && ratio > 3.0){
+                numDeleted++;
+                deleteContig(minContig);
+            }
+        }
+    }  
+    printf("Done popping %d bubble contigs.\n", numDeleted);
+    return numDeleted;  
+}
+
 
 
 
