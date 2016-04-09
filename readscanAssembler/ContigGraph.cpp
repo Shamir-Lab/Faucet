@@ -99,9 +99,9 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     // if(breakPathsAndClean(short_pair_filter, insertSize)){
     //     result = true;
     // }
-    if(disentangleAndClean(short_pair_filter, read_length)){
-        result = true;
-    }
+    // if(disentangleAndClean(short_pair_filter, read_length)){
+    //     result = true;
+    // }
     if(disentangleAndClean(long_pair_filter, insertSize)){
         result = true;
     }
@@ -276,45 +276,6 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
     return numBroken;
 }   
 
-int ContigGraph::popBubblesByCoverageRatio(){
-    printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
-
-    int numDeleted = 0;
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-        // is bubble node if has 2 children a,b (assume cov(a)>cov(b))
-        // and a and b both lead to one grandchild c
-        // pop if a/b > 5, keep a
-        ContigNode* node = &it->second;
-        if(node->numPathsOut() == 2){
-            int a,b;
-            double ratio;
-            a = node->getIndicesOut()[0], b = node->getIndicesOut()[1];
-            Contig* contig_a = node->contigs[a];
-            Contig* contig_b = node->contigs[b];
-            Contig* minContig;
-            ContigNode* a_far_node = contig_a->otherEndNode(node);
-            ContigNode* b_far_node = contig_b->otherEndNode(node); 
-            ratio = contig_a->getAvgCoverage()/contig_b->getAvgCoverage();           
-            if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
-                minContig = contig_b;
-            }
-            else{
-                minContig = contig_a;
-                ratio = 1.0 / ratio;
-            }
-            if(a_far_node == b_far_node && ratio > 3.0){
-                numDeleted++;
-                deleteContig(minContig);
-            }
-        }
-    }  
-    printf("Done popping %d bubble contigs.\n", numDeleted);
-    return numDeleted;  
-}
-
-
-
-
 int ContigGraph::deleteTipsAndLowCoverageContigs(){
     printf("Deleting error contigs. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0;
@@ -465,6 +426,45 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
     return score; //getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
 }
 
+int ContigGraph::popBubblesByCoverageRatio(){
+    printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
+
+    int numDeleted = 0;
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        // is bubble node if has 2 children a,b (assume cov(a)>cov(b))
+        // and a and b both lead to one grandchild c
+        // pop if a/b > 5, keep a
+        ContigNode* node = &it->second;
+        if(node->numPathsOut() == 2){
+            int a,b;
+            double ratio;
+            a = node->getIndicesOut()[0], b = node->getIndicesOut()[1];
+            Contig* contig_a = node->contigs[a];
+            Contig* contig_b = node->contigs[b];
+            Contig* minContig;
+            ContigNode* a_far_node = contig_a->otherEndNode(node);
+            ContigNode* b_far_node = contig_b->otherEndNode(node); 
+            ratio = contig_a->getAvgCoverage()/contig_b->getAvgCoverage();           
+            if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
+                minContig = contig_b;
+            }
+            else{
+                minContig = contig_a;
+                ratio = 1.0 / ratio;
+            }
+            if(a_far_node == b_far_node && ratio > 3.0){
+                numDeleted++;
+                deleteContig(minContig);
+                // TODO: would assigning coverage of deleted contig
+                // to remaining contig help downstream (e.g., disentangle)?
+            }
+        }
+    }  
+    printf("Done popping %d bubble contigs.\n", numDeleted);
+    return numDeleted;  
+}
+
+
 int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     int disentangled = 0;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
@@ -490,6 +490,66 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                 a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
                 c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
                 // int insertSize = 500;
+                
+
+                Contig* contig_a = backNode->contigs[a]; 
+                Contig* contig_b = backNode->contigs[b];
+                Contig* contig_c = node->contigs[c];
+                Contig* contig_d = node->contigs[d];
+
+                // if length of contig & (length of a & b less than read length
+                // or length of c & d less than read length), scoring likely uninformative
+                // test coverage values similar on both sides 
+                if ((contig->getSeq().length() < read_length) &&
+                    (contig_a->getSeq().length() < read_length && contig_b->getSeq().length() < read_length ||
+                    contig_c->getSeq().length() < read_length && contig_d->getSeq().length() < read_length)){
+                    Contig * min_back; 
+                    Contig * max_back;
+                    Contig * min_front; 
+                    Contig * max_front;
+                    min_back = contig_a;
+                    max_back = contig_b;
+                    min_front = contig_c;
+                    max_front = contig_d;
+                    double min_ratio, max_ratio;
+                    bool toggle, call_res;
+                    toggle = false;
+                    if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
+                        min_back = contig_b;
+                        max_back = contig_a;
+                    }
+                    if(contig_c->getAvgCoverage()>contig_d->getAvgCoverage()){
+                        min_front = contig_d;
+                        max_front = contig_c;
+                        if (min_back != contig_d){
+                            toggle = true;
+                        }
+                    }
+                    min_ratio = std::max(min_front->getAvgCoverage()/min_back->getAvgCoverage(), min_back->getAvgCoverage()/min_front->getAvgCoverage());
+                    max_ratio = std::max(max_front->getAvgCoverage()/max_back->getAvgCoverage(), max_back->getAvgCoverage()/max_front->getAvgCoverage());
+                    if (min_ratio <= 1.15 && max_ratio <= 1.15){
+                        
+                        if (!toggle){
+                            call_res = disentanglePair(contig, backNode, node, a,b,c,d);
+                        }
+                        else {
+                            call_res = disentanglePair(contig, backNode, node, a,b,d,c);
+                        }
+                        if(call_res){
+                            it = nodeMap.erase(it);
+                            if(it != nodeMap.end()){
+                                if(backNode->getKmer() == it->first){
+                                    it++;
+                                }
+                            }
+                            nodeMap.erase(backNode->getKmer());
+                            disentangled++;
+                            continue;
+                        }
+                    }
+
+                }                
+
                 std::list<JuncResult> A = backNode->getPairCandidates(a, insertSize);
                 std::list<JuncResult> B = backNode->getPairCandidates(b, insertSize);
                 std::list<JuncResult> C = node->getPairCandidates(c, insertSize);
