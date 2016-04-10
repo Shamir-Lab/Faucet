@@ -105,7 +105,6 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
 }
 
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
-    deleteTipsAndClean();
 
     bool result = false;
     // if(breakPathsAndClean(short_pair_filter, insertSize)){
@@ -117,6 +116,7 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(disentangleAndClean(long_pair_filter, insertSize)){
         result = true;
     }
+    deleteTipsAndClean();
 
     return result;
 }
@@ -542,38 +542,26 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                 double scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                 double scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
                 
-                // if length of contig & (length of a & b less than read length
-                // or length of c & d less than read length), scoring likely uninformative
-                // test coverage ratios similar on both sides (actually min/max values less important)
-                        
-
+                      
+                // current logic is naive: disentangle if one orientation has some pair in filter
+                // and other orientation has none
                 if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
-                    //printf("Found pair in filter in first orientation.\n");
                     
                     if(disentanglePair(contig, backNode, node, a, b, c, d)){
-                        //printf("Disentangled pair.\n");
                         it = nodeMap.erase(it);
-                        //printf("1\n");
                         if(it != nodeMap.end()){
-                            //printf("2\n");
                             if(backNode->getKmer() == it->first){
-                                //printf("3\n");
                                 it++;
                             }
                         }
-                        //printf("4\n");
                         nodeMap.erase(backNode->getKmer());
-                        //printf("5\n");
                         disentangled++;
-                        //printf("6\n");
                         continue;
                     }
                 }
                 if(std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0){
                 //if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
-                    //printf("Found pair in filer in second orientation\n");
                     if(disentanglePair(contig, backNode, node, a,b,d,c)){
-                        //printf("Disentangled pair.\n");
                         it = nodeMap.erase(it);
                         if(it != nodeMap.end()){
                             if(backNode->getKmer() == it->first){
@@ -585,8 +573,11 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         continue;
                     } 
                 }
-
-                // disentangle by coverage only if couldn't by PE links 
+                
+                // if length of contig & (length of a & b less than read length
+                // or length of c & d less than read length), scoring likely uninformative
+                // test coverage ratios similar on both sides (actually min/max values less important)
+                  
                 // if ((contig->getSeq().length() < read_length) &&
                 //     (contig_a->getSeq().length() < read_length && contig_b->getSeq().length() < read_length ||
                 //     contig_c->getSeq().length() < read_length && contig_d->getSeq().length() < read_length)){
