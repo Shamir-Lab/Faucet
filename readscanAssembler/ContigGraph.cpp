@@ -19,6 +19,18 @@ bool allDistinct(std::vector<ContigNode*> nodes){
     return true;
 }
 
+//returns true if all nodes in the list are non-null and identical
+bool allSame(std::vector<ContigNode*> nodes){
+    for(int i = 0; i < nodes.size(); i++){
+        for(int j = i+1; j < nodes.size(); j++){
+            if(nodes[i] != nodes[j] || !nodes[i]){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void ContigGraph::setReadLength(int length){
     read_length = length;
 }
@@ -99,9 +111,9 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     // if(breakPathsAndClean(short_pair_filter, insertSize)){
     //     result = true;
     // }
-    // if(disentangleAndClean(short_pair_filter, read_length)){
-    //     result = true;
-    // }
+    if(disentangleAndClean(short_pair_filter, read_length)){
+        result = true;
+    }
     if(disentangleAndClean(long_pair_filter, insertSize)){
         result = true;
     }
@@ -185,12 +197,8 @@ bool ContigGraph::isTip(ContigNode* node, int index){
     return false;
 }
 
-// bool ContigGraph::isBubbleNode(ContigNode* node){
-
-// }
-
 bool ContigGraph::isLowCovContig(Contig* contig){
-    if(contig->getAvgCoverage()<3){
+    if(contig->getAvgCoverage() < 3){ //* contig->getSeq().length() < 250){
         return true;
     }
     // if (20*contig->getAvgCoverage() < contig->getMinAdjacentCoverage()) { //more deletion for chimeras
@@ -426,39 +434,66 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
     return score; //getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
 }
 
+bool ContigGraph::isBubble(ContigNode* node){
+    if (node->numPathsOut() > 1){
+        std::vector<int> inds = node->getIndicesOut();
+        std::vector<ContigNode*> far_nodes;
+        for(int i = 0; i != inds.size(); i++) {
+            Contig * tig = node->contigs[inds[i]];
+            far_nodes.push_back(tig->otherEndNode(node));
+        }
+        if (allSame(far_nodes)){
+            return true;
+        }
+    }
+    return false;
+}
+
 int ContigGraph::popBubblesByCoverageRatio(){
     printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
 
     int numDeleted = 0;
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-        // is bubble node if has 2 children a,b (assume cov(a)>cov(b))
-        // and a and b both lead to one grandchild c
-        // pop if a/b > 5, keep a
+        
         ContigNode* node = &it->second;
-        if(node->numPathsOut() == 2){
-            int a,b;
-            double ratio;
-            a = node->getIndicesOut()[0], b = node->getIndicesOut()[1];
-            Contig* contig_a = node->contigs[a];
-            Contig* contig_b = node->contigs[b];
-            Contig* minContig;
-            ContigNode* a_far_node = contig_a->otherEndNode(node);
-            ContigNode* b_far_node = contig_b->otherEndNode(node); 
-            ratio = contig_a->getAvgCoverage()/contig_b->getAvgCoverage();           
-            if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
-                minContig = contig_b;
+        if (isBubble(node)){
+            std::vector<int> inds = node->getIndicesOut();
+            std::vector<double> covs;
+            for(int i = 0; i != inds.size(); i++) {
+                Contig * tig = node->contigs[inds[i]];
+                covs.push_back(tig->getAvgCoverage());
+            }
+            auto result = std::minmax_element(covs.begin(), covs.end());
+            int min_contig_index = inds[(result.first - covs.begin())];
+            int max_contig_index = inds[(result.second - covs.begin())];
+            double min_val = covs[(result.first - covs.begin())];
+            double max_val = covs[(result.second - covs.begin())];
+            // std::cout << "min element at: " << (result.first - covs.begin()) << ", value is "<< covs[(result.first - covs.begin())] <<'\n';
+            // std::cout << "max element at: " << (result.second - covs.begin()) << ", value is "<< covs[(result.second - covs.begin())] <<'\n';
+            
+            Contig * source = node->contigs[4];
+            ContigNode * far_node = node->contigs[inds[0]]->otherEndNode(node);
+            Contig * target = far_node->contigs[4];
+            if (!(source && target)) {    
+                // printf("bubble source or target missing.\n");
+                continue;
+            }
+
+            // TODO: would assigning coverage of deleted contig
+            // to remaining contig help downstream (e.g., disentangle)?
+            if(source->getSeq().length() >= 500 && target->getSeq().length() >= 500){
+                numDeleted++;
+                deleteContig(node->contigs[min_contig_index]);
             }
             else{
-                minContig = contig_a;
-                ratio = 1.0 / ratio;
-            }
-            if(a_far_node == b_far_node && ratio > 3.0){
-                numDeleted++;
-                deleteContig(minContig);
-                // TODO: would assigning coverage of deleted contig
-                // to remaining contig help downstream (e.g., disentangle)?
+                double ratio = max_val / min_val;
+                if (ratio >= 3.0){
+                    numDeleted++;
+                    deleteContig(node->contigs[min_contig_index]);
+                } 
             }
         }
+
     }  
     printf("Done popping %d bubble contigs.\n", numDeleted);
     return numDeleted;  
@@ -497,59 +532,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                 Contig* contig_c = node->contigs[c];
                 Contig* contig_d = node->contigs[d];
 
-                // if length of contig & (length of a & b less than read length
-                // or length of c & d less than read length), scoring likely uninformative
-                // test coverage values similar on both sides 
-                if ((contig->getSeq().length() < read_length) &&
-                    (contig_a->getSeq().length() < read_length && contig_b->getSeq().length() < read_length ||
-                    contig_c->getSeq().length() < read_length && contig_d->getSeq().length() < read_length)){
-                    Contig * min_back; 
-                    Contig * max_back;
-                    Contig * min_front; 
-                    Contig * max_front;
-                    min_back = contig_a;
-                    max_back = contig_b;
-                    min_front = contig_c;
-                    max_front = contig_d;
-                    double min_ratio, max_ratio;
-                    bool toggle, call_res;
-                    toggle = false;
-                    if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
-                        min_back = contig_b;
-                        max_back = contig_a;
-                    }
-                    if(contig_c->getAvgCoverage()>contig_d->getAvgCoverage()){
-                        min_front = contig_d;
-                        max_front = contig_c;
-                        if (min_back != contig_d){
-                            toggle = true;
-                        }
-                    }
-                    min_ratio = std::max(min_front->getAvgCoverage()/min_back->getAvgCoverage(), min_back->getAvgCoverage()/min_front->getAvgCoverage());
-                    max_ratio = std::max(max_front->getAvgCoverage()/max_back->getAvgCoverage(), max_back->getAvgCoverage()/max_front->getAvgCoverage());
-                    if (min_ratio <= 1.15 && max_ratio <= 1.15){
-                        
-                        if (!toggle){
-                            call_res = disentanglePair(contig, backNode, node, a,b,c,d);
-                        }
-                        else {
-                            call_res = disentanglePair(contig, backNode, node, a,b,d,c);
-                        }
-                        if(call_res){
-                            it = nodeMap.erase(it);
-                            if(it != nodeMap.end()){
-                                if(backNode->getKmer() == it->first){
-                                    it++;
-                                }
-                            }
-                            nodeMap.erase(backNode->getKmer());
-                            disentangled++;
-                            continue;
-                        }
-                    }
-
-                }                
-
                 std::list<JuncResult> A = backNode->getPairCandidates(a, insertSize);
                 std::list<JuncResult> B = backNode->getPairCandidates(b, insertSize);
                 std::list<JuncResult> C = node->getPairCandidates(c, insertSize);
@@ -559,8 +541,12 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                 double scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
                 double scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                 double scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
-                //std::cout << "Score: " << scoreAC << "," << scoreBD << "," << scoreAD << "," << scoreBC << "\n";
-                //if(scoreAC <.05 && scoreBD < .05 && scoreAD > .3 && scoreBC > .3){
+                
+                // if length of contig & (length of a & b less than read length
+                // or length of c & d less than read length), scoring likely uninformative
+                // test coverage ratios similar on both sides (actually min/max values less important)
+                        
+
                 if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                     //printf("Found pair in filter in first orientation.\n");
                     
@@ -599,6 +585,57 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         continue;
                     } 
                 }
+
+                // disentangle by coverage only if couldn't by PE links 
+                // if ((contig->getSeq().length() < read_length) &&
+                //     (contig_a->getSeq().length() < read_length && contig_b->getSeq().length() < read_length ||
+                //     contig_c->getSeq().length() < read_length && contig_d->getSeq().length() < read_length)){
+                //     Contig * min_back; 
+                //     Contig * max_back;
+                //     Contig * min_front; 
+                //     Contig * max_front;
+                //     min_back = contig_a;
+                //     max_back = contig_b;
+                //     min_front = contig_c;
+                //     max_front = contig_d;
+                //     double front_ratio, back_ratio;
+                //     bool toggle, call_res;
+                //     toggle = false;
+                //     if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
+                //         min_back = contig_b;
+                //         max_back = contig_a;
+                //     }
+                //     if(contig_c->getAvgCoverage()>contig_d->getAvgCoverage()){
+                //         min_front = contig_d;
+                //         max_front = contig_c;
+                //         if (min_back != contig_d){
+                //             toggle = true;
+                //         }
+                //     }
+                //     front_ratio = max_front->getAvgCoverage()/min_front->getAvgCoverage();
+                //     back_ratio = max_back->getAvgCoverage()/min_back->getAvgCoverage();
+                //     if (front_ratio >= 1.5 && front_ratio >= 1.5){
+                        
+                //         if (!toggle){
+                //             call_res = disentanglePair(contig, backNode, node, a,b,c,d);
+                //         }
+                //         else {
+                //             call_res = disentanglePair(contig, backNode, node, a,b,d,c);
+                //         }
+                //         if(call_res){
+                //             it = nodeMap.erase(it);
+                //             if(it != nodeMap.end()){
+                //                 if(backNode->getKmer() == it->first){
+                //                     it++;
+                //                 }
+                //             }
+                //             nodeMap.erase(backNode->getKmer());
+                //             disentangled++;
+                //             continue;
+                //         }
+                //     }
+
+                // }        
             }
        }
        it++;

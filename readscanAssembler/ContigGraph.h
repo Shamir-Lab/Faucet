@@ -53,6 +53,7 @@ public:
     std::vector<int> getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter, int insertSize);
     bool isLowCovContig(Contig* contig);
     bool isTip(ContigNode* node, int i);
+    bool isBubble(ContigNode* node);
     void deleteContig(Contig* contig);
     bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize); //Cleans graph and returns true if any changes were made
 
