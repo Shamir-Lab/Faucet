@@ -113,9 +113,9 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    if(disentangleAndClean(long_pair_filter, insertSize)){
-        result = true;
-    }
+    // if(disentangleAndClean(long_pair_filter, insertSize)){
+    //     result = true;
+    // }
     deleteTipsAndClean();
 
     return result;
@@ -204,6 +204,13 @@ bool ContigGraph::isLowCovContig(Contig* contig){
     // if (20*contig->getAvgCoverage() < contig->getMinAdjacentCoverage()) { //more deletion for chimeras
     //     return true;
     // }   
+    return false;
+}
+
+bool ContigGraph::isLowMassContig(Contig* contig){
+    if(contig->getAvgCoverage() * contig->getSeq().length() < 500){
+        return true;
+    }
     return false;
 }
 
@@ -578,7 +585,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                 // or length of c & d less than read length), scoring likely uninformative
                 // test coverage ratios similar on both sides (actually min/max values less important)
                   
-                // if ((contig->getSeq().length() < read_length) &&
+                // if ((contig->getSeq().length() < read_length) && (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0) &&
                 //     (contig_a->getSeq().length() < read_length && contig_b->getSeq().length() < read_length ||
                 //     contig_c->getSeq().length() < read_length && contig_d->getSeq().length() < read_length)){
                 //     Contig * min_back; 
@@ -779,7 +786,7 @@ void ContigGraph::printContigFastG(ofstream* fastgFile, Contig * contig){
     *fastgFile << contig->getFastGHeader(true) << "\n";
     *fastgFile << contig->getSeq() << "\n";
     *fastgFile << contig->getFastGHeader(false) << "\n";
-    *fastgFile << contig->getSeq() << "\n";
+    *fastgFile << revcomp_string(contig->getSeq()) << "\n";
 }
 
 void ContigGraph::addIsolatedContig(Contig contig){

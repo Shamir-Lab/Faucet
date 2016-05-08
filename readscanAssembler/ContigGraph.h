@@ -52,6 +52,7 @@ public:
     void addIsolatedContig(Contig contig);
     std::vector<int> getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter, int insertSize);
     bool isLowCovContig(Contig* contig);
+    bool isLowMassContig(Contig* contig);
     bool isTip(ContigNode* node, int i);
     bool isBubble(ContigNode* node);
     void deleteContig(Contig* contig);
