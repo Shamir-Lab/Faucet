@@ -98,7 +98,6 @@ kmer_type ReadScanner::add_fake_junction(string read){
 std::list<kmer_type> ReadScanner::scan_forward(string read){
   std::list<kmer_type> result = {};
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
-  backwardSet = {};
 
   for(int i = 0; i < 2*jchecker->j + 1; i++){
     readKmer->forward();  
@@ -111,6 +110,9 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
   Junction* lastJunc = nullptr;
   Junction* junc = nullptr;
   int numBackward = 0;
+  int rev_pos = 0;
+  int for_pos = 0;
+
 
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
   while(find_next_junction(readKmer))
@@ -129,17 +131,19 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
       if(!backJunc){
         backJunc = new ReadKmer(readKmer);
         firstBackJunc = new ReadKmer(readKmer);
+        rev_pos = firstBackJunc->pos;
       }
       else{
         *backJunc = readKmer;
       }
     }
     else{
-      if(backJunc){
-         short_pair_filter->addPair(JuncPair(backJunc->getRealExtension(), readKmer->getRealExtension()));
-      }
+      // if(backJunc){
+      //    short_pair_filter->addPair(JuncPair(backJunc->getRealExtension(), readKmer->getRealExtension()));
+      // }
       if(!lastForwardJunc){
         lastForwardJunc = new ReadKmer(readKmer);
+        for_pos = lastForwardJunc-> pos;
       }
       else{
         *lastForwardJunc = readKmer;
@@ -180,8 +184,20 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
     lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
   }
 
-  if(firstBackJunc && lastForwardJunc){
-    short_pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
+  if(result.size()==2){
+    if (firstBackJunc && lastForwardJunc && !(rev_pos > for_pos)){
+      // printf("accepted rev_pos %d for_pos %d\n", rev_pos, for_pos);
+      short_pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
+    }
+  }
+  else if(result.size()>2){ 
+    // copy list to vector to be able to iterate over - not sure if this is optimal
+    std::vector<kmer_type> v{ std::begin(result), std::end(result) };
+
+    for (int i = 0; i< v.size()-2; i++){
+      short_pair_filter->addPair(JuncPair(v[i], v[i+2]));            
+    }
+    v.clear();
   }
 
   delete lastKmer;
