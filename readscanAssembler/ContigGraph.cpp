@@ -419,22 +419,22 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
     //Looks for junction pairs one full insert size apart
     //Only searches for pairs at distances [IS-readLength, IS+readLength]
     //TODO: come up with way of gauging variance in IS and redefine this based on that
-    std::reverse(leftCand.begin(), leftCand.end());
-    auto rightStart = rightCand.begin();
-    for(auto itL = leftCand.begin(); itL != leftCand.end(); itL++){
-        while(rightStart != rightCand.end() && rightStart->distance + itL->distance < insertSize - readLength){
-            rightStart++;
-        }
-        if(rightStart == rightCand.end()) {break;}
-        for(auto itR = rightStart; itR != rightCand.end() 
-            && itR->distance + itL->distance < insertSize + readLength; itR++){
-            counter++;
-            if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
-                //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
-                score += 1;
-            } 
-        }
-    }
+    // std::reverse(leftCand.begin(), leftCand.end());
+    // auto rightStart = rightCand.begin();
+    // for(auto itL = leftCand.begin(); itL != leftCand.end(); itL++){
+    //     while(rightStart != rightCand.end() && rightStart->distance + itL->distance < insertSize - readLength){
+    //         rightStart++;
+    //     }
+    //     if(rightStart == rightCand.end()) {break;}
+    //     for(auto itR = rightStart; itR != rightCand.end() 
+    //         && itR->distance + itL->distance < insertSize + readLength; itR++){
+    //         counter++;
+    //         if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+    //             //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
+    //             score += 1;
+    //         } 
+    //     }
+    // }
 
     //std::cout << "Total pairs: " << rightCand.size()*leftCand.size() << ", counter: " << counter << "\n";
     //std::cout << "Junctions: " << leftCand.size() << "," << rightCand.size() << ". Score: " << score << "\n";
@@ -442,7 +442,7 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
 }
 
 bool ContigGraph::isBubble(ContigNode* node){
-    if (node->numPathsOut() > 1){
+    if (node->numPathsOut() == 2){ // TODO: generalize to more than 2
         std::vector<int> inds = node->getIndicesOut();
         std::vector<ContigNode*> far_nodes;
         for(int i = 0; i != inds.size(); i++) {
@@ -538,12 +538,22 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                 Contig* contig_b = backNode->contigs[b];
                 Contig* contig_c = node->contigs[c];
                 Contig* contig_d = node->contigs[d];
+                std::list<JuncResult> A,B,C,D;
+                
 
-                std::list<JuncResult> A = backNode->getPairCandidates(a, insertSize);
-                std::list<JuncResult> B = backNode->getPairCandidates(b, insertSize);
-                std::list<JuncResult> C = node->getPairCandidates(c, insertSize);
-                std::list<JuncResult> D = node->getPairCandidates(d, insertSize);
-              
+                if (isBubble(node) && isBubble(contig->otherEndNode(node))){ // when disentangling adjacent bubbles, use only bubble contig juncts.
+                    A = contig_a->getJuncResults(contig_a->getSide(backNode, a), 0, contig_a->getSeq().length());
+                    B = contig_b->getJuncResults(contig_b->getSide(backNode, b), 0, contig_b->getSeq().length());
+                    C = contig_c->getJuncResults(contig_c->getSide(node, c), 0, contig_c->getSeq().length());
+                    D = contig_d->getJuncResults(contig_d->getSide(node, d), 0, contig_d->getSeq().length());
+
+                }
+                else{
+                    A = backNode->getPairCandidates(a, insertSize);
+                    B = backNode->getPairCandidates(b, insertSize);
+                    C = node->getPairCandidates(c, insertSize);
+                    D = node->getPairCandidates(d, insertSize);
+                }
                 double scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
                 double scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
                 double scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
@@ -580,7 +590,38 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         continue;
                     } 
                 }
-                
+                // below cases meant to address positive scores due to FPs
+                //
+                if(std::min(scoreAC,scoreBD) >= 3 && std::max(scoreAD,scoreBC) == 1){
+                    
+                    if(disentanglePair(contig, backNode, node, a, b, c, d)){
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        continue;
+                    }
+                }
+                if(std::min(scoreAD , scoreBC) >= 3 && std::max(scoreAC , scoreBD) == 1){
+                //if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
+                    if(disentanglePair(contig, backNode, node, a,b,d,c)){
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        continue;
+                    } 
+                }
+                 
+
                 // if length of contig & (length of a & b less than read length
                 // or length of c & d less than read length), scoring likely uninformative
                 // test coverage ratios similar on both sides (actually min/max values less important)

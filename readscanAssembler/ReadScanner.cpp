@@ -193,7 +193,6 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
   else if(result.size()>2){ 
     // copy list to vector to be able to iterate over - not sure if this is optimal
     std::vector<kmer_type> v{ std::begin(result), std::end(result) };
-
     for (int i = 0; i< v.size()-2; i++){
       short_pair_filter->addPair(JuncPair(v[i], v[i+2]));            
     }
