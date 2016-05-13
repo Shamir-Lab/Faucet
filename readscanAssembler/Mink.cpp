@@ -36,6 +36,7 @@ bool just_load = false;
 bool fastq = false;
 bool node_graph = false;
 bool paired_ends = false;
+int maxSpacerDist = 100; //max is 128, smaller --> more frequent spacers, bigger --> less frequent.  Measured in base pairs
 int64_t nb_reads;
 
 #include "../utils/Bloom.h"
@@ -115,6 +116,9 @@ int handle_arguments(int argc, char *argv[]){
                 bloom_input_file = string(argv[i+1]);
                 from_bloom = true, i++;
         }  
+        else if(0 == strcmp(argv[i] , "-max_spacer_dist")){
+                maxSpacerDist = atoi(argv[i+1]), i++;
+        }  
         else if(0 == strcmp(argv[i] , "-junctions_file")){
                 junctions_input_file = string(argv[i+1]) + ".junctions";
                 short_pair_filter_file = string(argv[i+1]) + ".short_pair_filter";
@@ -164,6 +168,8 @@ int handle_arguments(int argc, char *argv[]){
     printf("j: %d \n", j);
     
     printf("File prefix: %s\n", &file_prefix[0]);
+
+    printf("Max spacer dist: %d", maxSpacerDist);
     
     if(two_hash){
         printf("Using 2 hash functions.\n");
@@ -212,7 +218,7 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
 
 //Builds the junction map from either a file or the readscan
 void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker){
-    ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker);
+    ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker, maxSpacerDist);
      
     //scan reads, print summary
     scanner->scanReads(fastq, paired_ends);

@@ -6,13 +6,14 @@
 #include <time.h>
 using namespace std;
 
-ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* short_filter, Bloom* long_filter, JChecker* checker){
+ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* short_filter, Bloom* long_filter, JChecker* checker, int maxDist){
   reads_file = readFile;
   bloom = bloo1;
   short_pair_filter = short_filter;
   long_pair_filter = long_filter;
   junctionMap = juncMap;
   jchecker = checker;
+  maxSpacerDist = maxDist;
 }
 
 void ReadScanner::printScanSummary(){
@@ -55,7 +56,8 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
 //starts at the given ReadKmer, and scans till it either finds an existing junction, finds a new junction, or hits the end of the read.
 //Does not modify any junctions- simply updates ReadKmer to be at a junction or off the end of the read
 //Returns true if junction was found
-bool ReadScanner::find_next_junction(ReadKmer * readKmer){
+bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
+
   //Iterate forward to the end of the read
   for (; readKmer->getDistToEnd() > 2*jchecker->j; readKmer->forward()) //CHANGED TO 2*j from 0
   {
@@ -63,11 +65,13 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer){
       if(junctionMap->isJunction(readKmer->getKmer())){
         return true;
       }
-      //check for a new junction
-      if(testForJunction(*readKmer)){
+      //check for a new junction, or for the max spacer dist
+      if(readKmer->getTotalPos() - lastJuncPos >= maxSpacerDist*2-1 || testForJunction(*readKmer)){
+        //printf("Junc dist: %d", readKmer->getTotalPos() - lastJuncPos);
         return true;
       }
       NbProcessed++;
+
   }
   return false;
 }
@@ -112,12 +116,14 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
   int numBackward = 0;
   int rev_pos = 0;
   int for_pos = 0;
-
+  int lastJuncPos = 0;
 
   //handle all junctions - scan forward, find and create junctions, and link adjacent junctions to each other
-  while(find_next_junction(readKmer))
+  while(find_next_junction(readKmer, lastJuncPos))
   { 
      junc = junctionMap->getJunction(readKmer);
+     lastJuncPos = readKmer->getTotalPos(); //need to record this before we advance any farther
+
     //create a junction at the current spot if none exists
     if(!junc){
       junctionMap->createJunction(readKmer);

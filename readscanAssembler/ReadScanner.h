@@ -32,6 +32,7 @@ using std::ofstream;
 class ReadScanner{
 
 private:
+    int maxSpacerDist; // maximum distance in bases between two junctions (spacers added to bridge gaps)
     Bloom* bloom;
     Bloom* short_pair_filter;
     Bloom* long_pair_filter;
@@ -74,7 +75,7 @@ public:
     //Starting from the given kmer, scans forward until a junction is found or the end of the read is hit.
     //Returns true if a junction was found.  The supplied ReadKmer is also adjusted to the position of the new junction,\
     //or to the end of the read.
-    bool find_next_junction(ReadKmer * kmer);
+    bool find_next_junction(ReadKmer * kmer, int lastJuncPos);
 
     //Returns substrings of the read that are valid with BF and longer than sizeKmer
     std::list<string> getValidReads(string read);
@@ -87,6 +88,6 @@ public:
     //Returns back junctions along the read from beginning to end
     std::list<kmer_type> scan_forward(string read); 
 
-    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker);
+    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, int maxSpacerDist);
 };
 #endif
