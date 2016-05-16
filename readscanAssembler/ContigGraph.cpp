@@ -61,9 +61,9 @@ bool ContigGraph::deleteTipsAndClean(){
     if(deleteTipsAndLowCoverageContigs() > 0){
         result = true;
     } 
-    if(popBubblesByCoverageRatio() > 0){
-        result = true;
-    }  
+    // if(popBubblesByCoverageRatio() > 0){
+    //     result = true;
+    // }  
     if(destroyDegenerateNodes() > 0){
         result = true;
     }
@@ -92,6 +92,9 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
 bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     bool result = false;
     if(disentangle(pair_filter, insertSize) > 0){
+        result = true;
+    }
+    if(collapseBulges(150) > 0){
         result = true;
     }
     if(destroyDegenerateNodes() > 0){
@@ -456,7 +459,7 @@ bool ContigGraph::isBubble(ContigNode* node){
     return false;
 }
 
-bool isSimpleBulge(ContigNode* node, int max_dist){
+bool ContigGraph::isSimpleBulge(ContigNode* node, int max_dist){
     if (node->numPathsOut() == 2){
 
         std::vector<int> inds = node->getIndicesOut();
@@ -486,13 +489,13 @@ bool isSimpleBulge(ContigNode* node, int max_dist){
 
 }
 
-int ContigGraph::collapseBulges(){
+int ContigGraph::collapseBulges(int max_dist){
     printf("Collapsing simple bulges. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0;
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         
         ContigNode* node = &it->second;
-        if (isSimpleBulge(node, 150)){
+        if (isSimpleBulge(node, max_dist)){
             // P to be merged into Q
             // P is longer extension if lengths differ
             // P is lower coverage extension if lengths equal
@@ -504,15 +507,15 @@ int ContigGraph::collapseBulges(){
                 covs.push_back(tig->getAvgCoverage());
                 lengths.push_back(tig->getSeq().length());
             }
-
+            int min_contig_index, max_contig_index;
             if (lengths[0]==lengths[1]){
                 auto result = std::minmax_element(covs.begin(), covs.end());
-                int min_contig_index = inds[(result.first - covs.begin())];
-                int max_contig_index = inds[(result.second - covs.begin())];
+                min_contig_index = inds[(result.first - covs.begin())];
+                max_contig_index = inds[(result.second - covs.begin())];
             }else{
                 auto result = std::minmax_element(lengths.begin(), lengths.end());   
-                int min_contig_index = inds[(result.first - lengths.begin())];
-                int max_contig_index = inds[(result.second - lengths.begin())];           
+                min_contig_index = inds[(result.first - lengths.begin())];
+                max_contig_index = inds[(result.second - lengths.begin())];           
             }
 
 
