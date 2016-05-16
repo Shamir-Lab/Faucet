@@ -456,6 +456,77 @@ bool ContigGraph::isBubble(ContigNode* node){
     return false;
 }
 
+bool isSimpleBulge(ContigNode* node, int max_dist){
+    if (node->numPathsOut() == 2){
+
+        std::vector<int> inds = node->getIndicesOut();
+        // target is far end of longer out contig
+        ContigNode* target = node->contigs[inds[1]]->otherEndNode(node);
+        int dist = node->contigs[inds[1]]->getSeq().length();
+        int max_ind = 1;
+        int min_ind = 0;
+        if (node->contigs[inds[0]]->getSeq().length() > node->contigs[inds[1]]->getSeq().length()){
+            target = node->contigs[inds[0]]->otherEndNode(node);
+            dist = node->contigs[inds[0]]->getSeq().length();
+            max_ind = 0;
+            min_ind = 1;
+        }
+        if (dist > max_dist ){ return false; }
+
+        // try to reach target starting from other contig
+        Contig * start = node->contigs[inds[min_ind]];
+        if (start->otherEndNode(node) == target){ return true; }
+        // BFS from start up to d or max_dist
+        else{
+            return node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
+        }
+      
+    }
+    return false;
+
+}
+
+int ContigGraph::collapseBulges(){
+    printf("Collapsing simple bulges. Starting with %d nodes. \n", nodeMap.size());
+    int numDeleted = 0;
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+        
+        ContigNode* node = &it->second;
+        if (isSimpleBulge(node, 150)){
+            // P to be merged into Q
+            // P is longer extension if lengths differ
+            // P is lower coverage extension if lengths equal
+            std::vector<int> inds = node->getIndicesOut();
+            std::vector<double> covs;
+            std::vector<int> lengths;
+            for(int i = 0; i != inds.size(); i++) {
+                Contig * tig = node->contigs[inds[i]];
+                covs.push_back(tig->getAvgCoverage());
+                lengths.push_back(tig->getSeq().length());
+            }
+
+            if (lengths[0]==lengths[1]){
+                auto result = std::minmax_element(covs.begin(), covs.end());
+                int min_contig_index = inds[(result.first - covs.begin())];
+                int max_contig_index = inds[(result.second - covs.begin())];
+            }else{
+                auto result = std::minmax_element(lengths.begin(), lengths.end());   
+                int min_contig_index = inds[(result.first - lengths.begin())];
+                int max_contig_index = inds[(result.second - lengths.begin())];           
+            }
+
+
+            numDeleted++;
+            // INCOMPLETE - TODO - reassign coverage to max_contig (Q as a path)
+            deleteContig(node->contigs[min_contig_index]);
+
+
+        }
+    }
+    printf("Done collapsing %d bulge contigs.\n", numDeleted);
+    return numDeleted; 
+}
+
 int ContigGraph::popBubblesByCoverageRatio(){
     printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
 
@@ -592,89 +663,35 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                 }
                 // below cases meant to address positive scores due to FPs
                 //
-                if(std::min(scoreAC,scoreBD) >= 3 && std::max(scoreAD,scoreBC) == 1){
+                // if(std::min(scoreAC,scoreBD) >= 3 && std::max(scoreAD,scoreBC) == 1){
                     
-                    if(disentanglePair(contig, backNode, node, a, b, c, d)){
-                        it = nodeMap.erase(it);
-                        if(it != nodeMap.end()){
-                            if(backNode->getKmer() == it->first){
-                                it++;
-                            }
-                        }
-                        nodeMap.erase(backNode->getKmer());
-                        disentangled++;
-                        continue;
-                    }
-                }
-                if(std::min(scoreAD , scoreBC) >= 3 && std::max(scoreAC , scoreBD) == 1){
-                //if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
-                    if(disentanglePair(contig, backNode, node, a,b,d,c)){
-                        it = nodeMap.erase(it);
-                        if(it != nodeMap.end()){
-                            if(backNode->getKmer() == it->first){
-                                it++;
-                            }
-                        }
-                        nodeMap.erase(backNode->getKmer());
-                        disentangled++;
-                        continue;
-                    } 
-                }
-                 
-
-                // if length of contig & (length of a & b less than read length
-                // or length of c & d less than read length), scoring likely uninformative
-                // test coverage ratios similar on both sides (actually min/max values less important)
-                  
-                // if ((contig->getSeq().length() < read_length) && (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0) &&
-                //     (contig_a->getSeq().length() < read_length && contig_b->getSeq().length() < read_length ||
-                //     contig_c->getSeq().length() < read_length && contig_d->getSeq().length() < read_length)){
-                //     Contig * min_back; 
-                //     Contig * max_back;
-                //     Contig * min_front; 
-                //     Contig * max_front;
-                //     min_back = contig_a;
-                //     max_back = contig_b;
-                //     min_front = contig_c;
-                //     max_front = contig_d;
-                //     double front_ratio, back_ratio;
-                //     bool toggle, call_res;
-                //     toggle = false;
-                //     if(contig_a->getAvgCoverage()>contig_b->getAvgCoverage()){
-                //         min_back = contig_b;
-                //         max_back = contig_a;
-                //     }
-                //     if(contig_c->getAvgCoverage()>contig_d->getAvgCoverage()){
-                //         min_front = contig_d;
-                //         max_front = contig_c;
-                //         if (min_back != contig_d){
-                //             toggle = true;
-                //         }
-                //     }
-                //     front_ratio = max_front->getAvgCoverage()/min_front->getAvgCoverage();
-                //     back_ratio = max_back->getAvgCoverage()/min_back->getAvgCoverage();
-                //     if (front_ratio >= 1.5 && front_ratio >= 1.5){
-                        
-                //         if (!toggle){
-                //             call_res = disentanglePair(contig, backNode, node, a,b,c,d);
-                //         }
-                //         else {
-                //             call_res = disentanglePair(contig, backNode, node, a,b,d,c);
-                //         }
-                //         if(call_res){
-                //             it = nodeMap.erase(it);
-                //             if(it != nodeMap.end()){
-                //                 if(backNode->getKmer() == it->first){
-                //                     it++;
-                //                 }
+                //     if(disentanglePair(contig, backNode, node, a, b, c, d)){
+                //         it = nodeMap.erase(it);
+                //         if(it != nodeMap.end()){
+                //             if(backNode->getKmer() == it->first){
+                //                 it++;
                 //             }
-                //             nodeMap.erase(backNode->getKmer());
-                //             disentangled++;
-                //             continue;
                 //         }
+                //         nodeMap.erase(backNode->getKmer());
+                //         disentangled++;
+                //         continue;
                 //     }
-
-                // }        
+                // }
+                // if(std::min(scoreAD , scoreBC) >= 3 && std::max(scoreAC , scoreBD) == 1){
+                // //if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
+                //     if(disentanglePair(contig, backNode, node, a,b,d,c)){
+                //         it = nodeMap.erase(it);
+                //         if(it != nodeMap.end()){
+                //             if(backNode->getKmer() == it->first){
+                //                 it++;
+                //             }
+                //         }
+                //         nodeMap.erase(backNode->getKmer());
+                //         disentangled++;
+                //         continue;
+                //     } 
+                // }
+                 
             }
        }
        it++;

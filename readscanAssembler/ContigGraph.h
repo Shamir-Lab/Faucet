@@ -55,6 +55,8 @@ public:
     bool isLowMassContig(Contig* contig);
     bool isTip(ContigNode* node, int i);
     bool isBubble(ContigNode* node);
+    bool isSimpleBulge(ContigNode* node, int max_dist);
+
     void deleteContig(Contig* contig);
     bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize); //Cleans graph and returns true if any changes were made
 

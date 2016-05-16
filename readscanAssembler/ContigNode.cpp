@@ -50,6 +50,42 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     return results;
 }
 
+
+
+bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
+    ContigNode* target = contigs[max_ind]->otherEndNode(this);
+    std::set<kmer_type> seenKmers = {};
+    std::deque<NodeQueueEntry> stack= {};
+    // start from shorter branch
+    int start_dist = contigs[min_ind]->getSeq().length();
+    stack.push_back(NodeQueueEntry(getNeighbor(min_ind), 0, start_dist));
+
+    while (!stack.empty()){
+        NodeQueueEntry entry = stack.back();
+        stack.pop_back();
+        kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
+        
+        if(seenKmers.find(unique_kmer) == seenKmers.end()){
+            
+            if (entry.startDist > max_dist){
+                seenKmers.insert(unique_kmer);
+                continue;
+            }
+            else if (entry.node == target){ 
+                return true;
+            }
+            else{
+                seenKmers.insert(unique_kmer);
+                entry.addNeighbors(stack); 
+            }
+            
+        }
+
+   }
+   return false;
+}
+
+
 bool ContigNode::checkValidity(){
     for(int i = 0; i < 5; i++){
         if(contigs[i]){

@@ -26,7 +26,7 @@ public:
 
 
     bool checkValidity();
-    
+    bool doPathsConvergeNearby(int max_ind, int min_ind, int max_dist);
     //gets the neighbors of the specified contig- if contigIndex is 4, returns all forward neighbors
     //If contig index isn't 4, only returns back contig as a neighbor
     std::vector<std::pair<Contig*, bool> > getFastGNeighbors(int contigIndex);
