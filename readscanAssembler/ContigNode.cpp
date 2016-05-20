@@ -38,7 +38,7 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
             if(entry.startDist <= maxDist){
                 std::list<JuncResult> newResults = entry.getJuncResults(maxDist);
                 results.insert(results.end(), newResults.begin(), newResults.end());
-                entry.addNeighbors(queue);
+                entry.addNeighbors(queue); //, true);
             }
         }
    }
@@ -55,28 +55,41 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
 bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::set<kmer_type> seenKmers = {};
-    std::deque<NodeQueueEntry> stack= {};
+    std::deque<NodeQueueEntry> queue= {};
     // start from shorter branch
-    int start_dist = contigs[min_ind]->getSeq().length();
-    stack.push_back(NodeQueueEntry(getNeighbor(min_ind), 0, start_dist));
+    // int start_dist = contigs[min_ind]->getSeq().length();
+    queue.push_back(NodeQueueEntry(this, min_ind, 0));
 
-    while (!stack.empty()){
-        NodeQueueEntry entry = stack.back();
-        stack.pop_back();
+    printf("%d %d\n", max_ind, min_ind);
+
+    while (!queue.empty()){
+        printf("queue size entering while: %d\n", queue.size());
+        NodeQueueEntry entry = queue.front();
+        queue.pop_front();
+        // printf("%d\n", entry.index);
+        // if (!entry.node->contigs[entry.index]){
+        //     printf("contig %d not present\n", entry.index);
+        //     continue;
+        // }
         kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
         
+
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
-            
+            seenKmers.insert(unique_kmer);
+
+            printf("unseeen kmer\n");
             if (entry.startDist > max_dist){
-                seenKmers.insert(unique_kmer);
+                printf("too far\n");
                 continue;
             }
-            else if (entry.node == target){ 
+            else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)){ 
+                printf("found target\n");
                 return true;
             }
             else{
-                seenKmers.insert(unique_kmer);
-                entry.addNeighbors(stack); 
+                printf("added neighbors\n");
+                entry.addNeighbors(queue); //, true); // pushes to front 
+                printf("queue size after adding neighbors: %d, num out neighbors: %d\n", queue.size(), entry.node->numPathsOut());
             }
             
         }
@@ -259,13 +272,21 @@ void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
     if(nextNode){
         if(nextIndex != 4){
             if(nextNode->contigs[4]){
-                queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));
+                // if (to_back){
+                    queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));
+                // }else{
+                //     queue.push_front(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));                    
+                // }
             }
         }
         else{
             for (int i = 0; i < 4; i++){
                 if(nextNode->contigs[i]){
-                    queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
+                    // if (to_back){
+                        queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
+                    // }else{
+                    //     queue.push_front(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));                        
+                    // }
                 }
             }
         }

@@ -67,6 +67,6 @@ public:
 
     std::list<JuncResult> getJuncResults(int m); //returns immediate junc results from contig along this index
 
-    void addNeighbors(std::deque<NodeQueueEntry> & queue); //searches forward one step, adds relevant nodes to the queue
+    void addNeighbors(std::deque<NodeQueueEntry> & queue); // , bool to_back); //searches forward one step, adds relevant nodes to the queue
 };
 #endif
