@@ -66,11 +66,16 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
         printf("queue size entering while: %d\n", queue.size());
         NodeQueueEntry entry = queue.front();
         queue.pop_front();
-        // printf("%d\n", entry.index);
+        printf("%d\n", entry.index);
         // if (!entry.node->contigs[entry.index]){
-        //     printf("contig %d not present\n", entry.index);
+        //     printf("contig not present\n");
         //     continue;
         // }
+        if (!entry.node->contigs[entry.index]->node1_p || 
+            !entry.node->contigs[entry.index]->node2_p){
+            printf("contig node pointer not present\n");
+            continue;
+        }
         kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
         
 
@@ -82,14 +87,14 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
                 printf("too far\n");
                 continue;
             }
-            else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)){ 
+            else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){ 
                 printf("found target\n");
                 return true;
             }
             else{
                 printf("added neighbors\n");
                 entry.addNeighbors(queue); //, true); // pushes to front 
-                printf("queue size after adding neighbors: %d, num out neighbors: %d\n", queue.size(), entry.node->numPathsOut());
+                printf("queue size after adding neighbors: %d\n", queue.size());
             }
             
         }
@@ -265,15 +270,21 @@ std::list<JuncResult> NodeQueueEntry::getJuncResults(int maxDist){
 
 void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
     Contig* contig = node->contigs[index];
+    // if (node->contigs[index]){
+    //     printf("no contig at this index!\n");
+    // }
     int otherSide = 3 - contig->getSide(node,index);    
     ContigNode* nextNode = contig->getNode(otherSide);
     int nextIndex = contig->getIndex(otherSide);
     
+
+
     if(nextNode){
         if(nextIndex != 4){
             if(nextNode->contigs[4]){
                 // if (to_back){
                     queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));
+                    // printf("should add one extension\n");
                 // }else{
                 //     queue.push_front(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));                    
                 // }
@@ -284,6 +295,8 @@ void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
                 if(nextNode->contigs[i]){
                     // if (to_back){
                         queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
+                        // printf("should add multiple extensions\n");
+
                     // }else{
                     //     queue.push_front(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));                        
                     // }
@@ -291,4 +304,5 @@ void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
             }
         }
     }
+    
 }
