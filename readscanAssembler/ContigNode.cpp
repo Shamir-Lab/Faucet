@@ -71,9 +71,16 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
         //     printf("contig not present\n");
         //     continue;
         // }
+        if (! entry.node || !entry.node->contigs[entry.index]){
+            printf("contig missing at extension\n");
+        }
         if (!entry.node->contigs[entry.index]->node1_p || 
             !entry.node->contigs[entry.index]->node2_p){
             printf("contig node pointer not present\n");
+            continue;
+        }
+        if (entry.node->contigs[entry.index]->isDegenerateLoop()){
+            printf("degenerate loop\n");
             continue;
         }
         kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
