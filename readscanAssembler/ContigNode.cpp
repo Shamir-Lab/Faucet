@@ -60,19 +60,22 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     // int start_dist = contigs[min_ind]->getSeq().length();
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
 
-    printf("%d %d\n", max_ind, min_ind);
+    printf("Max, min: %d %d\n", max_ind, min_ind);
 
     while (!queue.empty()){
         printf("queue size entering while: %d\n", queue.size());
         NodeQueueEntry entry = queue.front();
         queue.pop_front();
-        printf("%d\n", entry.index);
+        printf("Just popped: %li, %d, %d\n", entry.node, entry.index, entry.startDist);
         // if (!entry.node->contigs[entry.index]){
         //     printf("contig not present\n");
         //     continue;
         // }
-        if (! entry.node || !entry.node->contigs[entry.index]){
-            printf("contig missing at extension\n");
+        if (!entry.node){
+            printf("no node!\n");
+        }
+        if( !entry.node->contigs[entry.index]){
+            printf("contig missing at extension\n");   
         }
         if (!entry.node->contigs[entry.index]->node1_p || 
             !entry.node->contigs[entry.index]->node2_p){
@@ -83,13 +86,19 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
             printf("degenerate loop\n");
             continue;
         }
+        if(!entry.node->contigs[4]){
+            printf("Has no backcontig; won't be able to getKmer()\n");
+        }
+        printf("Before seg fault\n");
+        //seg fault definitely on this line
         kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
-        
+        printf("After seg fault\n");
 
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
+        
             seenKmers.insert(unique_kmer);
 
-            printf("unseeen kmer\n");
+            printf("unseen kmer\n");
             if (entry.startDist > max_dist){
                 printf("too far\n");
                 continue;
@@ -244,7 +253,13 @@ void ContigNode::breakPath(int nucExt){
 }
 
 kmer_type ContigNode::getKmer(){
-    return contigs[4]->getNodeKmer(this);
+    for(int i = 4; i >= 0; i--){
+        if(contigs[i]){
+            return contigs[i]->getNodeKmer(this);
+        }
+    }
+    printf("ERROR: No valid contigs from which to getKmer()\n");
+    return 0;
 }
 
 ContigNode* ContigNode::getNeighbor(int index){
