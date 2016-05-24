@@ -140,6 +140,7 @@ ContigNode* Contig::otherEndNode(ContigNode * oneEnd){
 	}
 	printf("ERROR: tried to get other end of a contig, but the given pointer didn't point to either end!.\n");
 	std::cout << "node1_p: " << node1_p << " node2_p: " << node2_p << " oneEnd: " << oneEnd << "\n";
+	std::cout << "This contig: " << this << "\n";
 	return nullptr;
 }
 
