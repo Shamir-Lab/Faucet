@@ -278,11 +278,11 @@ int main(int argc, char *argv[])
 
     while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter, 740));
 
-    Contig* longContig = contigGraph->getLongestContig();
-    printf("Short pair filter info:\n");
-    longContig->printPairStatistics(short_pair_filter);
-    printf("Long pair filter info:\n");
-    longContig->printPairStatistics(long_pair_filter);
+    // Contig* longContig = contigGraph->getLongestContig();
+    // printf("Short pair filter info:\n");
+    // longContig->printPairStatistics(short_pair_filter);
+    // printf("Long pair filter info:\n");
+    // longContig->printPairStatistics(long_pair_filter);
 
     contigGraph->checkGraph();
 

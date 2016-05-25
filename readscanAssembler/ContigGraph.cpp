@@ -113,15 +113,13 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
 
     bool result = false;
-    if(breakPathsAndClean(short_pair_filter, insertSize)){
-        result = true;
-    }
+    
     if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    // if(disentangleAndClean(long_pair_filter, insertSize)){
-    //     result = true;
-    // }
+    if(breakPathsAndClean(short_pair_filter, insertSize)){
+        result = true;
+    }
     deleteTipsAndClean();
 
     return result;
@@ -224,9 +222,18 @@ void ContigGraph::deleteContig(Contig* contig){
     //std::cout << contig << "\n";
     if(contig->node1_p){
         contig->node1_p->breakPath(contig->ind1);
+        if(contig->node1_p->numPathsOut() <= 1){
+            kmer_type kmer = contig->node1_p->getKmer();
+            collapseNode(contig->node1_p, kmer);
+        }
+
     }
     if(contig->node2_p){
         contig->node2_p->breakPath(contig->ind2);
+        if(contig->node2_p->numPathsOut() <= 1){
+            kmer_type kmer = contig->node2_p->getKmer();
+            collapseNode(contig->node2_p, kmer);
+        }
     }
     delete contig;
     contig = nullptr;
@@ -498,6 +505,8 @@ int ContigGraph::collapseBulges(int max_dist){
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         
         ContigNode* node = &it->second;
+        kmer_type kmer = it->first;
+
         if (isSimpleBulge(node, max_dist)){
             // P to be merged into Q
             // P is longer extension if lengths differ
@@ -524,7 +533,25 @@ int ContigGraph::collapseBulges(int max_dist){
 
             numDeleted++;
             // INCOMPLETE - TODO - reassign coverage to max_contig (Q as a path)
-            deleteContig(node->contigs[min_contig_index]);
+            Contig* min_contig = node->contigs[min_contig_index]; 
+            // ContigNode* far_node = min_contig->otherEndNode(node);
+            // int far_ind = far_node->indexOf(min_contig);
+            // kmer_type far_kmer = min_contig->getSideKmer(2);
+            // if (kmer == min_contig->getSideKmer(2)){
+            //     far_kmer = min_contig->getSideKmer(1);
+            // }
+
+            deleteContig(min_contig);
+
+            // if (far_node==node){continue;}
+            // printf("near node is %s, far node is %s\n", print_kmer(kmer), print_kmer(far_kmer));
+
+            // if(node->numPathsOut() == 1){
+            //     collapseNode(node, kmer);
+            // }
+            // if(far_node->numPathsOut() == 1){
+            //     collapseNode(far_node, far_kmer);                
+            // }
 
 
         }

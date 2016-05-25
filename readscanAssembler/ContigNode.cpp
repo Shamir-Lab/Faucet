@@ -60,57 +60,54 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     // int start_dist = contigs[min_ind]->getSeq().length();
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
 
-    printf("Max, min: %d %d\n", max_ind, min_ind);
+    // printf("Max, min: %d %d\n", max_ind, min_ind);
 
     while (!queue.empty()){
-        printf("queue size entering while: %d\n", queue.size());
+        // printf("queue size entering while: %d\n", queue.size());
         NodeQueueEntry entry = queue.front();
         queue.pop_front();
-        printf("Just popped: %li, %d, %d\n", entry.node, entry.index, entry.startDist);
-        // if (!entry.node->contigs[entry.index]){
-        //     printf("contig not present\n");
-        //     continue;
+        // printf("Just popped: %li, %d, %d\n", entry.node, entry.index, entry.startDist);
+        
+        // if (!entry.node){
+        //     printf("no node!\n");
         // }
-        if (!entry.node){
-            printf("no node!\n");
-        }
-        if( !entry.node->contigs[entry.index]){
-            printf("contig missing at extension\n");   
-        }
+        // if( !entry.node->contigs[entry.index]){
+        //     printf("contig missing at extension\n");   
+        // }
         if (!entry.node->contigs[entry.index]->node1_p || 
             !entry.node->contigs[entry.index]->node2_p){
-            printf("contig node pointer not present\n");
+            // printf("contig node pointer not present\n");
             continue;
         }
         if (entry.node->contigs[entry.index]->isDegenerateLoop()){
-            printf("degenerate loop\n");
+            // printf("degenerate loop\n");
             continue;
         }
-        if(!entry.node->contigs[4]){
-            printf("Has no backcontig; won't be able to getKmer()\n");
-        }
-        printf("Before seg fault\n");
+        // if(!entry.node->contigs[4]){
+        //     printf("Has no backcontig; won't be able to getKmer()\n");
+        // }
+        // printf("Before seg fault\n");
         //seg fault definitely on this line
         kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
-        printf("After seg fault\n");
+        // printf("After seg fault\n");
 
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
         
             seenKmers.insert(unique_kmer);
 
-            printf("unseen kmer\n");
+            // printf("unseen kmer\n");
             if (entry.startDist > max_dist){
-                printf("too far\n");
+                // printf("too far\n");
                 continue;
             }
             else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){ 
-                printf("found target\n");
+                // printf("found target\n");
                 return true;
             }
             else{
-                printf("added neighbors\n");
+                // printf("added neighbors\n");
                 entry.addNeighbors(queue); //, true); // pushes to front 
-                printf("queue size after adding neighbors: %d\n", queue.size());
+                // printf("queue size after adding neighbors: %d\n", queue.size());
             }
             
         }
