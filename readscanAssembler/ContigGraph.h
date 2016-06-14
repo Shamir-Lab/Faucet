@@ -28,6 +28,8 @@ class ContigGraph
 std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
 unordered_map<kmer_type,ContigNode> nodeMap;
+unordered_map<kmer_type,ContigNode>::iterator it;
+
 int read_length;
 
 public: 
@@ -63,7 +65,7 @@ public:
     bool checkGraph();
     void printContigFastG(ofstream* fastgFile, Contig * contig);
     void printContigs(string filename); //prints the contigs raw
-     void printGraph(string fileName); //prints graph : TBD print format- fastg?
+    void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();
 
     Contig* getLongestContig();
@@ -84,6 +86,7 @@ private:
     int breakUnsupportedPaths(Bloom* pair_filter, int insertSize); //removes extensions of junctions not supported by paired ends
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
+    // int cutIfDegenerate(ContigNode* node, kmer_type kmer, auto it);
 
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
     void collapseNode(ContigNode * node, kmer_type kmer);

@@ -60,37 +60,24 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     // int start_dist = contigs[min_ind]->getSeq().length();
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
 
-    // printf("Max, min: %d %d\n", max_ind, min_ind);
-
     while (!queue.empty()){
         // printf("queue size entering while: %d\n", queue.size());
         NodeQueueEntry entry = queue.front();
         queue.pop_front();
-        // printf("Just popped: %li, %d, %d\n", entry.node, entry.index, entry.startDist);
         
         // if (!entry.node){
-        //     printf("no node!\n");
+        //     continue;
         // }
-        // if( !entry.node->contigs[entry.index]){
-        //     printf("contig missing at extension\n");   
+        // else if (!entry.node->contigs){
+        //     continue;
         // }
-        if (!entry.node->contigs[entry.index]->node1_p || 
-            !entry.node->contigs[entry.index]->node2_p){
-            // printf("contig node pointer not present\n");
-            continue;
-        }
-        if (entry.node->contigs[entry.index]->isDegenerateLoop()){
-            // printf("degenerate loop\n");
-            continue;
-        }
-        // if(!entry.node->contigs[4]){
-        //     printf("Has no backcontig; won't be able to getKmer()\n");
+        // else if (!entry.node->contigs[entry.index]){
+            
+        //     // printf("contig node pointer not present\n");
+        //     continue;
         // }
-        // printf("Before seg fault\n");
-        //seg fault definitely on this line
         kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
         // printf("After seg fault\n");
-
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
         
             seenKmers.insert(unique_kmer);
@@ -303,10 +290,7 @@ void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
             if(nextNode->contigs[4]){
                 // if (to_back){
                     queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));
-                    // printf("should add one extension\n");
-                // }else{
-                //     queue.push_front(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));                    
-                // }
+                  
             }
         }
         else{
@@ -314,11 +298,7 @@ void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
                 if(nextNode->contigs[i]){
                     // if (to_back){
                         queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
-                        // printf("should add multiple extensions\n");
-
-                    // }else{
-                    //     queue.push_front(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));                        
-                    // }
+                    
                 }
             }
         }

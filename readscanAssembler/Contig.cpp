@@ -243,7 +243,10 @@ std::vector<std::pair<Contig*, bool>> Contig::getNeighbors(bool RC){
 }
 
 bool Contig::isDegenerateLoop(){
-	return (node1_p == node2_p && ind1 == ind2);
+	if (node1_p && node2_p){
+		return (node1_p == node2_p && ind1 == ind2);
+	}
+	return false;
 }
 
 bool Contig::checkValidity(){
