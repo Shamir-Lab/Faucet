@@ -121,6 +121,10 @@ ContigJuncList ContigJuncList::concatenate(ContigJuncList otherList){
 //Averages all coverage values in list
 double ContigJuncList::getAvgCoverage(){
     double covSum = 0;
+    if(coverages.size()== 0){
+        printf("ERROR: empty junctions list\n");
+        return 0;
+    }
     for(auto it = coverages.begin(); it != coverages.end(); it++){
         covSum += (double) *it;
     }

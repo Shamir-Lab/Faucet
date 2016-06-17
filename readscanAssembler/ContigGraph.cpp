@@ -307,12 +307,12 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
 
     printf("Deleting node mapped contigs.\n");
     //looks through all contigs adjacent to nodes
-    int j = 1;
+    int k = 1;
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-        if(j % 10000 == 0){
-            std::cout << j << " nodes processed.\n";
+        if(k % 10000 == 0){
+            std::cout << k << " nodes processed.\n";
         }
-        j++;
+        k++;
         printf("316\n");
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
@@ -321,7 +321,6 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
             for(int i = 0; i < 5; i++){
                 Contig* contig = node->contigs[i];
                 if(contig){
-                    printf("324\n");
                     // if(isTip(node, i)){
                     //     printf("326\n");
                     //     numDeleted++;
@@ -333,38 +332,67 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
                     //     }
                     // }
                     printf("333\n");
-                    ContigNode* far_node = contig->otherEndNode(node);
-                    printf("337\n");
-                    kmer_type far_kmer;
-                    if (far_node){
-                        far_kmer = far_node->getKmer();
-                        printf("341\n");
-                    }
-                    printf("343\n");
                     //printf("Checking contig %d.\n", i);
                     if(isLowCovContig(contig)){
                         numDeleted++;
-                        
+                        ContigNode* far_node = contig->otherEndNode(node);
                         deleteContig(contig);
-                        printf("349\n");
-                        if (far_node){      
-                            if(far_node->numPathsOut() == 1 && far_node != node){
-                                collapseNode(far_node, far_kmer); 
-                                seenKmers.insert(far_kmer);                                                    
-                            }
-                        }
-                        printf("355\n");
-                        if(node->numPathsOut() == 1){
-                            collapseNode(node, kmer);  
-                            seenKmers.insert(kmer);
-                   
+                        kmer_type far_kmer;
+                        if (far_node){
+                            far_kmer = far_node->getKmer();
+                            printf("341\n");
                         }
 
+                        if (far_node){
+                            if(far_node->numPathsOut() == 0){
+                                if(far_node->contigs[4]){
+                                    cutPath(far_node, 4);
+                                }
+                                seenKmers.insert(far_kmer);
+                            }
+                            else if(far_node->numPathsOut() == 1){
+                                collapseNode(far_node, far_kmer);         
+                                seenKmers.insert(far_kmer);
+                       
+                            }
+
+                            if(!far_node->contigs[4]){
+                                for(int j = 0; j < 4; j++){
+                                    if(far_node->contigs[j]){
+                                        cutPath(far_node,j);
+                                    }
+                                }
+                                seenKmers.insert(far_kmer);
+                            }
+                        }
                     }
                     printf("359\n");
 
                 } 
-            }         
+            }     
+            if(node->numPathsOut() == 0){
+                printf("0 paths out\n");
+                if(node->contigs[4]){
+                    cutPath(node, 4);
+                }
+                seenKmers.insert(kmer);
+            }
+            else if(node->numPathsOut() == 1){
+                printf("1 path out\n");
+                collapseNode(node, kmer);         
+                seenKmers.insert(kmer);
+       
+            }
+
+            if(!node->contigs[4]){
+                printf("no back node\n");
+                for(int j = 0; j < 4; j++){
+                    if(node->contigs[j]){
+                        cutPath(node,j);
+                    }
+                }
+                seenKmers.insert(kmer);
+            }    
         }
 
     }
@@ -398,7 +426,6 @@ int ContigGraph::destroyDegenerateNodes(){
     while(it != nodeMap.end()){
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
-        // numDegen += cutIfDegenerate(node, kmer);
         if(node->numPathsOut() == 0){
             if(node->contigs[4]){
                 cutPath(node, 4);
@@ -588,21 +615,60 @@ int ContigGraph::collapseBulges(int max_dist){
             }
 
             deleteContig(P);
-            if (far_node){      
-                if(far_node->numPathsOut() == 1 && far_node != node){
-                    // if node no longer branches, collapse (remove node & replace contigs by concat seq.), erase kmer from nodeMap
-                    collapseNode(far_node, far_kmer); 
-                    seenKmers.insert(far_kmer); 
+            // if (far_node){      
+            //     if(far_node->numPathsOut() == 1 && far_node){
+            //         // if node no longer branches, collapse (remove node & replace contigs by concat seq.), erase kmer from nodeMap
+            //         // printf("collpsing far node\n");
+            //         collapseNode(far_node, far_kmer); 
                                      
-                }
-            }
+            //     }
+            //     seenKmers.insert(far_kmer); 
 
-            if(node->numPathsOut() == 1){
-                collapseNode(node, kmer); 
-                
+            // }
+
+            if(node->numPathsOut() == 0){
+                if(node->contigs[4]){
+                    cutPath(node, 4);
+                }
+                seenKmers.insert(kmer);
+            }
+            else if(node->numPathsOut() == 1){
+                // printf("collapsing node\n");
+                collapseNode(node, kmer);         
                 seenKmers.insert(kmer);
        
             }
+            if(!node->contigs[4]){
+                for(int i = 0; i < 4; i++){
+                    if(node->contigs[i]){
+                        cutPath(node,i);
+                    }
+                }
+                seenKmers.insert(kmer);
+            }
+
+            if (far_node){
+                if(far_node->numPathsOut() == 0){
+                    if(far_node->contigs[4]){
+                        cutPath(far_node, 4);
+                    }
+                    seenKmers.insert(far_kmer);
+                }
+                else if(far_node->numPathsOut() == 1){
+                    collapseNode(far_node, far_kmer);         
+                    seenKmers.insert(far_kmer);
+           
+                }
+                if(!far_node->contigs[4]){
+                    for(int i = 0; i < 4; i++){
+                        if(far_node->contigs[i]){
+                            cutPath(far_node,i);
+                        }
+                    }
+                    seenKmers.insert(far_kmer);
+                }
+            }
+
             numDeleted++;
             it++;
         }
@@ -621,6 +687,27 @@ int ContigGraph::collapseBulges(int max_dist){
     printf("Done collapsing %d bulge contigs.\n", numDeleted);
     return numDeleted; 
 }
+
+
+// ContigNode* node = &it->second;
+//         kmer_type kmer = it->first;
+//         if(node->numPathsOut() == 0){
+//             if(node->contigs[4]){
+//                 cutPath(node, 4);
+//             }
+//             numDegen++;
+//             it = nodeMap.erase(it);
+//         }
+//         else if(!node->contigs[4]){
+//             for(int i = 0; i < 4; i++){
+//                 if(node->contigs[i]){
+//                     cutPath(node,i);
+//                 }
+//             }
+//             numDegen++;
+//             it = nodeMap.erase(it);
+//         }
+
 
 int ContigGraph::popBubblesByCoverageRatio(){
     printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
@@ -826,7 +913,7 @@ int ContigGraph::collapseDummyNodes(){
         if(node->numPathsOut() == 1){
             numCollapsed++;
             collapseNode(node, kmer);
-            nodeMap.erase(kmer);
+            if(!nodeMap.erase(kmer)) printf("ERROR: tried to erase node %s but there was no node.\n", print_kmer(kmer));
         }
     }
 
