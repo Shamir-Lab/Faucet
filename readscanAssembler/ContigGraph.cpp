@@ -64,12 +64,12 @@ bool ContigGraph::deleteTipsAndClean(){
     // if(popBubblesByCoverageRatio() > 0){
     //     result = true;
     // }  
-    if(destroyDegenerateNodes() > 0){
-        result = true;
-    }
-    if(collapseDummyNodes() > 0){
-        result = true;
-    }
+    // if(destroyDegenerateNodes() > 0){
+    //     result = true;
+    // }
+    // if(collapseDummyNodes() > 0){
+    //     result = true;
+    // }
     return result;
 }
 
@@ -82,12 +82,12 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
     if(collapseBulges(150) > 0){
         result = true;
     }
-    if(destroyDegenerateNodes() > 0){
-        result = true;
-    }
-    if(collapseDummyNodes() > 0){
-        result = true;
-    }
+    // if(destroyDegenerateNodes() > 0){
+    //     result = true;
+    // }
+    // if(collapseDummyNodes() > 0){
+    //     result = true;
+    // }
 
     return result;
 }
@@ -117,10 +117,11 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
+    deleteTipsAndClean();
+
     if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
     }
-    deleteTipsAndClean();
 
     return result;
 }
