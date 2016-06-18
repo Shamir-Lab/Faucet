@@ -321,19 +321,13 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
             for(int i = 0; i < 5; i++){
                 Contig* contig = node->contigs[i];
                 if(contig){
-                    // if(isTip(node, i)){
-                    //     printf("326\n");
-                    //     numDeleted++;
-                    //     deleteContig(contig);
-                    //     if(node->numPathsOut() == 1){
-                    //         collapseNode(node, kmer);  
-                    //         seenKmers.insert(kmer);
-                    //         continue;
-                    //     }
-                    // }
-                    // printf("333\n");
-                    //printf("Checking contig %d.\n", i);
-                    if(isLowCovContig(contig)){
+                    if(isTip(node, i)){
+                        numDeleted++;
+                        deleteContig(contig);
+
+                    }
+                    
+                    else if(isLowCovContig(contig)){
                         numDeleted++;
                         ContigNode* far_node = contig->otherEndNode(node);
                         deleteContig(contig);
@@ -361,14 +355,19 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
                                 seenKmers.insert(far_kmer);
                             }
                             
-                            if(far_node->numPathsOut() == 1){
+                            if (far_node == node){ 
+                                // hairpin - break to avoid revisiting collapsed node
+                                // treating node (below) will make sure it is collapsed 
+                                break;
+                            }
+                            else if(far_node->numPathsOut() == 1){
                                 // printf("1 path out\n");
                                 collapseNode(far_node, far_kmer);         
                                 seenKmers.insert(far_kmer);
                        
                             }
-
                             
+
                         }
                     }
                     // printf("359\n");
