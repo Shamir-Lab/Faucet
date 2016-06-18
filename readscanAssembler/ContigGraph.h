@@ -83,6 +83,7 @@ public:
 private:
     int popBubblesByCoverageRatio();
     int deleteTipsAndLowCoverageContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
+    bool testAndCutIfDegenerate(ContigNode* node);
     int breakUnsupportedPaths(Bloom* pair_filter, int insertSize); //removes extensions of junctions not supported by paired ends
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
