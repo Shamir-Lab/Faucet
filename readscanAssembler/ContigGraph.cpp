@@ -302,11 +302,10 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
 }   
 
 int ContigGraph::deleteTipsAndLowCoverageContigs(){
-    printf("Deleting error contigs. Starting with %d nodes. \n", nodeMap.size());
+    printf("Deleting tips and low coverage contigs. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0;
     std::set<kmer_type> seenKmers = {};
 
-    printf("Deleting node mapped contigs.\n");
     //looks through all contigs adjacent to nodes
     int k = 1;
     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
@@ -367,9 +366,9 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
     for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); k_it++){
         nodeMap.erase(*k_it);
     }
-
-    printf("Done deleting node mapped contigs.\n");
-    printf("Deleting isolated contigs. Starting with %d.\n", isolated_contigs.size());
+    printf("Deleted %d tips and low coverage contigs. %d nodes remain\n", numDeleted, nodeMap.size());
+    numDeleted = 0;
+    printf("Deleting isolated low mass contigs. Starting with %d.\n", isolated_contigs.size());
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
         Contig* contig = &*it;
@@ -380,7 +379,7 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
         else it++;
     }
 
-    printf("Done deleting %d error contigs.\n", numDeleted);
+    printf("Deleted %d isolated low mass contigs. %d nodes remain\n", numDeleted, isolated_contigs.size());
     return numDeleted;
 }   
 
@@ -530,7 +529,10 @@ bool ContigGraph::isSimpleBulge(ContigNode* node, int max_dist){
         if (start->otherEndNode(node) == target){ return true; }
         // BFS from start up to d or max_dist
         else{
-            return node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
+            int target_dist = node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
+            if (target_dist == 0) return false;
+            int diff = std::abs(target_dist - dist);
+            if ( diff < 4 || diff <= 0.05 * dist) return true;
         }
       
     }
@@ -610,14 +612,14 @@ int ContigGraph::collapseBulges(int max_dist){
             it++;
         }
     }
-    printf("Before deleting from nodeMap %d nodes. \n", nodeMap.size());
 
     for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); k_it++){
         nodeMap.erase(*k_it);
     }
-    printf("After deleting from nodeMap %d nodes. \n", nodeMap.size());
 
-    printf("Done collapsing %d bulge contigs.\n", numDeleted);
+    printf("Collapsed %d bulge contigs.\n", numDeleted);
+    printf("%d nodes left in node map \n", nodeMap.size());
+
     return numDeleted; 
 }
 
@@ -688,7 +690,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
             //printf("1\n");
             Contig* contig = node->contigs[4];
             ContigNode* backNode = contig->otherEndNode(node);
-            //printf("2\n");
+            
+            // test for adjacent outwards facing nodes
             if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
                 //printf("3\n");
                 // printf("Found an outward facing pair: %s,", print_kmer(node->getKmer()));
@@ -888,19 +891,21 @@ void ContigGraph::printGraph(string fileName){
     fastgFile.open(fileName);
 
     ContigIterator* contigIt = new ContigIterator(this);
-
+    int node_contig_count = 0;
     //prints contigs that are adjacent to nodes
     while(contigIt->hasNextContig()){
         Contig* contig = contigIt->getContig();
         printContigFastG(&fastgFile, contig);
+        node_contig_count++;
     }
-
+    printf("printed %d node-connected contigs\n", node_contig_count);
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
         Contig contig = *it;
         printContigFastG(&fastgFile, &contig);
-    }
 
+    }
+    printf("printed %d isolated contigs\n", isolated_contigs.size());
     //printf("Done printing contigs from contig graph.\n");
     fastgFile.close();
     printf("Done printing graph from contig graph iterator.\n");

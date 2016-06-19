@@ -52,7 +52,7 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
 
 
 
-bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
+int ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::set<kmer_type> seenKmers = {};
     std::deque<NodeQueueEntry> queue= {};
@@ -61,46 +61,28 @@ bool ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
 
     while (!queue.empty()){
-        // printf("queue size entering while: %d\n", queue.size());
         NodeQueueEntry entry = queue.front();
         queue.pop_front();
         
-        // if (!entry.node){
-        //     continue;
-        // }
-        // else if (!entry.node->contigs){
-        //     continue;
-        // }
-        // else if (!entry.node->contigs[entry.index]){
-            
-        //     // printf("contig node pointer not present\n");
-        //     continue;
-        // }
         kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
-        // printf("After seg fault\n");
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
         
             seenKmers.insert(unique_kmer);
 
-            // printf("unseen kmer\n");
             if (entry.startDist > max_dist){
-                // printf("too far\n");
                 continue;
             }
             else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){ 
-                // printf("found target\n");
-                return true;
+                return entry.startDist;
             }
             else{
-                // printf("added neighbors\n");
-                entry.addNeighbors(queue); //, true); // pushes to front 
-                // printf("queue size after adding neighbors: %d\n", queue.size());
+                entry.addNeighbors(queue); 
             }
             
         }
 
    }
-   return false;
+   return 0;
 }
 
 
