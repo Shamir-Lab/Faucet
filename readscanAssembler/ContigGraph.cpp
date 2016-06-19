@@ -553,7 +553,8 @@ int ContigGraph::collapseBulges(int max_dist){
         kmer_type kmer = it->first;
         if (isSimpleBulge(node, max_dist) && seenKmers.find(kmer) == seenKmers.end()){
             // P to be merged into Q
-            // P is longer extension if lengths differ
+            // if lengths differ but have same next node, P is lower coverage extension
+            // if lengths differ but have different next node, P is longer extension
             // P is lower coverage extension if lengths equal
             // ignore if both coverage and length identical
             std::vector<int> inds = node->getIndicesOut();
@@ -565,6 +566,7 @@ int ContigGraph::collapseBulges(int max_dist){
                 lengths.push_back(tig->getSeq().length());
             }
             int P_index, Q_index;
+            
             if (lengths[0]==lengths[1]){
                 if (covs[0]==covs[1]){
                     it++;
@@ -573,17 +575,25 @@ int ContigGraph::collapseBulges(int max_dist){
                 auto result = std::minmax_element(covs.begin(), covs.end());
                 P_index = inds[(result.first - covs.begin())];
                 Q_index = inds[(result.second - covs.begin())];
+                
             }else{
-                auto result = std::minmax_element(lengths.begin(), lengths.end());   
-                Q_index = inds[(result.first - lengths.begin())];
-                P_index = inds[(result.second - lengths.begin())];           
+                if (node->contigs[inds[0]]->otherEndNode(node) == node->contigs[inds[1]]->otherEndNode(node)){
+                    auto result = std::minmax_element(covs.begin(), covs.end());
+                    P_index = inds[(result.first - covs.begin())];
+                    Q_index = inds[(result.second - covs.begin())];
+                }
+                else{
+                    auto result = std::minmax_element(lengths.begin(), lengths.end());   
+                    Q_index = inds[(result.first - lengths.begin())];
+                    P_index = inds[(result.second - lengths.begin())];  
+                }
             }
 
             // From here on we break stuff...
             // INCOMPLETE - TODO - reassign coverage to max_contig (Q as a path)
             Contig* P = node->contigs[P_index];
             Contig* Q = node->contigs[Q_index];
-            // printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+            printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
             far_node = P->otherEndNode(node);
             kmer_type far_kmer;
             if (far_node){
