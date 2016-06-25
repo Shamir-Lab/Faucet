@@ -113,11 +113,14 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
 
     bool result = false;
+    deleteTipsAndClean();
     
     if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    deleteTipsAndClean();
+    if(disentangleAndClean(long_pair_filter, read_length)){
+        result = true;
+    }
 
     if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
@@ -593,7 +596,7 @@ int ContigGraph::collapseBulges(int max_dist){
             // INCOMPLETE - TODO - reassign coverage to max_contig (Q as a path)
             Contig* P = node->contigs[P_index];
             Contig* Q = node->contigs[Q_index];
-            printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+            // printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
             far_node = P->otherEndNode(node);
             kmer_type far_kmer;
             if (far_node){
@@ -740,6 +743,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                       
                 // current logic is naive: disentangle if one orientation has some pair in filter
                 // and other orientation has none
+                std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
+                std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+
                 if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                     
                     if(disentanglePair(contig, backNode, node, a, b, c, d)){
@@ -751,10 +758,11 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         }
                         nodeMap.erase(backNode->getKmer());
                         disentangled++;
+                        std::cout << "made decision\n";                        
                         continue;
                     }
                 }
-                if(std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0){
+                else if(std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0){
                 //if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
                     if(disentanglePair(contig, backNode, node, a,b,d,c)){
                         it = nodeMap.erase(it);
@@ -765,10 +773,43 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         }
                         nodeMap.erase(backNode->getKmer());
                         disentangled++;
+                        std::cout << "made decision\n";    
                         continue;
                     } 
                 }
-              
+                else if(std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) ){
+                    if(disentanglePair(contig, backNode, node, a, b, c, d)){
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        std::cout << "made decision\n";                        
+                        continue;
+                    }
+                }
+                else if(std::min(scoreAD , scoreBC) > 1 && ((scoreAC == 0 && scoreBD == 1) || (scoreAC == 1 && scoreBD == 0)) ){
+                    //if(scoreAD <.05 && scoreBC < .05 && scoreAC > .3 && scoreBD > .3){
+                    if(disentanglePair(contig, backNode, node, a,b,d,c)){
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        std::cout << "made decision\n";    
+                        continue;
+                    } 
+                }
+                else{ // both scores non-zero
+                    std::cout << "no decision\n";
+                }
+
             }
        }
        it++;
