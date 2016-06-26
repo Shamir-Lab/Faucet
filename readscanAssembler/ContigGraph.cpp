@@ -118,11 +118,10 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    if(disentangleAndClean(long_pair_filter, read_length)){
+    if(breakPathsAndClean(short_pair_filter, 100)){
         result = true;
     }
-
-    if(breakPathsAndClean(short_pair_filter, insertSize)){
+    if(disentangleAndClean(long_pair_filter, 500)){
         result = true;
     }
 
@@ -805,6 +804,49 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         std::cout << "made decision\n";    
                         continue;
                     } 
+                }
+                else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 && contig->getSeq().length() >= 2*insertSize){
+                   double covA = contig_a->getAvgCoverage();
+                   double covB = contig_b->getAvgCoverage();
+                   double covC = contig_c->getAvgCoverage();
+                   double covD = contig_d->getAvgCoverage();
+                   
+                   double L_max = std::max(covA, covB);
+                   double L_min = std::min(covA, covB);
+                   int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
+                   if (L_max == covA) {
+                        L_arg_max = a;
+                        L_arg_min = b;
+                    }
+                    else{
+                        L_arg_max = b;
+                        L_arg_min = a;   
+                    }
+                    auto R_max = std::max(covC, covD);
+                    auto R_min = std::min(covC, covD);
+                    if (R_max == covC) {
+                        R_arg_max = c;
+                        R_arg_min = d;
+                    }
+                    else{
+                        R_arg_max = d;
+                        R_arg_min = c;   
+                    }
+                    if(L_max/L_min >=3 && R_max/R_min >=3 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
+                        if(disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min)){
+                            it = nodeMap.erase(it);
+                            if(it != nodeMap.end()){
+                                if(backNode->getKmer() == it->first){
+                                    it++;
+                                }
+                            }
+                            nodeMap.erase(backNode->getKmer());
+                            disentangled++;
+                            std::cout << "split by coverage\n";    
+                            continue;
+                        } 
+                    }
+
                 }
                 else{ // both scores non-zero
                     std::cout << "no decision\n";
