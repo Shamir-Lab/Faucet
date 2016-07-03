@@ -8,6 +8,8 @@ class Contig; // forward declare to avoid circ. dependency
 #include <vector>
 #include <set>
 #include <queue>
+#include <unordered_map>
+#include <list>
 #include "Contig.h"
 #include "../utils/Kmer.h"
 #include "../utils/JuncPairs.h"
@@ -27,7 +29,7 @@ public:
 
     bool checkValidity();
     // returns 0 if target node not reached at up to max_dist, otherwise returns distance on branching path
-    int doPathsConvergeNearby(int max_ind, int min_ind, int max_dist);
+    std::list<Contig*> doPathsConvergeNearby(int max_ind, int min_ind, int max_dist);
 
 
     //gets the neighbors of the specified contig- if contigIndex is 4, returns all forward neighbors
@@ -67,9 +69,29 @@ public:
     int startDist;
 
     NodeQueueEntry(ContigNode* n, int i, int s);
+    NodeQueueEntry();
 
     std::list<JuncResult> getJuncResults(int m); //returns immediate junc results from contig along this index
 
     void addNeighbors(std::deque<NodeQueueEntry> & queue); // , bool to_back); //searches forward one step, adds relevant nodes to the queue
+    void recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
+    std::list<Contig*> reconstructPathFromParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
+    friend bool operator==(NodeQueueEntry a, NodeQueueEntry b) { 
+        return a.node == b.node && a.index == b.index && a.startDist == b.startDist; 
+    };
+
 };
+
+
+// struct MyHash {
+//   size_t operator()(const NodeQueueEntry& x) const { return std::hash<uint64_t>()(x.node->getUniqueKmer(x.index)); }
+// };
+namespace std {
+  template <> struct hash<NodeQueueEntry>
+  {
+    size_t operator()(const NodeQueueEntry & x) const
+    {
+        return std::hash<uint64_t>()(x.node->getUniqueKmer(x.index)); }
+    };
+}
 #endif

@@ -6,6 +6,8 @@ using std::stringstream;
 #include <sstream> //for std::stringstream 
 #include <string>  //for std::string
 
+
+
 ContigNode::ContigNode(Junction junction){
     for(int i  = 0; i < 4; i++){
         cov[i] = junction.getCoverage(i);
@@ -15,10 +17,10 @@ ContigNode::ContigNode(Junction junction){
 }
 
 ContigNode::ContigNode(){
-	for(int i  = 0; i < 5; i++){
-		cov[i] = 0;
-		contigs[i] = nullptr;
-	}	
+    for(int i  = 0; i < 5; i++){
+        cov[i] = 0;
+        contigs[i] = nullptr;
+    }   
 }
     
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
@@ -52,10 +54,12 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
 
 
 
-int ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
+std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::set<kmer_type> seenKmers = {};
-    std::deque<NodeQueueEntry> queue= {};
+    std::deque<NodeQueueEntry> queue = {};
+    std::unordered_map<NodeQueueEntry, NodeQueueEntry> parents = {};
+    std::list<Contig*> path = {};
     // start from shorter branch
     // int start_dist = contigs[min_ind]->getSeq().length();
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
@@ -72,17 +76,20 @@ int ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
             if (entry.startDist > max_dist){
                 continue;
             }
-            else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){ 
-                return entry.startDist;
+            else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){
+                // reconstruct path from parents
+                path = entry.reconstructPathFromParents(parents);
+                return path; //entry.startDist;
             }
             else{
+                entry.recordParents(parents);
                 entry.addNeighbors(queue); 
             }
             
         }
 
    }
-   return 0;
+   return path;
 }
 
 
@@ -251,6 +258,12 @@ NodeQueueEntry::NodeQueueEntry(ContigNode* n, int i, int s){
     startDist = s;
 }  
 
+NodeQueueEntry::NodeQueueEntry(){
+    node = nullptr;
+    index = -1;
+    startDist = -1;
+}
+
 std::list<JuncResult> NodeQueueEntry::getJuncResults(int maxDist){
     Contig* contig = node->contigs[index];
      return contig->getJuncResults(contig->getSide(node, index),startDist, maxDist);
@@ -270,20 +283,61 @@ void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
     if(nextNode){
         if(nextIndex != 4){
             if(nextNode->contigs[4]){
-                // if (to_back){
-                    queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));
-                  
+                queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));                  
             }
         }
         else{
             for (int i = 0; i < 4; i++){
                 if(nextNode->contigs[i]){
-                    // if (to_back){
-                        queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
+                    queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
                     
                 }
             }
         }
     }
     
+}
+
+void NodeQueueEntry::recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents){
+    Contig* contig = node->contigs[index];
+    // if (node->contigs[index]){
+    //     printf("no contig at this index!\n");
+    // }
+    int otherSide = 3 - contig->getSide(node,index);    
+    ContigNode* nextNode = contig->getNode(otherSide);
+    int nextIndex = contig->getIndex(otherSide);
+    
+
+
+    if(nextNode){
+        if(nextIndex != 4){
+            if(nextNode->contigs[4]){
+                parents[NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance())] = *this;                  
+            }
+        }
+        else{
+            for (int i = 0; i < 4; i++){
+                if(nextNode->contigs[i]){
+                    parents[NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance())] = *this;
+                    
+                }
+            }
+        }
+    }
+    
+}
+
+std::list<Contig*> NodeQueueEntry::reconstructPathFromParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents){
+    std::list<Contig*> path = {};
+    path.push_front(node->contigs[index]);
+    ContigNode * currNode;
+    Contig * currContig;
+    std::unordered_map<NodeQueueEntry, NodeQueueEntry>::iterator currentEntry = parents.find(*this);
+    while(currentEntry != parents.end()){
+        currNode = currentEntry->second.node;
+        currContig = currNode->contigs[currentEntry->second.index];
+        path.push_front(currContig);
+        currentEntry = parents.find(currentEntry->second);
+    }
+    return path;
 }

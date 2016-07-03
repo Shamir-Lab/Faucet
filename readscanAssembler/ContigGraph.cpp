@@ -509,7 +509,9 @@ bool ContigGraph::isBubble(ContigNode* node){
     return false;
 }
 
-bool ContigGraph::isSimpleBulge(ContigNode* node, int max_dist){
+std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_dist){
+    std::list<Contig*>  path = {};
+    std::list<Contig*>  cand_path = {};
     if (node->numPathsOut() == 2){
 
         std::vector<int> inds = node->getIndicesOut();
@@ -524,23 +526,37 @@ bool ContigGraph::isSimpleBulge(ContigNode* node, int max_dist){
             max_ind = 0;
             min_ind = 1;
         }
-        if (dist > max_dist ){ return false; }
+        if (dist > max_dist ){ return path; }
 
         // try to reach target starting from other contig
         Contig * start = node->contigs[inds[min_ind]];
-        if (start->otherEndNode(node) == target){ return true; }
+        if (start->otherEndNode(node) == target){ 
+            path.push_back(start); //NodeQueueEntry(node, min_ind, 0));
+            return path;
+        }
         // BFS from start up to d or max_dist
         else{
-            int target_dist = node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
-            if (target_dist == 0) return false;
-            int diff = std::abs(target_dist - dist);
-            if ( diff < 4 || diff <= 0.05 * dist) return true;
+            cand_path = node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
+            if (cand_path.size()==0) return path;
+            else{
+                // NodeQueueEntry entry = *cand_path.end(); 
+                int target_dist = 0;
+                for (auto it = cand_path.begin(); it!= cand_path.end(); ++it){
+                    Contig * tig = (*it);
+                    target_dist += tig->getSeq().length();
+                }
+                // int target_dist = entry.startDist + entry.node->contigs[entry.index].getSeq().length();
+                int diff = std::abs(target_dist - dist);
+                if ( diff < 4 || diff <= 0.05 * dist) return cand_path;    
+            }
+            
         }
       
     }
-    return false;
+    return path;
 
 }
+
 
 int ContigGraph::collapseBulges(int max_dist){
     printf("Collapsing simple bulges. Starting with %d nodes. \n", nodeMap.size());
@@ -553,7 +569,8 @@ int ContigGraph::collapseBulges(int max_dist){
         ContigNode* node = &it->second;
         ContigNode* far_node;
         kmer_type kmer = it->first;
-        if (isSimpleBulge(node, max_dist) && seenKmers.find(kmer) == seenKmers.end()){
+        std::list<Contig*> path = getPathIfSimpleBulge(node, max_dist);
+        if (path.size() > 0 && seenKmers.find(kmer) == seenKmers.end()){
             // P to be merged into Q
             // if lengths differ but have same next node, P is lower coverage extension
             // if lengths differ but have different next node, P is longer extension
