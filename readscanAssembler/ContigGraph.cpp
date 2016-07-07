@@ -618,7 +618,18 @@ int ContigGraph::collapseBulges(int max_dist){
             if (far_node){
                 far_kmer = far_node->getKmer();
             }
-
+            int P_cov = std::round(P->getAvgCoverage()); 
+            // for (std::list<Contig*>::iterator *it = path.begin(); it != path.end(); ++it){
+            for(auto it = path.begin(); it != path.end(); it++){
+                Contig* contig = *it;
+                // if(contig->node1_p || contig->node2_p){
+                if(contig->node1_p){
+                    contig->node1_p->cov[contig->ind1] += P_cov;
+                }
+                if(contig->node2_p){
+                    contig->node2_p->cov[contig->ind2] += P_cov;
+                }
+            }
             deleteContig(P);
 
             if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
