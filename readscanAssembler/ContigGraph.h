@@ -50,7 +50,7 @@ public:
     //a pairs with c, b pairs with d
     //Does not go ahead with the operation if degeneracies are detected
     //Returns true if it goes ahead with disentanglement
-    bool disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
+    void disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
     void addIsolatedContig(Contig contig);
     std::vector<int> getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter, int insertSize);
     bool isLowCovContig(Contig* contig);
@@ -88,6 +88,7 @@ private:
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
     // int cutIfDegenerate(ContigNode* node, kmer_type kmer, auto it);
+    void disentanglementCleanup(ContigNode * backNode, int disentangled);
 
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
     void collapseNode(ContigNode * node, kmer_type kmer);
