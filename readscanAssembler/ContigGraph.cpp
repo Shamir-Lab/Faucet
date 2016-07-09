@@ -94,9 +94,12 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
 
 bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     bool result = false;
-    if(disentangle(pair_filter, insertSize) > 0){
+    if(disentangle(pair_filter, insertSize, true) > 0){
         result = true;
     }
+    // if(disentangle(pair_filter, insertSize, false) > 0){
+    //     result = true;
+    // }
     // if(collapseBulges(150) > 0){
     //     result = true;
     // }
@@ -118,12 +121,13 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    if(breakPathsAndClean(short_pair_filter, 100)){
-        result = true;
-    }
     if(disentangleAndClean(long_pair_filter, 500)){
         result = true;
     }
+    if(breakPathsAndClean(short_pair_filter, read_length)){
+        result = true;
+    }
+   
 
     return result;
 }
@@ -455,16 +459,21 @@ double ContigGraph::getTailBound(int numTrials, double p, int result){
 double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate, int insertSize){
     double score = 0;
     // int insertSize = 500;
-    int readLength = read_length; //100;
+    // int readLength = read_length; //100;
     int counter = 0;
-
+    std::unordered_set<JuncPair> seenPairs = {};
+    
     //Looks for junction pairs from a single read, within readlength of the junction either way
-    for(auto itL = leftCand.begin(); itL != leftCand.end() && itL->distance < readLength; itL++){
-        for(auto itR = rightCand.begin(); itR != rightCand.end()  && itR->distance < readLength; itR++){
+    for(auto itL = leftCand.begin(); itL != leftCand.end() && itL->distance < insertSize; itL++){
+        for(auto itR = rightCand.begin(); itR != rightCand.end()  && itR->distance < insertSize; itR++){
             counter++;
-            if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+            JuncPair pair = JuncPair(itL->kmer, itR->kmer);
+            JuncPair rev_pair = JuncPair(itR->kmer, itL->kmer);
+            if(pair_filter->containsPair(pair) && seenPairs.find(pair)==seenPairs.end() 
+                && seenPairs.find(rev_pair)==seenPairs.end()){
                 //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
                 score += 1;
+                seenPairs.insert(pair);
             } 
         }
     }
@@ -714,7 +723,7 @@ int ContigGraph::popBubblesByCoverageRatio(){
 }
 
 
-int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
+int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_juncs){
     int disentangled = 0;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
@@ -758,7 +767,25 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     // return false;
                 // }                
 
-                if (isBubble(node) && isBubble(contig->otherEndNode(node))){ // when disentangling adjacent bubbles, use only bubble contig juncts.
+                // if (isBubble(node) && isBubble(contig->otherEndNode(node))){ // when disentangling adjacent bubbles, use only bubble contig juncts.
+                //     A = contig_a->getJuncResults(contig_a->getSide(backNode, a), 0, contig_a->getSeq().length());
+                //     B = contig_b->getJuncResults(contig_b->getSide(backNode, b), 0, contig_b->getSeq().length());
+                //     C = contig_c->getJuncResults(contig_c->getSide(node, c), 0, contig_c->getSeq().length());
+                //     D = contig_d->getJuncResults(contig_d->getSide(node, d), 0, contig_d->getSeq().length());
+
+                // }
+                // else{
+                //     A = backNode->getPairCandidates(a, insertSize);
+                //     B = backNode->getPairCandidates(b, insertSize);
+                //     C = node->getPairCandidates(c, insertSize);
+                //     D = node->getPairCandidates(d, insertSize);
+                // }
+
+                if (local_juncs){
+                    // A = backNode->getPairCandidates(a, contig_a->getSeq().length());
+                    // B = backNode->getPairCandidates(b, contig_b->getSeq().length());
+                    // C = node->getPairCandidates(c, contig_c->getSeq().length());
+                    // D = node->getPairCandidates(d, contig_d->getSeq().length());
                     A = contig_a->getJuncResults(contig_a->getSide(backNode, a), 0, contig_a->getSeq().length());
                     B = contig_b->getJuncResults(contig_b->getSide(backNode, b), 0, contig_b->getSeq().length());
                     C = contig_c->getJuncResults(contig_c->getSide(node, c), 0, contig_c->getSeq().length());
@@ -779,77 +806,76 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                       
                 // current logic is naive: disentangle if one orientation has some pair in filter
                 // and other orientation has none
-                // std::list<int> tig_lengths = {contig_a->getSeq().length(), contig_b->getSeq().length(), contig_c->getSeq().length(), contig_d->getSeq().length()};
-                // std::list<int> scores = {scoreAD,scoreBC,scoreAC,scoreBD};
-                // if (*std::max_element(tig_lengths.begin(), tig_lengths.end())<100 && 
-                //     * std::max_element(scores.begin(),scores.end())>10){
-                //     std::cout << contig << "\n";
-                // }
-                // std::cout << "contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
-                // std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
-                // std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
-                // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                // if (!allDistinct({backNode, forwardNode, nodeA, nodeB, nodeC, nodeD})){
+                std::list<int> tig_lengths = {contig_a->getSeq().length(), contig_b->getSeq().length(), contig_c->getSeq().length(), contig_d->getSeq().length()};
+                std::list<int> scores = {scoreAD,scoreBC,scoreAC,scoreBD};
+                if (*std::max_element(tig_lengths.begin(), tig_lengths.end())<100 && 
+                    * std::max_element(scores.begin(),scores.end())>10){
+                    std::cout << contig << "\n";
+                }
+                std::cout << "contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
+                std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
                 if(allDistinct({backNode, node, nodeA, nodeB, nodeC, nodeD})){
 
                     if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                         
                         disentanglePair(contig, backNode, node, a, b, c, d);
-                        // it = nodeMap.erase(it);
-                        // if(it != nodeMap.end()){
-                        //     if(backNode->getKmer() == it->first){
-                        //         it++;
-                        //     }
-                        // }
-                        // nodeMap.erase(backNode->getKmer());
-                        // disentangled++;
-                        disentanglementCleanup(backNode, disentangled);
-                        // std::cout << "made decision\n";                        
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        // disentanglementCleanup(backNode, disentangled);
+                        std::cout << "made decision\n";                        
                         continue;
                         // }
                     }
                     if(std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0){
                         disentanglePair(contig, backNode, node, a,b,d,c);
-                        // it = nodeMap.erase(it);
-                        // if(it != nodeMap.end()){
-                        //     if(backNode->getKmer() == it->first){
-                        //         it++;
-                        //     }
-                        // }
-                        // nodeMap.erase(backNode->getKmer());
-                        // disentangled++;
-                        disentanglementCleanup(backNode, disentangled);
-                        // std::cout << "made decision\n";    
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        // disentanglementCleanup(backNode, disentangled);
+                        std::cout << "made decision\n";    
                         continue;
                         // } 
                     }
                     if(std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) ){
                         disentanglePair(contig, backNode, node, a, b, c, d);
-                        // it = nodeMap.erase(it);
-                        // if(it != nodeMap.end()){
-                        //     if(backNode->getKmer() == it->first){
-                        //         it++;
-                        //     }
-                        // }
-                        // nodeMap.erase(backNode->getKmer());
-                        // disentangled++;
-                        disentanglementCleanup(backNode, disentangled);
-                        // std::cout << "made decision\n";                        
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        // disentanglementCleanup(backNode, disentangled);
+                        std::cout << "made decision\n";                        
                         continue;
                         // }
                     }
                     if(std::min(scoreAD , scoreBC) > 1 && ((scoreAC == 0 && scoreBD == 1) || (scoreAC == 1 && scoreBD == 0)) ){
                         disentanglePair(contig, backNode, node, a,b,d,c);
-                        // it = nodeMap.erase(it);
-                        // if(it != nodeMap.end()){
-                        //     if(backNode->getKmer() == it->first){
-                        //         it++;
-                        //     }
-                        // }
-                        // nodeMap.erase(backNode->getKmer());
-                        // disentangled++;
-                        disentanglementCleanup(backNode, disentangled);
-                        // std::cout << "made decision\n";    
+                        it = nodeMap.erase(it);
+                        if(it != nodeMap.end()){
+                            if(backNode->getKmer() == it->first){
+                                it++;
+                            }
+                        }
+                        nodeMap.erase(backNode->getKmer());
+                        disentangled++;
+                        // disentanglementCleanup(backNode, disentangled);
+                        std::cout << "made decision\n";    
                         continue;
                     // } 
                     }
@@ -882,22 +908,22 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         }
                         if(L_max/L_min >=3 && R_max/R_min >=3 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
                             disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
-                            // it = nodeMap.erase(it);
-                            // if(it != nodeMap.end()){
-                            //     if(backNode->getKmer() == it->first){
-                            //         it++;
-                            //     }
-                            // }
-                            // nodeMap.erase(backNode->getKmer());
-                            // disentangled++;
-                            // std::cout << "split by coverage\n";    
-                            disentanglementCleanup(backNode, disentangled);
+                            it = nodeMap.erase(it);
+                            if(it != nodeMap.end()){
+                                if(backNode->getKmer() == it->first){
+                                    it++;
+                                }
+                            }
+                            nodeMap.erase(backNode->getKmer());
+                            disentangled++;
+                            std::cout << "split by coverage\n";    
+                            // disentanglementCleanup(backNode, disentangled);
                             continue;
                             // } 
                         }
                     }
                 }
-                // std::cout << "no decision\n";
+                std::cout << "no decision\n";
 
             }
        }
