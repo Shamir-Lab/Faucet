@@ -842,7 +842,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                                 it++;
                             }
                         }
-                        nodeMap.erase(backNode->getKmer());
+                         nodeMap.erase(backNode->getKmer());
                         disentangled++;
                         // disentanglementCleanup(backNode, disentangled);
                         std::cout << "made decision\n";    
@@ -923,6 +923,69 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                         }
                     }
                 }
+                else{
+                    std::cout << "not all distinct\n";
+                    // take care of each case separately
+
+                    if (nodeA==node && nodeC==backNode && 
+                        nodeB != node && nodeB != backNode &&
+                        nodeD != node && nodeD != backNode
+                        ){
+
+                        if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
+                            // I. loop - plasmid-like                            
+                            disentanglePair(contig, backNode, node, a, b, c, d);
+                            it = nodeMap.erase(it);
+                            if(it != nodeMap.end()){
+                                if(backNode->getKmer() == it->first){
+                                    it++;
+                                }
+                            }
+                            nodeMap.erase(backNode->getKmer());
+                            disentangled++;
+                            // disentanglementCleanup(backNode, disentangled);
+                            std::cout << "plasmid-like loop\n";                        
+                            continue;
+                        }
+
+                        if(std::min(scoreAD,scoreBC) > 0 && std::max(scoreAC,scoreBD) == 0){
+                            // II. loop - genomic repeat                            
+                            
+                            Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
+                            contigBRCRD = contigBRCRD->concatenate(contig_c, contigBRCRD->getSide(node), contig_c->getSide(node));
+                            contigBRCRD = contigBRCRD->concatenate(contig, contigBRCRD->getSide(backNode), contig->getSide(backNode));
+                            contigBRCRD = contigBRCRD->concatenate(contig_d, contigBRCRD->getSide(node), contig_d->getSide(node));
+                            if(nodeB){
+                                nodeB->replaceContig(contig_b, contigBRCRD);
+                            }
+                            if(nodeD){
+                                nodeD->replaceContig(contig_d, contigBRCRD);
+                            }
+                            if(!nodeB && !nodeD){
+                                isolated_contigs.push_back(*contigBRCRD);
+                            }
+
+                            it = nodeMap.erase(it);
+                            if(it != nodeMap.end()){
+                                if(backNode->getKmer() == it->first){
+                                    it++;
+                                }
+                            }
+                            nodeMap.erase(backNode->getKmer());
+                            disentangled++;
+                            // disentanglementCleanup(backNode, disentangled);
+                            std::cout << "genomic repeat loop\n";                        
+                            continue;
+                        }
+
+
+                    }
+
+                    // III. single hairpin
+
+                    // IV. 
+
+                }
                 std::cout << "no decision\n";
 
             }
@@ -965,10 +1028,10 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     ContigNode* nodeC = contigC->otherEndNode(forwardNode);
     ContigNode* nodeD = contigD->otherEndNode(forwardNode);
 
-    if(!allDistinct({backNode, forwardNode, nodeA, nodeB, nodeC, nodeD})){
-        std::cout << "not all distinct\n";
-        // return false;
-    }
+    // if(!allDistinct({backNode, forwardNode, nodeA, nodeB, nodeC, nodeD})){
+    //     std::cout << "not all distinct\n";
+    //     // return false;
+    // }
     Contig* contigAC = contigA->concatenate(contig, contigA->getSide(backNode), contig->getSide(backNode));
     contigAC = contigAC->concatenate(contigC, contigAC->getSide(forwardNode), contigC->getSide(forwardNode));
     if(nodeA){
