@@ -730,26 +730,19 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
     std::cout << "About to disentangle.  Starting with " << nodeMap.size() << " nodes.\n";
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
-        //printf("-1\n");
         ContigNode* node = &it->second;
         //printf("Testing %s\n", print_kmer(node->getKmer()));
         kmer_type kmer = it->first;
-        //printf("0\n");
         if(node->numPathsOut() == 2){
-            //printf("1\n");
             Contig* contig = node->contigs[4];
             ContigNode* backNode = contig->otherEndNode(node);
             
             // test for adjacent outwards facing nodes
             if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
-                //printf("3\n");
-                // printf("Found an outward facing pair: %s,", print_kmer(node->getKmer()));
-                // printf("%s\n", print_kmer(backNode->getKmer()));
+                
                 int a,b,c,d;
                 a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
-                c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
-                // int insertSize = 500;
-                
+                c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];                
 
                 Contig* contig_a = backNode->contigs[a]; 
                 Contig* contig_b = backNode->contigs[b];
@@ -767,25 +760,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     // return false;
                 // }                
 
-                // if (isBubble(node) && isBubble(contig->otherEndNode(node))){ // when disentangling adjacent bubbles, use only bubble contig juncts.
-                //     A = contig_a->getJuncResults(contig_a->getSide(backNode, a), 0, contig_a->getSeq().length());
-                //     B = contig_b->getJuncResults(contig_b->getSide(backNode, b), 0, contig_b->getSeq().length());
-                //     C = contig_c->getJuncResults(contig_c->getSide(node, c), 0, contig_c->getSeq().length());
-                //     D = contig_d->getJuncResults(contig_d->getSide(node, d), 0, contig_d->getSeq().length());
-
-                // }
-                // else{
-                //     A = backNode->getPairCandidates(a, insertSize);
-                //     B = backNode->getPairCandidates(b, insertSize);
-                //     C = node->getPairCandidates(c, insertSize);
-                //     D = node->getPairCandidates(d, insertSize);
-                // }
-
                 if (local_juncs){
-                    // A = backNode->getPairCandidates(a, contig_a->getSeq().length());
-                    // B = backNode->getPairCandidates(b, contig_b->getSeq().length());
-                    // C = node->getPairCandidates(c, contig_c->getSeq().length());
-                    // D = node->getPairCandidates(d, contig_d->getSeq().length());
                     A = contig_a->getJuncResults(contig_a->getSide(backNode, a), 0, contig_a->getSeq().length());
                     B = contig_b->getJuncResults(contig_b->getSide(backNode, b), 0, contig_b->getSeq().length());
                     C = contig_c->getJuncResults(contig_c->getSide(node, c), 0, contig_c->getSeq().length());
@@ -816,9 +791,11 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                 std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
                 std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
                 std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                if(allDistinct({backNode, node, nodeA, nodeB, nodeC, nodeD})){
+                if(allDistinct({backNode, node, nodeA, nodeB, nodeC, nodeD})){  //||
+                    // nodeA==nodeB && nodeC==nodeD && allDistinct({backNode, node, nodeA, nodeC})){
 
-                    if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
+                    if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)|| 
+                    (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
                         
                         disentanglePair(contig, backNode, node, a, b, c, d);
                         it = nodeMap.erase(it);
@@ -834,7 +811,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                         continue;
                         // }
                     }
-                    if(std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0){
+                    if((std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0) ||
+                        (std::min(scoreAD , scoreBC) > 1 && ((scoreAC == 0 && scoreBD == 1) || (scoreAC == 1 && scoreBD == 0)) )){
                         disentanglePair(contig, backNode, node, a,b,d,c);
                         it = nodeMap.erase(it);
                         if(it != nodeMap.end()){
@@ -848,36 +826,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                         std::cout << "made decision\n";    
                         continue;
                         // } 
-                    }
-                    if(std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) ){
-                        disentanglePair(contig, backNode, node, a, b, c, d);
-                        it = nodeMap.erase(it);
-                        if(it != nodeMap.end()){
-                            if(backNode->getKmer() == it->first){
-                                it++;
-                            }
-                        }
-                        nodeMap.erase(backNode->getKmer());
-                        disentangled++;
-                        // disentanglementCleanup(backNode, disentangled);
-                        std::cout << "made decision\n";                        
-                        continue;
-                        // }
-                    }
-                    if(std::min(scoreAD , scoreBC) > 1 && ((scoreAC == 0 && scoreBD == 1) || (scoreAC == 1 && scoreBD == 0)) ){
-                        disentanglePair(contig, backNode, node, a,b,d,c);
-                        it = nodeMap.erase(it);
-                        if(it != nodeMap.end()){
-                            if(backNode->getKmer() == it->first){
-                                it++;
-                            }
-                        }
-                        nodeMap.erase(backNode->getKmer());
-                        disentangled++;
-                        // disentanglementCleanup(backNode, disentangled);
-                        std::cout << "made decision\n";    
-                        continue;
-                    // } 
                     }
                     if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 && contig->getSeq().length() >= 2*insertSize){
                        double covA = contig_a->getAvgCoverage();
@@ -924,15 +872,16 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     }
                 }
                 else{
-                    std::cout << "not all distinct\n";
+                    std::cout << "not all distinct, " << contig << "\n";
                     // take care of each case separately
 
                     if (nodeA==node && nodeC==backNode && 
                         nodeB != node && nodeB != backNode &&
                         nodeD != node && nodeD != backNode
                         ){
-
-                        if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
+                        if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)|| 
+                            (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
+                        // if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                             // I. loop - plasmid-like                            
                             disentanglePair(contig, backNode, node, a, b, c, d);
                             it = nodeMap.erase(it);
@@ -947,8 +896,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                             std::cout << "plasmid-like loop\n";                        
                             continue;
                         }
+                        if((std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0) ||
+                                (std::min(scoreAD , scoreBC) > 1 && ((scoreAC == 0 && scoreBD == 1) || (scoreAC == 1 && scoreBD == 0)) )){ 
 
-                        if(std::min(scoreAD,scoreBC) > 0 && std::max(scoreAC,scoreBD) == 0){
+                        // if(std::min(scoreAD,scoreBC) > 0 && std::max(scoreAC,scoreBD) == 0){
                             // II. loop - genomic repeat                            
                             
                             Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
@@ -963,6 +914,65 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                             }
                             if(!nodeB && !nodeD){
                                 isolated_contigs.push_back(*contigBRCRD);
+                            }
+
+                            it = nodeMap.erase(it);
+                            if(it != nodeMap.end()){
+                                if(backNode->getKmer() == it->first){
+                                    it++;
+                                }
+                            }
+                            nodeMap.erase(backNode->getKmer());
+                            disentangled++;
+                            // disentanglementCleanup(backNode, disentangled);
+                            std::cout << "genomic repeat loop\n";                        
+                            continue;
+                        }
+
+
+                    }
+                    if (nodeA==node && nodeD==backNode && 
+                        nodeB != node && nodeB != backNode &&
+                        nodeC != node && nodeC != backNode
+                        ){
+
+                        
+                        if((std::min(scoreAD , scoreBC) > 0 && std::max(scoreAC , scoreBD) == 0) ||
+                                (std::min(scoreAD , scoreBC) > 1 && ((scoreAC == 0 && scoreBD == 1) || (scoreAC == 1 && scoreBD == 0)) )){ 
+
+                        // if(std::min(scoreAD,scoreBC) > 0 && std::max(scoreAC,scoreBD) == 0){
+                            // I. loop - plasmid-like                            
+                            disentanglePair(contig, backNode, node, a, b, d, c);
+                            it = nodeMap.erase(it);
+                            if(it != nodeMap.end()){
+                                if(backNode->getKmer() == it->first){
+                                    it++;
+                                }
+                            }
+                            nodeMap.erase(backNode->getKmer());
+                            disentangled++;
+                            // disentanglementCleanup(backNode, disentangled);
+                            std::cout << "plasmid-like loop\n";                        
+                            continue;
+                        }
+                        if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)|| 
+                            (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
+
+                        // if(std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
+                            // II. loop - genomic repeat                            
+                            
+                            Contig* contigBRDRC = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
+                            contigBRDRC = contigBRDRC->concatenate(contig_d, contigBRDRC->getSide(node), contig_d->getSide(node));
+                            contigBRDRC = contigBRDRC->concatenate(contig, contigBRDRC->getSide(backNode), contig->getSide(backNode));
+                            contigBRDRC = contigBRDRC->concatenate(contig_c, contigBRDRC->getSide(node), contig_c->getSide(node));
+                            if(nodeB){
+                                nodeB->replaceContig(contig_b, contigBRDRC);
+                            }
+                            if(nodeC){
+                                nodeC->replaceContig(contig_d, contigBRDRC);
+                            }
+                            if(!nodeB && !nodeC){
+                                isolated_contigs.push_back(*contigBRDRC);
                             }
 
                             it = nodeMap.erase(it);
