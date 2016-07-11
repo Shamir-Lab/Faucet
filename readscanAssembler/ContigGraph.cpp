@@ -742,7 +742,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                 int a,b,c,d;
                 
                 for (int orientation = 1; orientation < 5; orientation++){ // change orienation instead of calling disentangle with different order 
-                    if (operationDone) {break;} // to avoid trying to disentangle something we already have
+                    if (operationDone) {
+                        operationDone = false;
+                        break;
+                    } // to avoid trying to disentangle something we already have
 
                     if (orientation % 2 == 1) {a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];}
                     else {b = backNode->getIndicesOut()[0], a = backNode->getIndicesOut()[1];}
