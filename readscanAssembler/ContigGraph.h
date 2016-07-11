@@ -88,7 +88,6 @@ private:
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
     // int cutIfDegenerate(ContigNode* node, kmer_type kmer, auto it);
-    void disentanglementCleanup(ContigNode * backNode, int disentangled);
 
     unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
     void collapseNode(ContigNode * node, kmer_type kmer);

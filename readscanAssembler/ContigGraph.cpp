@@ -117,16 +117,16 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
 
     bool result = false;
     deleteTipsAndClean();
-    
+    if(breakPathsAndClean(short_pair_filter, read_length)){
+        result = true;
+    }
     if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
     if(disentangleAndClean(long_pair_filter, 500)){
         result = true;
     }
-    if(breakPathsAndClean(short_pair_filter, read_length)){
-        result = true;
-    }
+    
    
 
     return result;
@@ -790,7 +790,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
 
                     // all distinct --> roughly linear regions when all are distinct
-                    if(allDistinct({backNode, node, nodeA, nodeB, nodeC, nodeD})){  
+                    if(allDistinct({backNode, node, nodeA, nodeB, nodeC, nodeD}) || 
+                        allDistinct({backNode, node, nodeA, nodeC}) && nodeA==nodeB && nodeC==nodeD ){  
                         if (orientation > 2){continue;}
                         if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)|| 
                         (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
@@ -953,16 +954,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
     return disentangled;
 }
 
-void ContigGraph::disentanglementCleanup(ContigNode * backNode, int disentangled){
-    it = nodeMap.erase(it);
-    if(it != nodeMap.end()){
-        if(backNode->getKmer() == it->first){
-            it++;
-        }
-    }
-    nodeMap.erase(backNode->getKmer());
-    disentangled++;
-}
 
 
 //a,b are on backNode, c,d are on forwardNode
