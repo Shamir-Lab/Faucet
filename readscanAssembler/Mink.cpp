@@ -276,7 +276,9 @@ int main(int argc, char *argv[])
     contigGraph->printGraph(file_prefix + ".raw_graph.fastg");
     contigGraph->printContigs(file_prefix + ".raw_contigs.fasta");
 
-    while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter, 740));
+    while(contigGraph->cleanGraph(short_pair_filter, read_length));
+    // while(contigGraph->cleanGraph(long_pair_filter, 700));
+
 
     Contig* longContig = contigGraph->getLongestContig();
     printf("Short pair filter info:\n");

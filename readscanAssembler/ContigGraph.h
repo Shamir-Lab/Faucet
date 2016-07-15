@@ -60,7 +60,7 @@ public:
     std::list<Contig*> getPathIfSimpleBulge(ContigNode* node, int max_dist);
 
     void deleteContig(Contig* contig);
-    bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize); //Cleans graph and returns true if any changes were made
+    bool cleanGraph(Bloom* pair_filter, int insertSize); //Cleans graph and returns true if any changes were made
 
     bool checkGraph();
     void printContigFastG(ofstream* fastgFile, Contig * contig);
