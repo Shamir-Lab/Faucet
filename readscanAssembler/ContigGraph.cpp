@@ -795,7 +795,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     
                     // all distinct --> roughly linear regions when all are distinct
                     // also treat double-bubble and bubble adjacent to junction in same way
-                    if((allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) && (nodeA!=nodeB && nodeC!=nodeD)) ){
+                    if((allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) && (nodeA!=nodeB || nodeC!=nodeD)) ){
                         // (allDistinct(std::vector<ContigNode*> {backNode, node, nodeA, nodeC}) && (nodeA==nodeB || nodeC==nodeD) &&
                         if (orientation > 2){continue;}
                         if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)|| 
