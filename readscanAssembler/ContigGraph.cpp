@@ -784,14 +784,14 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     double scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                     double scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
                                     
-                    std::list<int> tig_lengths = {contig_a->getSeq().length(), contig_b->getSeq().length(), contig_c->getSeq().length(), contig_d->getSeq().length()};
-                    std::list<int> scores = {scoreAD,scoreBC,scoreAC,scoreBD};
-                    if (orientation==1 && (*std::max_element(scores.begin(),scores.end())>0 || contig->getSeq().length()>2*insertSize)){
-                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
-                        std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
-                        std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
-                        std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    }
+                    // std::list<int> tig_lengths = {contig_a->getSeq().length(), contig_b->getSeq().length(), contig_c->getSeq().length(), contig_d->getSeq().length()};
+                    // std::list<int> scores = {scoreAD,scoreBC,scoreAC,scoreBD};
+                    // if (orientation==1 && (*std::max_element(scores.begin(),scores.end())>0 || contig->getSeq().length()>2*insertSize)){
+                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                    std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
+                    std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    
                     
                     // all distinct --> roughly linear regions when all are distinct
                     // also treat double-bubble and bubble adjacent to junction in same way
@@ -945,10 +945,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                         // IV. 
 
                     }
+                    if (orientation==4 && !operationDone) {std::cout << "no decision\n";}
 
                 }
                 
-                std::cout << "no decision\n";
 
             }
        }
