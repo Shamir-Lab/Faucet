@@ -8,11 +8,7 @@ unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
 }
 
 //returns true if there are no two identical non-null nodes in the list
-// template<typename T, typename A>
-// bool allDistinct( std::vector<T,A> const& nodes ) 
-template<class T>
-bool allDistinct(const std::vector<T> & nodes)
-{ 
+bool allDistinct(std::vector<ContigNode*> nodes){
     for(int i = 0; i < nodes.size(); i++){
         for(int j = i+1; j < nodes.size(); j++){
             if(nodes[i] == nodes[j] && nodes[i]){
@@ -20,9 +16,8 @@ bool allDistinct(const std::vector<T> & nodes)
             }
         }
     }
-    return true; 
-} 
-
+    return true;
+}
 
 //returns true if all nodes in the list are non-null and identical
 bool allSame(std::vector<ContigNode*> nodes){
@@ -78,49 +73,61 @@ bool ContigGraph::deleteTipsAndClean(){
     return result;
 }
 
-// bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
-//     bool result = false;
+bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
+    bool result = false;
 
-//     if(breakUnsupportedPaths(pair_filter, insertSize) > 0){
-//         result = true;
-//     }
-//     if(destroyDegenerateNodes() > 0){
-//         result = true;
-//     }
-//     if(collapseDummyNodes() > 0){
-//         result = true;
-//     }
+    // if(breakUnsupportedPaths(pair_filter, insertSize) > 0){
+    //     result = true;
+    // }
+    if(collapseBulges(150) > 0){
+        result = true;
+    }
+    // if(destroyDegenerateNodes() > 0){
+    //     result = true;
+    // }
+    // if(collapseDummyNodes() > 0){
+    //     result = true;
+    // }
 
-//     return result;
-// }
+    return result;
+}
 
 bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     bool result = false;
     if(disentangle(pair_filter, insertSize, true) > 0){
         result = true;
     }
+    // if(disentangle(pair_filter, insertSize, false) > 0){
+    //     result = true;
+    // }
+    // if(collapseBulges(150) > 0){
+    //     result = true;
+    // }
     if(destroyDegenerateNodes() > 0){
         result = true;
     }
     if(collapseDummyNodes() > 0){
         result = true;
     }
+
     return result;
 }
 
-bool ContigGraph::cleanGraph(Bloom* pair_filter, int insertSize){
+bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
 
     bool result = false;
     deleteTipsAndClean();
-    while(collapseBulges(150)){
+    if(breakPathsAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    while(disentangleAndClean(pair_filter, insertSize)){
+    if(disentangleAndClean(short_pair_filter, read_length)){
         result = true;
     }
-    // while(disentangleAndClean(long_pair_filter, insertSize)){
-    //     result = true;
-    // } 
+    if(disentangleAndClean(long_pair_filter, 500)){
+        result = true;
+    }
+    
+   
 
     return result;
 }
@@ -665,55 +672,55 @@ int ContigGraph::collapseBulges(int max_dist){
     return numDeleted; 
 }
 
-// int ContigGraph::popBubblesByCoverageRatio(){
-//     printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
+int ContigGraph::popBubblesByCoverageRatio(){
+    printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
 
-//     int numDeleted = 0;
-//     for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+    int numDeleted = 0;
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
         
-//         ContigNode* node = &it->second;
-//         if (isBubble(node)){
-//             std::vector<int> inds = node->getIndicesOut();
-//             std::vector<double> covs;
-//             for(int i = 0; i != inds.size(); i++) {
-//                 Contig * tig = node->contigs[inds[i]];
-//                 covs.push_back(tig->getAvgCoverage());
-//             }
-//             auto result = std::minmax_element(covs.begin(), covs.end());
-//             int min_contig_index = inds[(result.first - covs.begin())];
-//             int max_contig_index = inds[(result.second - covs.begin())];
-//             double min_val = covs[(result.first - covs.begin())];
-//             double max_val = covs[(result.second - covs.begin())];
-//             // std::cout << "min element at: " << (result.first - covs.begin()) << ", value is "<< covs[(result.first - covs.begin())] <<'\n';
-//             // std::cout << "max element at: " << (result.second - covs.begin()) << ", value is "<< covs[(result.second - covs.begin())] <<'\n';
+        ContigNode* node = &it->second;
+        if (isBubble(node)){
+            std::vector<int> inds = node->getIndicesOut();
+            std::vector<double> covs;
+            for(int i = 0; i != inds.size(); i++) {
+                Contig * tig = node->contigs[inds[i]];
+                covs.push_back(tig->getAvgCoverage());
+            }
+            auto result = std::minmax_element(covs.begin(), covs.end());
+            int min_contig_index = inds[(result.first - covs.begin())];
+            int max_contig_index = inds[(result.second - covs.begin())];
+            double min_val = covs[(result.first - covs.begin())];
+            double max_val = covs[(result.second - covs.begin())];
+            // std::cout << "min element at: " << (result.first - covs.begin()) << ", value is "<< covs[(result.first - covs.begin())] <<'\n';
+            // std::cout << "max element at: " << (result.second - covs.begin()) << ", value is "<< covs[(result.second - covs.begin())] <<'\n';
             
-//             Contig * source = node->contigs[4];
-//             ContigNode * far_node = node->contigs[inds[0]]->otherEndNode(node);
-//             Contig * target = far_node->contigs[4];
-//             if (!(source && target)) {    
-//                 // printf("bubble source or target missing.\n");
-//                 continue;
-//             }
+            Contig * source = node->contigs[4];
+            ContigNode * far_node = node->contigs[inds[0]]->otherEndNode(node);
+            Contig * target = far_node->contigs[4];
+            if (!(source && target)) {    
+                // printf("bubble source or target missing.\n");
+                continue;
+            }
 
-//             // TODO: would assigning coverage of deleted contig
-//             // to remaining contig help downstream (e.g., disentangle)?
-//             if(source->getSeq().length() >= 500 && target->getSeq().length() >= 500){
-//                 numDeleted++;
-//                 deleteContig(node->contigs[min_contig_index]);
-//             }
-//             else{
-//                 double ratio = max_val / min_val;
-//                 if (ratio >= 3.0){
-//                     numDeleted++;
-//                     deleteContig(node->contigs[min_contig_index]);
-//                 } 
-//             }
-//         }
+            // TODO: would assigning coverage of deleted contig
+            // to remaining contig help downstream (e.g., disentangle)?
+            if(source->getSeq().length() >= 500 && target->getSeq().length() >= 500){
+                numDeleted++;
+                deleteContig(node->contigs[min_contig_index]);
+            }
+            else{
+                double ratio = max_val / min_val;
+                if (ratio >= 3.0){
+                    numDeleted++;
+                    deleteContig(node->contigs[min_contig_index]);
+                } 
+            }
+        }
 
-//     }  
-//     printf("Done popping %d bubble contigs.\n", numDeleted);
-//     return numDeleted;  
-// }
+    }  
+    printf("Done popping %d bubble contigs.\n", numDeleted);
+    return numDeleted;  
+}
 
 
 int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_juncs){
@@ -776,22 +783,18 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                                     
                     std::list<int> tig_lengths = {contig_a->getSeq().length(), contig_b->getSeq().length(), contig_c->getSeq().length(), contig_d->getSeq().length()};
                     std::list<int> scores = {scoreAD,scoreBC,scoreAC,scoreBD};
-                    // if (orientation==1 && (*std::max_element(scores.begin(),scores.end())>0 || contig->getSeq().length()>2*insertSize)){
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
-                    std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
-                    std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
-                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    // }
-
+                    if (orientation==1 && (*std::max_element(scores.begin(),scores.end())>0 || contig->getSeq().length()>2*insertSize)){
+                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                        std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
+                        std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                        std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    }
+                    
                     // all distinct --> roughly linear regions when all are distinct
-                    // other allowed option is one or two adjacent bubbles too large for bulge removal to solve
-
-                    //(allDistinct(std::vector<ContigNode*> {backNode, node, nodeA, nodeB, nodeC, nodeD}) && 
-                    if((allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) && (nodeA!=nodeB && nodeC!=nodeD)) ||
-                        (allDistinct(std::vector<ContigNode*> {backNode, node, nodeA, nodeC}) && (nodeA==nodeB || nodeC==nodeD) &&
-                        allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) ) ){
-                        //     (nodeA==nodeB && std::min(contig_a->getSeq().length(), contig_b->getSeq().length()) > 150 || 
-                        //     nodeC==nodeD && std::min(contig_c->getSeq().length(), contig_d->getSeq().length()) > 150)){  
+                    // also treat double-bubble and bubble adjacent to junction in same way
+                    if(allDistinct({backNode, node, nodeA, nodeB, nodeC, nodeD}) || 
+                        (allDistinct({backNode, node, nodeA, nodeC}) && nodeA==nodeB && nodeC==nodeD)){ //||
+                        // (allDistinct({backNode, node, nodeA, nodeC, nodeD}) && nodeA==nodeB)){  
                         if (orientation > 2){continue;}
                         if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)|| 
                         (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
@@ -862,9 +865,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                             nodeD != node && nodeD != backNode
                             ){
                             
-                            // if(( (scoreAD>0 || scoreBC>0) && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
-                            //     (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
-                                if( (scoreAD>0 || scoreBC>0) && contig->getSeq().length() < insertSize){
+                            if(( (scoreAD>0 || scoreBC>0) && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
+                                (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
                                 // II. loop - genomic repeat                            
                                 
                                 Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
@@ -941,9 +943,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                         // IV. 
 
                     }
-                    if (orientation==4 && !operationDone) {std::cout << "no decision\n";}
 
                 }
+                
+                std::cout << "no decision\n";
 
             }
        }
