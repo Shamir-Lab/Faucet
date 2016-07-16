@@ -8,7 +8,9 @@ unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
 }
 
 //returns true if there are no two identical non-null nodes in the list
-bool allDistinct(std::vector<ContigNode*> nodes){
+template<class T>
+bool allDistinct(const std::vector<T> & nodes)
+{ 
     for(int i = 0; i < nodes.size(); i++){
         for(int j = i+1; j < nodes.size(); j++){
             if(nodes[i] == nodes[j] && nodes[i]){
@@ -16,8 +18,9 @@ bool allDistinct(std::vector<ContigNode*> nodes){
             }
         }
     }
-    return true;
-}
+    return true; 
+} 
+
 
 //returns true if all nodes in the list are non-null and identical
 bool allSame(std::vector<ContigNode*> nodes){
@@ -792,9 +795,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     
                     // all distinct --> roughly linear regions when all are distinct
                     // also treat double-bubble and bubble adjacent to junction in same way
-                    if(allDistinct({backNode, node, nodeA, nodeB, nodeC, nodeD}) || 
-                        (allDistinct({backNode, node, nodeA, nodeC}) && nodeA==nodeB && nodeC==nodeD)){ //||
-                        // (allDistinct({backNode, node, nodeA, nodeC, nodeD}) && nodeA==nodeB)){  
+                    if((allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) && (nodeA!=nodeB && nodeC!=nodeD)) ){
+                        // (allDistinct(std::vector<ContigNode*> {backNode, node, nodeA, nodeC}) && (nodeA==nodeB || nodeC==nodeD) &&
                         if (orientation > 2){continue;}
                         if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)|| 
                         (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
@@ -803,42 +805,42 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                             operationDone = true;
                         }
                                              
-                        else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 && contig->getSeq().length() >= 2*insertSize){
-                        // here we try to split by coverage ratio alone, since the contig is too long  
-                        // for there to be junction pair links
-                           double covA = contig_a->getAvgCoverage();
-                           double covB = contig_b->getAvgCoverage();
-                           double covC = contig_c->getAvgCoverage();
-                           double covD = contig_d->getAvgCoverage();
+                        // else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 && contig->getSeq().length() >= 2*insertSize){
+                        // // here we try to split by coverage ratio alone, since the contig is too long  
+                        // // for there to be junction pair links
+                        //    double covA = contig_a->getAvgCoverage();
+                        //    double covB = contig_b->getAvgCoverage();
+                        //    double covC = contig_c->getAvgCoverage();
+                        //    double covD = contig_d->getAvgCoverage();
                            
-                           double L_max = std::max(covA, covB);
-                           double L_min = std::min(covA, covB);
-                           int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
-                           if (L_max == covA) {
-                                L_arg_max = a;
-                                L_arg_min = b;
-                            }
-                            else{
-                                L_arg_max = b;
-                                L_arg_min = a;   
-                            }
-                            auto R_max = std::max(covC, covD);
-                            auto R_min = std::min(covC, covD);
-                            if (R_max == covC) {
-                                R_arg_max = c;
-                                R_arg_min = d;
-                            }
-                            else{
-                                R_arg_max = d;
-                                R_arg_min = c;   
-                            }
+                        //    double L_max = std::max(covA, covB);
+                        //    double L_min = std::min(covA, covB);
+                        //    int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
+                        //    if (L_max == covA) {
+                        //         L_arg_max = a;
+                        //         L_arg_min = b;
+                        //     }
+                        //     else{
+                        //         L_arg_max = b;
+                        //         L_arg_min = a;   
+                        //     }
+                        //     auto R_max = std::max(covC, covD);
+                        //     auto R_min = std::min(covC, covD);
+                        //     if (R_max == covC) {
+                        //         R_arg_max = c;
+                        //         R_arg_min = d;
+                        //     }
+                        //     else{
+                        //         R_arg_max = d;
+                        //         R_arg_min = c;   
+                        //     }
                             
-                            if(L_max/L_min >=3 && R_max/R_min >=3 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
-                                disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
-                                operationDone = true;
+                        //     if(L_max/L_min >=3 && R_max/R_min >=3 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
+                        //         disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
+                        //         operationDone = true;
                                 
-                            }  
-                        }
+                        //     }  
+                        // }
 
                         if (operationDone){
                             it = nodeMap.erase(it);
