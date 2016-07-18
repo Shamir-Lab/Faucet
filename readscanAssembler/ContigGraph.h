@@ -75,6 +75,7 @@ public:
     //Otherwise, returns the new one
     ContigNode * createContigNode(kmer_type kmer, Junction junction);    
     int disentangle(Bloom* pair_filter, int insertSize, bool local_juncs);
+    int removeChimericExtensions(int insertSize);
     int collapseBulges(int max_dist);
     bool deleteTipsAndClean();
     bool breakPathsAndClean(Bloom* pair_filter, int insertSize);

@@ -85,6 +85,9 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
     if(collapseBulges(150) > 0){
         result = true;
     }
+    if (removeChimericExtensions(150) > 0){
+        result  = true;
+    }
     // if(destroyDegenerateNodes() > 0){
     //     result = true;
     // }
@@ -120,7 +123,7 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
 
     bool result = false;
     deleteTipsAndClean();
-    if(breakPathsAndClean(short_pair_filter, read_length)){
+    if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
     }
     if(disentangleAndClean(short_pair_filter, read_length)){
@@ -569,6 +572,76 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
 
 }
 
+int ContigGraph::removeChimericExtensions(int insertSize){
+    printf("Removing chimeric extensions. Starting with %d nodes. \n", nodeMap.size());
+    int numDeleted = 0; 
+    std::set<kmer_type> seenKmers = {};
+
+    it = nodeMap.begin();
+    while(it!=nodeMap.end()){
+        ContigNode* node = &it->second;
+        kmer_type kmer = it->first;
+        Contig* contig = node->contigs[4];
+
+
+        if (node->numPathsOut() == 2 && contig->getSeq().length() >= insertSize && 
+            seenKmers.find(kmer) == seenKmers.end()){
+            std::vector<int> inds = node->getIndicesOut();
+            std::vector<double> covs;
+            std::vector<int> lengths;
+
+            for(int i = 0; i != inds.size(); i++) {
+                Contig * tig = node->contigs[inds[i]];
+                covs.push_back(tig->getAvgCoverage());
+                lengths.push_back(tig->getSeq().length());
+            }
+
+            if ((covs[0] + covs[1] > contig->getAvgCoverage()) && std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 3){
+                int P_index, Q_index;
+                auto result = std::minmax_element(covs.begin(), covs.end());
+                P_index = inds[(result.first - covs.begin())];
+                Q_index = inds[(result.second - covs.begin())]; // higher coverage node
+                Contig* P = node->contigs[P_index];
+                Contig* Q = node->contigs[Q_index];
+                if (P->getSeq().length() < read_length){
+                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                    printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+                    ContigNode * far_node = P->otherEndNode(node);
+                    kmer_type far_kmer;
+                    if (far_node){
+                        far_kmer = far_node->getKmer();
+                    }
+                    deleteContig(P);
+
+                    if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
+                    if(node->numPathsOut() == 1){
+                        collapseNode(node, kmer);         
+                        seenKmers.insert(kmer);     
+                    }
+                    
+                    if (far_node){
+                        if (testAndCutIfDegenerate(far_node)) seenKmers.insert(far_kmer);
+                        if(far_node->numPathsOut() == 1){
+                            collapseNode(far_node, far_kmer);         
+                            seenKmers.insert(far_kmer);
+                        }             
+                    }
+                    numDeleted++;
+                }
+            }        
+        }
+        it++;
+    }
+
+    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); k_it++){
+        nodeMap.erase(*k_it);
+    }
+    printf("removed %d chimeric contigs.\n", numDeleted);
+    printf("%d nodes left in node map \n", nodeMap.size());
+
+    return numDeleted; 
+
+}
 
 int ContigGraph::collapseBulges(int max_dist){
     printf("Collapsing simple bulges. Starting with %d nodes. \n", nodeMap.size());
@@ -582,6 +655,7 @@ int ContigGraph::collapseBulges(int max_dist){
         ContigNode* far_node;
         kmer_type kmer = it->first;
         std::list<Contig*> path = getPathIfSimpleBulge(node, max_dist);
+        // path size is > 0 only if simple bulge found
         if (path.size() > 0 && seenKmers.find(kmer) == seenKmers.end()){
             // P to be merged into Q
             // if lengths differ but have same next node, P is lower coverage extension
@@ -621,7 +695,6 @@ int ContigGraph::collapseBulges(int max_dist){
             }
 
             // From here on we break stuff...
-            // INCOMPLETE - TODO - reassign coverage to max_contig (Q as a path)
             Contig* P = node->contigs[P_index];
             Contig* Q = node->contigs[Q_index];
             // printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
@@ -632,16 +705,16 @@ int ContigGraph::collapseBulges(int max_dist){
             }
             int P_cov = std::round(P->getAvgCoverage()); 
             // for (std::list<Contig*>::iterator *it = path.begin(); it != path.end(); ++it){
-            for(auto it = path.begin(); it != path.end(); it++){
-                Contig* contig = *it;
-                // if(contig->node1_p || contig->node2_p){
-                if(contig->node1_p){
-                    contig->node1_p->cov[contig->ind1] += P_cov;
-                }
-                if(contig->node2_p){
-                    contig->node2_p->cov[contig->ind2] += P_cov;
-                }
-            }
+            // for(auto it = path.begin(); it != path.end(); it++){
+            //     Contig* contig = *it;
+            //     // if(contig->node1_p || contig->node2_p){
+            //     if(contig->node1_p){
+            //         contig->node1_p->cov[contig->ind1] += P_cov;
+            //     }
+            //     if(contig->node2_p){
+            //         contig->node2_p->cov[contig->ind2] += P_cov;
+            //     }
+            // }
             deleteContig(P);
 
             if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
@@ -805,42 +878,48 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                             operationDone = true;
                         }
                                              
-                        // else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 && contig->getSeq().length() >= 2*insertSize){
-                        // // here we try to split by coverage ratio alone, since the contig is too long  
-                        // // for there to be junction pair links
-                        //    double covA = contig_a->getAvgCoverage();
-                        //    double covB = contig_b->getAvgCoverage();
-                        //    double covC = contig_c->getAvgCoverage();
-                        //    double covD = contig_d->getAvgCoverage();
+                        else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 
+                            && contig->getSeq().length() > insertSize && insertSize > read_length){
+                            // here we try to split by coverage ratio alone, since the contig is too long  
+                            // for there to be junction pair links
+                            std::cout << "tried splitting by coverage\n";
+
+                            double covA = contig_a->getAvgCoverage();
+                            double covB = contig_b->getAvgCoverage();
+                            double covC = contig_c->getAvgCoverage();
+                            double covD = contig_d->getAvgCoverage();
                            
-                        //    double L_max = std::max(covA, covB);
-                        //    double L_min = std::min(covA, covB);
-                        //    int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
-                        //    if (L_max == covA) {
-                        //         L_arg_max = a;
-                        //         L_arg_min = b;
-                        //     }
-                        //     else{
-                        //         L_arg_max = b;
-                        //         L_arg_min = a;   
-                        //     }
-                        //     auto R_max = std::max(covC, covD);
-                        //     auto R_min = std::min(covC, covD);
-                        //     if (R_max == covC) {
-                        //         R_arg_max = c;
-                        //         R_arg_min = d;
-                        //     }
-                        //     else{
-                        //         R_arg_max = d;
-                        //         R_arg_min = c;   
-                        //     }
-                            
-                        //     if(L_max/L_min >=3 && R_max/R_min >=3 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
-                        //         disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
-                        //         operationDone = true;
+                            double L_max = std::max(covA, covB);
+                            double L_min = std::min(covA, covB);
+                            int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
+                            if (L_max == covA) {
+                                L_arg_max = a;
+                                L_arg_min = b;
+                            }
+                            else{
+                                L_arg_max = b;
+                                L_arg_min = a;   
+                            }
+                            auto R_max = std::max(covC, covD);
+                            auto R_min = std::min(covC, covD);
+                            if (R_max == covC) {
+                                R_arg_max = c;
+                                R_arg_min = d;
+                            }
+                            else{
+                                R_arg_max = d;
+                                R_arg_min = c;   
+                            }
+                            std::cout << "covA: " << covA << ", covB: "<< covB << ", covC: " << covC << ", covD: "<< covD <<'\n';                
+                            std::cout << "L_max/L_min: " << L_max/L_min << ", R_max/R_min: " << R_max/R_min << "\n";
+                            std::cout << "maxes ratio: " << std::max(L_max/R_max, R_max/L_max) << ", mins ratio: " <<  std::max(L_min/R_min, R_min/L_min) << "\n";
+                            if(L_max/L_min >=1.5 && R_max/R_min >=1.5 && contig->getAvgCoverage()>=60 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
+                                disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
+                                std::cout << "split by coverage\n";
+                                operationDone = true;
                                 
-                        //     }  
-                        // }
+                            }  
+                        }
 
                         if (operationDone){
                             it = nodeMap.erase(it);
