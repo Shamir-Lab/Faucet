@@ -1174,8 +1174,8 @@ void ContigGraph::printGraph(string fileName){
     printf("printed %d node-connected contigs\n", node_contig_count);
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
-        Contig contig = *it;
-        printContigFastG(&fastgFile, &contig);
+        Contig* contig = &*it;
+        printContigFastG(&fastgFile, contig);
 
     }
     printf("printed %d isolated contigs\n", isolated_contigs.size());
