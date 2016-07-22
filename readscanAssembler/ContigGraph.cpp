@@ -596,7 +596,7 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                 lengths.push_back(tig->getSeq().length());
             }
 
-            if ((covs[0] + covs[1] > contig->getAvgCoverage()) && std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 3){
+            if ((covs[0] + covs[1] > 0.9*contig->getAvgCoverage()) && std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 3){
                 int P_index, Q_index;
                 auto result = std::minmax_element(covs.begin(), covs.end());
                 P_index = inds[(result.first - covs.begin())];
@@ -868,8 +868,14 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     
                     // all distinct --> roughly linear regions when all are distinct
                     // also treat double-bubble and bubble adjacent to junction in same way
-                    if((allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) && (nodeA!=nodeB && nodeC!=nodeD)) ){
-                        // (allDistinct(std::vector<ContigNode*> {backNode, node, nodeA, nodeC}) && (nodeA==nodeB || nodeC==nodeD) &&
+                    // nodeA!=nodeC && nodeB!=nodeD && 
+                    // allDistinct(std::vector<ContigNode*>{nodeA, nodeB, node}) &&
+                    //     allDistinct(std::vector<ContigNode*>{nodeC, nodeD, backNode}) &&
+                    if( nodeA!=nodeD && nodeB!=nodeC && allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
+                        (( nodeA!=nodeB && nodeC!=nodeD) || 
+                            (nodeA==nodeB && nodeC==nodeD))){  //|| 
+                            // (nodeA==nodeB && allDistinct(std::vector<ContigNode*>{nodeC,nodeD,nodeA, node, backNode}) ) ||
+                            // (nodeC==nodeD && allDistinct(std::vector<ContigNode*>{nodeA,nodeB,nodeC, node, backNode}) ) ) ){
                         if (orientation > 2){continue;}
                         if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){ //|| 
                         // (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
@@ -878,48 +884,48 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                             operationDone = true;
                         }
                                              
-                        else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 
-                            && contig->getSeq().length() > insertSize && insertSize > read_length){
-                            // here we try to split by coverage ratio alone, since the contig is too long  
-                            // for there to be junction pair links
-                            std::cout << "tried splitting by coverage\n";
+                        // else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 
+                        //     && contig->getSeq().length() > insertSize && insertSize > read_length){
+                        //     // here we try to split by coverage ratio alone, since the contig is too long  
+                        //     // for there to be junction pair links
+                        //     std::cout << "tried splitting by coverage\n";
 
-                            double covA = contig_a->getAvgCoverage();
-                            double covB = contig_b->getAvgCoverage();
-                            double covC = contig_c->getAvgCoverage();
-                            double covD = contig_d->getAvgCoverage();
+                        //     double covA = contig_a->getAvgCoverage();
+                        //     double covB = contig_b->getAvgCoverage();
+                        //     double covC = contig_c->getAvgCoverage();
+                        //     double covD = contig_d->getAvgCoverage();
                            
-                            double L_max = std::max(covA, covB);
-                            double L_min = std::min(covA, covB);
-                            int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
-                            if (L_max == covA) {
-                                L_arg_max = a;
-                                L_arg_min = b;
-                            }
-                            else{
-                                L_arg_max = b;
-                                L_arg_min = a;   
-                            }
-                            auto R_max = std::max(covC, covD);
-                            auto R_min = std::min(covC, covD);
-                            if (R_max == covC) {
-                                R_arg_max = c;
-                                R_arg_min = d;
-                            }
-                            else{
-                                R_arg_max = d;
-                                R_arg_min = c;   
-                            }
-                            std::cout << "covA: " << covA << ", covB: "<< covB << ", covC: " << covC << ", covD: "<< covD <<'\n';                
-                            std::cout << "L_max/L_min: " << L_max/L_min << ", R_max/R_min: " << R_max/R_min << "\n";
-                            std::cout << "maxes ratio: " << std::max(L_max/R_max, R_max/L_max) << ", mins ratio: " <<  std::max(L_min/R_min, R_min/L_min) << "\n";
-                            if(L_max/L_min >=1.5 && R_max/R_min >=1.5 && contig->getAvgCoverage()>=60 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
-                                disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
-                                std::cout << "split by coverage\n";
-                                operationDone = true;
+                        //     double L_max = std::max(covA, covB);
+                        //     double L_min = std::min(covA, covB);
+                        //     int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
+                        //     if (L_max == covA) {
+                        //         L_arg_max = a;
+                        //         L_arg_min = b;
+                        //     }
+                        //     else{
+                        //         L_arg_max = b;
+                        //         L_arg_min = a;   
+                        //     }
+                        //     auto R_max = std::max(covC, covD);
+                        //     auto R_min = std::min(covC, covD);
+                        //     if (R_max == covC) {
+                        //         R_arg_max = c;
+                        //         R_arg_min = d;
+                        //     }
+                        //     else{
+                        //         R_arg_max = d;
+                        //         R_arg_min = c;   
+                        //     }
+                        //     std::cout << "covA: " << covA << ", covB: "<< covB << ", covC: " << covC << ", covD: "<< covD <<'\n';                
+                        //     std::cout << "L_max/L_min: " << L_max/L_min << ", R_max/R_min: " << R_max/R_min << "\n";
+                        //     std::cout << "maxes ratio: " << std::max(L_max/R_max, R_max/L_max) << ", mins ratio: " <<  std::max(L_min/R_min, R_min/L_min) << "\n";
+                        //     if(L_max/L_min >=1.5 && R_max/R_min >=1.5 && contig->getAvgCoverage()>=60 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
+                        //         disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
+                        //         std::cout << "split by coverage\n";
+                        //         operationDone = true;
                                 
-                            }  
-                        }
+                        //     }  
+                        // }
 
                         if (operationDone){
                             it = nodeMap.erase(it);
