@@ -49,7 +49,7 @@ bool ContigJuncList::isValidKmerPosition(int pos){
 }
 
 //0 is the first backward kmer, 1 is the first forward kmer, 
-//2 is the secon backward kmer, etc.
+//2 is the second backward kmer, etc.
 kmer_type ContigJuncList::getKmer(int pos){
     if(pos % 2 == 1){
         return getKmerFromRead(getSeq(), pos/2);

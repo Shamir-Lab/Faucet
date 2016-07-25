@@ -868,66 +868,34 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     
                     // all distinct --> roughly linear regions when all are distinct
                     // also treat double-bubble and bubble adjacent to junction in same way
-                    // nodeA!=nodeC && nodeB!=nodeD && 
-                    // allDistinct(std::vector<ContigNode*>{nodeA, nodeB, node}) &&
-                    //     allDistinct(std::vector<ContigNode*>{nodeC, nodeD, backNode}) &&
-                    if( nodeA!=nodeD && nodeB!=nodeC && allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
-                        (( nodeA!=nodeB && nodeC!=nodeD) || 
-                            (nodeA==nodeB && nodeC==nodeD))){  //|| 
-                            // (nodeA==nodeB && allDistinct(std::vector<ContigNode*>{nodeC,nodeD,nodeA, node, backNode}) ) ||
-                            // (nodeC==nodeD && allDistinct(std::vector<ContigNode*>{nodeA,nodeB,nodeC, node, backNode}) ) ) ){
+
+                    
+                    if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
+                        (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
+
                         if (orientation > 2){continue;}
-                        if( (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){ //|| 
-                        // (std::min(scoreAC , scoreBD) > 1 && ((scoreAD == 0 && scoreBC == 1) || (scoreAD == 1 && scoreBC == 0)) )){
-                        // here we try to split by junction pairs - using roughly XOR logic
-                            disentanglePair(contig, backNode, node, a, b, c, d);
-                            operationDone = true;
+                        if (orientation == 1) {std::cout << "all contigs distinct, " << contig << "\n";}
+                        if((allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD})) ){
+                            operationDone = true;  // everything distinct
                         }
-                                             
-                        // else if (std::max(scoreAD , scoreBC) == 0 && std::max(scoreAC , scoreBD) == 0 
-                        //     && contig->getSeq().length() > insertSize && insertSize > read_length){
-                        //     // here we try to split by coverage ratio alone, since the contig is too long  
-                        //     // for there to be junction pair links
-                        //     std::cout << "tried splitting by coverage\n";
-
-                        //     double covA = contig_a->getAvgCoverage();
-                        //     double covB = contig_b->getAvgCoverage();
-                        //     double covC = contig_c->getAvgCoverage();
-                        //     double covD = contig_d->getAvgCoverage();
-                           
-                        //     double L_max = std::max(covA, covB);
-                        //     double L_min = std::min(covA, covB);
-                        //     int L_arg_max, L_arg_min, R_arg_max, R_arg_min;
-                        //     if (L_max == covA) {
-                        //         L_arg_max = a;
-                        //         L_arg_min = b;
-                        //     }
-                        //     else{
-                        //         L_arg_max = b;
-                        //         L_arg_min = a;   
-                        //     }
-                        //     auto R_max = std::max(covC, covD);
-                        //     auto R_min = std::min(covC, covD);
-                        //     if (R_max == covC) {
-                        //         R_arg_max = c;
-                        //         R_arg_min = d;
-                        //     }
-                        //     else{
-                        //         R_arg_max = d;
-                        //         R_arg_min = c;   
-                        //     }
-                        //     std::cout << "covA: " << covA << ", covB: "<< covB << ", covC: " << covC << ", covD: "<< covD <<'\n';                
-                        //     std::cout << "L_max/L_min: " << L_max/L_min << ", R_max/R_min: " << R_max/R_min << "\n";
-                        //     std::cout << "maxes ratio: " << std::max(L_max/R_max, R_max/L_max) << ", mins ratio: " <<  std::max(L_min/R_min, R_min/L_min) << "\n";
-                        //     if(L_max/L_min >=1.5 && R_max/R_min >=1.5 && contig->getAvgCoverage()>=60 && (std::max(L_max/R_max, R_max/L_max)<=1.15 || std::max(L_min/R_min, R_min/L_min)<=1.15)){
-                        //         disentanglePair(contig, backNode, node, L_arg_max,L_arg_min,R_arg_max,R_arg_min);
-                        //         std::cout << "split by coverage\n";
-                        //         operationDone = true;
-                                
-                        //     }  
-                        // }
-
+                        else if (nodeA!=nodeD && nodeA!=nodeC && nodeB!=nodeD && nodeB!=nodeC && nodeA && nodeB && nodeC && nodeD){
+                            if (nodeA==nodeB && nodeC==nodeD && 
+                                nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4 &&
+                                nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                                operationDone = true; // double bubble
+                            }
+                            else if(nodeA==nodeB && 
+                                nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4){
+                                operationDone = true; // single bubble on back side
+                            }
+                            else if(nodeC==nodeD && 
+                                nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                                operationDone = true; // single bubble on front side
+                            }                                   
+                        }
+                                         
                         if (operationDone){
+                            disentanglePair(contig, backNode, node, a, b, c, d);
                             it = nodeMap.erase(it);
                             if(it != nodeMap.end()){
                                 if(backNode->getKmer() == it->first){
@@ -944,7 +912,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
 
 
                     else{ // not all distinct --> usually some looping or bubble on either side
-                        if (orientation == 1) {std::cout << "not all distinct, " << contig << "\n";}
+                        if (orientation == 1) {std::cout << "not all contigs distinct, " << contig << "\n";}
                         // take care of each case separately
 
                         if (nodeA==node && nodeC==backNode && 
