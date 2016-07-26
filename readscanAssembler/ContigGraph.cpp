@@ -869,16 +869,13 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     }
 
                     // if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
-                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                        std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
-                        std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
-                        std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    }
+                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
+                    std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
+                    std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    // }
                     
-                    // all distinct --> roughly linear regions when all are distinct
-                    // also treat double-bubble and bubble adjacent to junction in same way
-
-                    
+                    // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
                         (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
 
