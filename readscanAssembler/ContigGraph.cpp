@@ -100,10 +100,10 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
 
 bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     bool result = false;
-    if(disentangle(pair_filter, insertSize, true) > 0){
+    if(disentangle(pair_filter, insertSize) > 0){
         result = true;
     }
-    // if(disentangle(pair_filter, insertSize, false) > 0){
+    // if(disentangle(pair_filter, insertSize) > 0){
     //     result = true;
     // }
     // if(collapseBulges(150) > 0){
@@ -799,7 +799,7 @@ int ContigGraph::popBubblesByCoverageRatio(){
 }
 
 
-int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_juncs){
+int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     int disentangled = 0;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
     bool operationDone = false;
@@ -838,44 +838,42 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     ContigNode* nodeB = contig_b->otherEndNode(backNode);
                     ContigNode* nodeC = contig_c->otherEndNode(node);
                     ContigNode* nodeD = contig_d->otherEndNode(node);             
+                    double scoreAC, scoreAD, scoreBC, scoreBD;
 
-                    if (local_juncs){
-                        A = contig_a->getJuncResults(contig_a->getSide(backNode, a), 0, contig_a->getSeq().length());
-                        B = contig_b->getJuncResults(contig_b->getSide(backNode, b), 0, contig_b->getSeq().length());
-                        C = contig_c->getJuncResults(contig_c->getSide(node, c), 0, contig_c->getSeq().length());
-                        D = contig_d->getJuncResults(contig_d->getSide(node, d), 0, contig_d->getSeq().length());
+                    int len_a = contig_a->getSeq().length();
+                    int len_b = contig_a->getSeq().length();
+                    int len_c = contig_a->getSeq().length();
+                    int len_d = contig_a->getSeq().length();
+                    
+                    A = backNode->getPairCandidates(a, std::min(len_a, insertSize));
+                    B = backNode->getPairCandidates(b, std::min(len_b, insertSize));
+                    C = node->getPairCandidates(c, std::min(len_c,insertSize));
+                    D = node->getPairCandidates(d, std::min(len_d, insertSize));
+                
+                    scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
+                    scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
+                    scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
+                    scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
 
-                    }
-                    else{
+                    if (scoreAC+scoreBD+scoreAD+scoreBC < 2){
+                       
                         A = backNode->getPairCandidates(a, insertSize);
                         B = backNode->getPairCandidates(b, insertSize);
                         C = node->getPairCandidates(c, insertSize);
                         D = node->getPairCandidates(d, insertSize);
-                    }
-                    double scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
-                    double scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
-                    double scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
-                    double scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
-
-                    if (local_juncs && (scoreAC+scoreBD+scoreAD+scoreBC < 2)){
-                        A = backNode->getPairCandidates(a, insertSize);
-                        B = backNode->getPairCandidates(b, insertSize);
-                        C = node->getPairCandidates(c, insertSize);
-                        D = node->getPairCandidates(d, insertSize);
+                    
                         scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
                         scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
                         scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                         scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
                     }
-                                    
-                    // std::list<int> tig_lengths = {contig_a->getSeq().length(), contig_b->getSeq().length(), contig_c->getSeq().length(), contig_d->getSeq().length()};
-                    // std::list<int> scores = {scoreAD,scoreBC,scoreAC,scoreBD};
-                    // if (orientation==1 && (*std::max_element(scores.begin(),scores.end())>0 || contig->getSeq().length()>2*insertSize)){
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                    std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
-                    std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
-                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    
+
+                    // if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
+                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
+                        std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
+                        std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                        std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    }
                     
                     // all distinct --> roughly linear regions when all are distinct
                     // also treat double-bubble and bubble adjacent to junction in same way
@@ -884,7 +882,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
                         (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
 
-                        if (orientation > 2){continue;}
                         if (orientation == 1) {std::cout << "all contigs distinct, " << contig << "\n";}
                         if((allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD})) ){
                             operationDone = true;  // everything distinct
