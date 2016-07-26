@@ -856,11 +856,22 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
                     double scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
                     double scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                     double scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
+
+                    if (local_juncs && (scoreAC+scoreBD+scoreAD+scoreBC < 2)){
+                        A = backNode->getPairCandidates(a, insertSize);
+                        B = backNode->getPairCandidates(b, insertSize);
+                        C = node->getPairCandidates(c, insertSize);
+                        D = node->getPairCandidates(d, insertSize);
+                        scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
+                        scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
+                        scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
+                        scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
+                    }
                                     
                     // std::list<int> tig_lengths = {contig_a->getSeq().length(), contig_b->getSeq().length(), contig_c->getSeq().length(), contig_d->getSeq().length()};
                     // std::list<int> scores = {scoreAD,scoreBC,scoreAC,scoreBD};
                     // if (orientation==1 && (*std::max_element(scores.begin(),scores.end())>0 || contig->getSeq().length()>2*insertSize)){
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
                     std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
                     std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
                     std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
@@ -912,7 +923,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize, bool local_junc
 
 
                     else{ // not all distinct --> usually some looping or bubble on either side
-                        if (orientation == 1) {std::cout << "not all contigs distinct, " << contig << "\n";}
+                        if (orientation == 1) {std::cout << "not all contigs distinct or score doesn't split cleanly " << contig << "\n";}
                         // take care of each case separately
 
                         if (nodeA==node && nodeC==backNode && 
