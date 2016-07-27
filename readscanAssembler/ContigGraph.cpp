@@ -583,9 +583,7 @@ int ContigGraph::removeChimericExtensions(int insertSize){
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
 
-
-        if (node->numPathsOut() == 2 && contig->getSeq().length() >= insertSize && 
-            seenKmers.find(kmer) == seenKmers.end()){
+        if (node->numPathsOut() == 2 && seenKmers.find(kmer) == seenKmers.end()){ // 
             std::vector<int> inds = node->getIndicesOut();
             std::vector<double> covs;
             std::vector<int> lengths;
@@ -595,38 +593,42 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                 covs.push_back(tig->getAvgCoverage());
                 lengths.push_back(tig->getSeq().length());
             }
-
-            if ((covs[0] + covs[1] > 0.9*contig->getAvgCoverage()) && std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 3){
+            // (covs[0] + covs[1] > contig->getAvgCoverage()) &&
+            if (((std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 3 && contig->getSeq().length() >= insertSize) ||
+                std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 10)){
                 int P_index, Q_index;
                 auto result = std::minmax_element(covs.begin(), covs.end());
                 P_index = inds[(result.first - covs.begin())];
                 Q_index = inds[(result.second - covs.begin())]; // higher coverage node
                 Contig* P = node->contigs[P_index];
                 Contig* Q = node->contigs[Q_index];
-                if (P->getSeq().length() < read_length){
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
-                    printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
-                    ContigNode * far_node = P->otherEndNode(node);
-                    kmer_type far_kmer;
-                    if (far_node){
-                        far_kmer = far_node->getKmer();
-                    }
-                    deleteContig(P);
 
-                    if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
-                    if(node->numPathsOut() == 1){
-                        collapseNode(node, kmer);         
-                        seenKmers.insert(kmer);     
+                ContigNode * far_node = P->otherEndNode(node);
+                if (far_node){
+                    if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
+                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                        printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+                        kmer_type far_kmer;
+                        if (far_node){
+                            far_kmer = far_node->getKmer();
+                        }
+                        deleteContig(P);
+
+                        if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
+                        if(node->numPathsOut() == 1){
+                            collapseNode(node, kmer);         
+                            seenKmers.insert(kmer);     
+                        }
+                        
+                        if (far_node){
+                            if (testAndCutIfDegenerate(far_node)) seenKmers.insert(far_kmer);
+                            if(far_node->numPathsOut() == 1){
+                                collapseNode(far_node, far_kmer);         
+                                seenKmers.insert(far_kmer);
+                            }             
+                        }
+                        numDeleted++;
                     }
-                    
-                    if (far_node){
-                        if (testAndCutIfDegenerate(far_node)) seenKmers.insert(far_kmer);
-                        if(far_node->numPathsOut() == 1){
-                            collapseNode(far_node, far_kmer);         
-                            seenKmers.insert(far_kmer);
-                        }             
-                    }
-                    numDeleted++;
                 }
             }        
         }
@@ -869,10 +871,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     }
 
                     // if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                    std::cout << "lenA: " << contig_a->getSeq().length() << ", lenB: "<< contig_b->getSeq().length() << ", lenC: " << contig_c->getSeq().length() << ", lenD: "<< contig_d->getSeq().length() <<'\n';
-                    std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
-                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
+                        std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
+                        std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                        std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
                     // }
                     
                     // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
@@ -880,7 +882,9 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
 
                         if (orientation == 1) {std::cout << "all contigs distinct, " << contig << "\n";}
-                        if((allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD})) ){
+                        if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
+                        (nodeA==nodeC && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeB,nodeD})) ||
+                        (nodeB==nodeD && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeC})) ){
                             operationDone = true;  // everything distinct
                         }
                         else if (nodeA!=nodeD && nodeA!=nodeC && nodeB!=nodeD && nodeB!=nodeC && nodeA && nodeB && nodeC && nodeD){
@@ -958,49 +962,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             std::cout << "made decision\n";    
                             continue;
                         }
-
-                        // if (nodeA==node && nodeD==backNode && 
-                        //     nodeB != node && nodeB != backNode &&
-                        //     nodeC != node && nodeC != backNode
-                        //     ){
-
-                        //     if((scoreAC>0 && scoreAD>0 && scoreBC>0 && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
-                        //         (std::min(scoreAC , scoreBD) > 0 && scoreBC == 0) ){                        
-                        //         // II. loop - genomic repeat                            
-                                
-                        //         Contig* contigBRDRC = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
-                        //         contigBRDRC = contigBRDRC->concatenate(contig_d, contigBRDRC->getSide(node), contig_d->getSide(node));
-                        //         contigBRDRC = contigBRDRC->concatenate(contig, contigBRDRC->getSide(backNode), contig->getSide(backNode));
-                        //         contigBRDRC = contigBRDRC->concatenate(contig_c, contigBRDRC->getSide(node), contig_c->getSide(node));
-                        //         if(nodeB){
-                        //             nodeB->replaceContig(contig_b, contigBRDRC);
-                        //         }
-                        //         if(nodeC){
-                        //             nodeC->replaceContig(contig_d, contigBRDRC);
-                        //         }
-                        //         if(!nodeB && !nodeC){
-                        //             isolated_contigs.push_back(*contigBRDRC);
-                        //         }
-
-                        //         it = nodeMap.erase(it);
-                        //         if(it != nodeMap.end()){
-                        //             if(backNode->getKmer() == it->first){
-                        //                 it++;
-                        //             }
-                        //         }
-                        //         nodeMap.erase(backNode->getKmer());
-                        //         disentangled++;
-                        //         // disentanglementCleanup(backNode, disentangled);
-                        //         std::cout << "genomic repeat loop\n";                        
-                        //         continue;
-                        //     }
-
-
-                        // }
-
-                        // III. single hairpin
-
-                        // IV. 
 
                     }
                     if (orientation==4 && !operationDone) {std::cout << "no decision\n";}
