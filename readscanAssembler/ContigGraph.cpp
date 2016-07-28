@@ -913,19 +913,25 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         (nodeB==nodeD && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeC})) ){
                             operationDone = true;  // everything distinct
                         }
-                        else if (nodeA!=nodeD && nodeA!=nodeC && nodeB!=nodeD && nodeB!=nodeC && nodeA && nodeB && nodeC && nodeD){
-                            if (nodeA==nodeB && nodeC==nodeD && 
-                                nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4 &&
-                                nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
-                                operationDone = true; // double bubble
+                        else if (nodeA!=nodeD && nodeA!=nodeC && nodeB!=nodeD && nodeB!=nodeC ){//&& nodeA && nodeB && nodeC && nodeD){
+                            if (nodeA && nodeC){
+                                if (nodeA==nodeB && nodeC==nodeD && 
+                                    nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4 &&
+                                    nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                                    operationDone = true; // double bubble
+                                }
                             }
-                            else if(nodeA==nodeB && 
-                                nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4){
-                                operationDone = true; // single bubble on back side
+                            else if (nodeA){
+                                if(nodeA==nodeB && 
+                                    nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4){
+                                    operationDone = true; // single bubble on back side
+                                }
                             }
-                            else if(nodeC==nodeD && 
-                                nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
-                                operationDone = true; // single bubble on front side
+                            else if (nodeC){
+                                if(nodeC==nodeD && 
+                                    nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                                    operationDone = true; // single bubble on front side
+                                }
                             }                                   
                         }
                                          
