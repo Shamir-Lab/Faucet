@@ -907,7 +907,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
                         (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
 
-                        if (orientation == 1) {std::cout << "all contigs distinct, " << contig << "\n";}
+                        std::cout << "all contigs distinct, desired split found" << contig << "\n";
                         if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
                         (nodeA==nodeC && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeB,nodeD})) ||
                         (nodeB==nodeD && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeC})) ){
@@ -921,13 +921,13 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                                     operationDone = true; // double bubble
                                 }
                             }
-                            else if (nodeA){
+                            if (nodeA){
                                 if(nodeA==nodeB && 
                                     nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4){
                                     operationDone = true; // single bubble on back side
                                 }
                             }
-                            else if (nodeC){
+                            if (nodeC){
                                 if(nodeC==nodeD && 
                                     nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
                                     operationDone = true; // single bubble on front side
@@ -953,7 +953,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 
 
                     else{ // not all distinct --> usually some looping or bubble on either side
-                        if (orientation == 1) {std::cout << "not all contigs distinct or score doesn't split cleanly " << contig << "\n";}
+                        std::cout << "not all contigs distinct or desired split not found" << contig << "\n";
                         // take care of each case separately
 
                         if (nodeA==node && nodeC==backNode && 
