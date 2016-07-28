@@ -527,6 +527,7 @@ bool ContigGraph::isBubble(ContigNode* node){
 std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_dist){
     std::list<Contig*>  path = {};
     std::list<Contig*>  cand_path = {};
+    std::list<Contig*> alt_path = {};
     if (node->numPathsOut() == 2){
 
         std::vector<int> inds = node->getIndicesOut();
@@ -552,7 +553,14 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
         // BFS from start up to d or max_dist
         else{
             cand_path = node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
-            if (cand_path.size()==0) return path;
+            if (cand_path.size()==0){
+                alt_path = node->doPathsConvergeNearby(inds[min_ind], inds[max_ind], max_dist);
+                if (alt_path.size()==0) {
+                    return path;
+                }else{
+                    cand_path = alt_path;
+                }
+            } 
             else{
                 // NodeQueueEntry entry = *cand_path.end(); 
                 int target_dist = 0;
@@ -566,7 +574,7 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
             }
             
         }
-      
+       
     }
     return path;
 
@@ -674,6 +682,11 @@ int ContigGraph::collapseBulges(int max_dist){
             }
             int P_index, Q_index;
             
+            if (std::max(covs[0]/covs[1],covs[1]/covs[0]) < 1.5) {
+                it++;
+                continue;
+            }
+
             if (lengths[0]==lengths[1]){
                 if (covs[0]==covs[1]){
                     it++;
@@ -685,15 +698,28 @@ int ContigGraph::collapseBulges(int max_dist){
                 
             }else{
                 if (node->contigs[inds[0]]->otherEndNode(node) == node->contigs[inds[1]]->otherEndNode(node)){
+                    // bubble case
                     auto result = std::minmax_element(covs.begin(), covs.end());
                     P_index = inds[(result.first - covs.begin())];
                     Q_index = inds[(result.second - covs.begin())];
                 }
-                else{
-                    auto result = std::minmax_element(lengths.begin(), lengths.end());   
-                    Q_index = inds[(result.first - lengths.begin())];
-                    P_index = inds[(result.second - lengths.begin())];  
+                else{ // bulge, not bubble 
+                    if (node->contigs[inds[0]]==*path.begin()){
+                        Q_index = inds[0];
+                        P_index = inds[1];
+                    }
+                    else if (node->contigs[inds[1]]==*path.begin()){
+                        Q_index = inds[1];
+                        P_index = inds[0];
+                    }
+                    else{ // shouldn't get to here but just in case
+                        auto result = std::minmax_element(covs.begin(), covs.end());
+                        P_index = inds[(result.first - covs.begin())];
+                        Q_index = inds[(result.second - covs.begin())];
+                        std::cout << "picked P and Q by coverage when should have been picked by path\n";
+                    }
                 }
+               
             }
 
             // From here on we break stuff...
