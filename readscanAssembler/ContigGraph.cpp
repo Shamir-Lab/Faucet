@@ -869,9 +869,9 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     double scoreAC, scoreAD, scoreBC, scoreBD;
 
                     int len_a = contig_a->getSeq().length();
-                    int len_b = contig_a->getSeq().length();
-                    int len_c = contig_a->getSeq().length();
-                    int len_d = contig_a->getSeq().length();
+                    int len_b = contig_b->getSeq().length();
+                    int len_c = contig_c->getSeq().length();
+                    int len_d = contig_d->getSeq().length();
                     
                     A = backNode->getPairCandidates(a, std::min(len_a, insertSize));
                     B = backNode->getPairCandidates(b, std::min(len_b, insertSize));
