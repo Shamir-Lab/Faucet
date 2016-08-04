@@ -51,6 +51,7 @@ public:
     void setSeq(std::string cont){contigJuncs.setSeq(cont);}
     std::string getSeq(){return contigJuncs.getSeq();}
     double getAvgCoverage();
+    double getCoverageSampleVariance();
     void setContigJuncs(ContigJuncList juncList){ contigJuncs = juncList;}
     std::list<JuncResult> getJuncResults(int side, int startDist, int maxDist);
 

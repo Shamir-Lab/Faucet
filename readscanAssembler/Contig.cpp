@@ -118,6 +118,10 @@ double Contig::getAvgCoverage(){
 	return contigJuncs.getAvgCoverage();
 }
 
+double Contig::getCoverageSampleVariance(){
+	return contigJuncs.getCoverageSampleVariance();
+}
+
 float Contig::getMass(){
 	return getAvgCoverage()*getSeq().length();
 }

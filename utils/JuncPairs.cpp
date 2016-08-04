@@ -131,6 +131,20 @@ double ContigJuncList::getAvgCoverage(){
     return covSum / coverages.size();
 }
 
+double ContigJuncList::getCoverageSampleVariance(){
+    if(coverages.size() < 2){
+        printf("ERROR: 1 or 0 values in junctions list\n");
+        return 0;
+    }
+    double mean = getAvgCoverage();
+    double sum_sqrs = 0;
+    for(auto it = coverages.begin(); it != coverages.end(); it++){
+        sum_sqrs += pow(mean - (double) *it, 2); 
+    }
+    return pow(sum_sqrs / (coverages.size()-1), 0.5);
+}
+
+
 //Sums all distance values
 int ContigJuncList::getTotalDistance(){
     int totalDist = 0;

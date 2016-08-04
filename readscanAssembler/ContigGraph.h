@@ -80,6 +80,8 @@ public:
     bool deleteTipsAndClean();
     bool breakPathsAndClean(Bloom* pair_filter, int insertSize);
     bool disentangleAndClean(Bloom* pair_filter, int insertSize);
+    bool areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, 
+        std::list<JuncResult> A, std::list<JuncResult> B, double frac);
 
 private:
     int popBubblesByCoverageRatio();

@@ -91,7 +91,8 @@ public:
 
     //Averages all coverage values in list
     double getAvgCoverage();
-    
+    double getCoverageSampleVariance();
+
     //Prints distances then coverages to a string
     std::string getStringRep();
 

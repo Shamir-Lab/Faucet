@@ -7,6 +7,63 @@ unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
 }
 
+double get_critical_val(int df){
+    // critical values for t distribution at 0.05 alpha level
+    std::unordered_map <int,double> df_critical_vals;
+    df_critical_vals[1]=6.314;
+    df_critical_vals[2]=2.92;
+    df_critical_vals[3]=2.353;
+    df_critical_vals[4]=2.132;
+    df_critical_vals[5]=2.015;
+    df_critical_vals[6]=1.943;
+    df_critical_vals[7]=1.895;
+    df_critical_vals[8]=1.86;
+    df_critical_vals[9]=1.833;
+    df_critical_vals[10]=1.812;
+    df_critical_vals[11]=1.796;
+    df_critical_vals[12]=1.782;
+    df_critical_vals[13]=1.771;
+    df_critical_vals[14]=1.761;
+    df_critical_vals[15]=1.753;
+    df_critical_vals[16]=1.746;
+    df_critical_vals[17]=1.740;
+    df_critical_vals[18]=1.734;
+    df_critical_vals[19]=1.729;
+    df_critical_vals[20]=1.725;
+    df_critical_vals[21]=1.721;
+    df_critical_vals[22]=1.717;
+    df_critical_vals[23]=1.714;
+    df_critical_vals[24]=1.711;
+    df_critical_vals[25]=1.708;
+    df_critical_vals[26]=1.706;
+    df_critical_vals[27]=1.703;
+    df_critical_vals[28]=1.701;
+    df_critical_vals[29]=1.699;
+    df_critical_vals[30]=1.697;
+
+    if (df <=30){
+        return df_critical_vals[df];
+    }
+    else if(df > 30 && df <=40){
+        return 1.684;
+    }
+    else if (df > 40 && df <=50){
+        return 1.676;
+    }
+    else if(df > 50 && df <=60){
+        return 1.671;
+    }
+    else if(df >60 && df <=80){
+        return 1.664;
+    }
+    else if(df >80 && df <=100){
+        return 1.660;
+    }
+    else{
+        return 1.645;
+    }
+}
+
 //returns true if there are no two identical non-null nodes in the list
 template<class T>
 bool allDistinct(const std::vector<T> & nodes)
@@ -100,6 +157,7 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
 
 bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     bool result = false;
+    std::cout << ">name\tlength\tlenA\tlenB\tlenC\tlenD\tcov\tcovA\tcovB\tcovC\tcovD\tAD\tBC\tAC\tBD\tsizeA\tsizeB\tsizeC\tsizeD\n";
     if(disentangle(pair_filter, insertSize) > 0){
         result = true;
     }
@@ -901,13 +959,22 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
                         std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
                         std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                        std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';
+                        // if (orientation == 1){
+                        // std::cout << ">" << contig << "_" << insertSize << "\t" << contig->getSeq().length() << "\t" <<
+                        //     len_a << "\t" << len_b << "\t"<< len_c << "\t" << len_d << "\t" <<  
+                        //     contig->getAvgCoverage() << "\t" << contig_a->getAvgCoverage() << "\t" << contig_b->getAvgCoverage() << "\t" << contig_c->getAvgCoverage() << "\t" << contig_d->getAvgCoverage() << "\t" <<
+                        //     scoreAC << "\t" << scoreAD << "\t" << scoreBC << "\t" << scoreBD << "\t" <<
+                        //     A.size() << "\t" << B.size() << "\t" << C.size() << "\t" << D.size() << "\n";
+                        // }
+
                     // }
                     
                     // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
                         (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
 
-                        std::cout << "all contigs distinct, desired split found" << contig << "\n";
+                        std::cout << "all contigs distinct, desired split found, " << contig << "\n";
                         if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
                         (nodeA==nodeC && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeB,nodeD})) ||
                         (nodeB==nodeD && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeC})) ){
@@ -950,10 +1017,14 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         }
 
                     }
-
+                    else if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
+                        bool test1 = areEquivalentContigCoverages(contig_a, contig_c, A, C, 0.15);
+                        bool test2 = areEquivalentContigCoverages(contig_a, contig_d, A, D, 0.15);
+                        // std::cout << "test1 " << test1 << " test2 " << test2 << "\n"; 
+                    }
 
                     else{ // not all distinct --> usually some looping or bubble on either side
-                        std::cout << "not all contigs distinct or desired split not found" << contig << "\n";
+                        std::cout << "not all contigs distinct or desired split not found, " << contig << "\n";
                         // take care of each case separately
 
                         if (nodeA==node && nodeC==backNode && 
@@ -1010,7 +1081,39 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     return disentangled;
 }
 
-
+bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, std::list<JuncResult> A, std::list<JuncResult> B, double frac){
+    // double alpha = 0.05 // significance level 
+    double ma = contig_a->getAvgCoverage();
+    double mb = contig_b->getAvgCoverage();
+    double sa = contig_a->getCoverageSampleVariance();
+    double sb = contig_b->getCoverageSampleVariance();
+    int na = A.size();
+    int nb = B.size();
+    int df = na + nb - 2;
+    if (!(sa > 0 && sb > 0 && df > 0)){ return false; }
+    double diff = ma - mb;
+    double thresh_hi = frac*ma;
+    double thresh_lo = -frac*ma;
+    if (nb > na){
+        thresh_hi = frac*mb;
+        thresh_lo = -frac*mb;
+    }
+    double two_samp_var = pow(pow(sa,2)/na + pow(sb,2)/nb , 0.5);
+    double c_t = get_critical_val(df);
+    double t_lo = (diff - thresh_lo) / two_samp_var;
+    double t_hi = (diff - thresh_hi) / two_samp_var; 
+    std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
+    std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
+    std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
+    if (t_lo >= c_t && t_hi <= -c_t){
+        std::cout << "returned true\n";
+        return true;
+    }
+    else {
+        std::cout << "returned false\n"; 
+        return false;
+    }
+}
 
 //a,b are on backNode, c,d are on forwardNode
 //a pairs with c, b pairs with d
