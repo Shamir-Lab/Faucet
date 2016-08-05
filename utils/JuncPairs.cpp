@@ -131,6 +131,15 @@ double ContigJuncList::getAvgCoverage(){
     return covSum / coverages.size();
 }
 
+double ContigJuncList::getAvgCoverage(std::list<JuncResult> results){
+    if (results.size()==0){return 0;}
+    double covSum = 0;
+    for(auto it = results.begin(); it != results.end(); it++){
+        covSum += (double) it->coverage; 
+    }
+    return covSum / results.size();
+}
+
 double ContigJuncList::getCoverageSampleVariance(){
     if(coverages.size() < 2){
         printf("ERROR: 1 or 0 values in junctions list\n");
@@ -142,6 +151,16 @@ double ContigJuncList::getCoverageSampleVariance(){
         sum_sqrs += pow(mean - (double) *it, 2); 
     }
     return pow(sum_sqrs / (coverages.size()-1), 0.5);
+}
+
+double ContigJuncList::getCoverageSampleVariance(std::list<JuncResult> results){
+    if (results.size() < 2) {return 0;}
+    double mean = getAvgCoverage(results);
+    double sum_sqrs = 0;
+    for(auto it = results.begin(); it != results.end(); it++){
+        sum_sqrs += pow(mean - (double) it->coverage, 2); 
+    }
+    return pow(sum_sqrs / (results.size()-1), 0.5);
 }
 
 

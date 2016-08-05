@@ -118,8 +118,16 @@ double Contig::getAvgCoverage(){
 	return contigJuncs.getAvgCoverage();
 }
 
+double Contig::getAvgCoverage(std::list<JuncResult> results){
+	return contigJuncs.getAvgCoverage(results);
+}
+
 double Contig::getCoverageSampleVariance(){
 	return contigJuncs.getCoverageSampleVariance();
+}
+
+double Contig::getCoverageSampleVariance(std::list<JuncResult> results){
+	return contigJuncs.getCoverageSampleVariance(results);
 }
 
 float Contig::getMass(){

@@ -91,7 +91,10 @@ public:
 
     //Averages all coverage values in list
     double getAvgCoverage();
+    double getAvgCoverage(std::list<JuncResult> results);
+
     double getCoverageSampleVariance();
+    double getCoverageSampleVariance(std::list<JuncResult> results);
 
     //Prints distances then coverages to a string
     std::string getStringRep();

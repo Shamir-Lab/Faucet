@@ -941,18 +941,18 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                     scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
 
-                    if (scoreAC+scoreBD+scoreAD+scoreBC < 2){
+                    // if (scoreAC+scoreBD+scoreAD+scoreBC < 2){
                        
-                        A = backNode->getPairCandidates(a, insertSize);
-                        B = backNode->getPairCandidates(b, insertSize);
-                        C = node->getPairCandidates(c, insertSize);
-                        D = node->getPairCandidates(d, insertSize);
+                    //     A = backNode->getPairCandidates(a, insertSize);
+                    //     B = backNode->getPairCandidates(b, insertSize);
+                    //     C = node->getPairCandidates(c, insertSize);
+                    //     D = node->getPairCandidates(d, insertSize);
                     
-                        scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
-                        scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
-                        scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
-                        scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
-                    }
+                    //     scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
+                    //     scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
+                    //     scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
+                    //     scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
+                    // }
 
                     // if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                         std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
@@ -960,48 +960,56 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
                         std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
                         std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';
-                        // if (orientation == 1){
-                        // std::cout << ">" << contig << "_" << insertSize << "\t" << contig->getSeq().length() << "\t" <<
-                        //     len_a << "\t" << len_b << "\t"<< len_c << "\t" << len_d << "\t" <<  
-                        //     contig->getAvgCoverage() << "\t" << contig_a->getAvgCoverage() << "\t" << contig_b->getAvgCoverage() << "\t" << contig_c->getAvgCoverage() << "\t" << contig_d->getAvgCoverage() << "\t" <<
-                        //     scoreAC << "\t" << scoreAD << "\t" << scoreBC << "\t" << scoreBD << "\t" <<
-                        //     A.size() << "\t" << B.size() << "\t" << C.size() << "\t" << D.size() << "\n";
-                        // }
+                        if (orientation == 1){
+                        std::cout << ">" << contig << "_" << insertSize << "\t" << contig->getSeq().length() << "\t" <<
+                            len_a << "\t" << len_b << "\t"<< len_c << "\t" << len_d << "\t" <<  
+                            contig->getAvgCoverage() << "\t" << contig_a->getAvgCoverage() << "\t" << contig_b->getAvgCoverage() << "\t" << contig_c->getAvgCoverage() << "\t" << contig_d->getAvgCoverage() << "\t" <<
+                            scoreAC << "\t" << scoreAD << "\t" << scoreBC << "\t" << scoreBD << "\t" <<
+                            A.size() << "\t" << B.size() << "\t" << C.size() << "\t" << D.size() << "\n";
+                        }
 
                     // }
                     
                     // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
-                    if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d}) &&
-                        (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
+                    if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){// &&
+                        std::cout << "all contigs distinct, " << contig << "\n";
+                        if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
 
-                        std::cout << "all contigs distinct, desired split found, " << contig << "\n";
-                        if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
-                        (nodeA==nodeC && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeB,nodeD})) ||
-                        (nodeB==nodeD && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeC})) ){
-                            operationDone = true;  // everything distinct
-                        }
-                        else if (nodeA!=nodeD && nodeA!=nodeC && nodeB!=nodeD && nodeB!=nodeC ){//&& nodeA && nodeB && nodeC && nodeD){
-                            if (nodeA && nodeC){
-                                if (nodeA==nodeB && nodeC==nodeD && 
-                                    nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4 &&
-                                    nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
-                                    operationDone = true; // double bubble
-                                }
+                            std::cout << "desired split found\n";
+                            if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
+                            (nodeA==nodeC && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeB,nodeD})) ||
+                            (nodeB==nodeD && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeC})) ){
+                                operationDone = true;  // everything distinct
                             }
-                            if (nodeA){
-                                if(nodeA==nodeB && 
-                                    nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4){
-                                    operationDone = true; // single bubble on back side
+                            else if (nodeA!=nodeD && nodeA!=nodeC && nodeB!=nodeD && nodeB!=nodeC ){//&& nodeA && nodeB && nodeC && nodeD){
+                                if (nodeA && nodeC){
+                                    if (nodeA==nodeB && nodeC==nodeD && 
+                                        nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4 &&
+                                        nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                                        operationDone = true; // double bubble
+                                    }
                                 }
+                                if (nodeA){
+                                    if(nodeA==nodeB && 
+                                        nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4){
+                                        operationDone = true; // single bubble on back side
+                                    }
+                                }
+                                if (nodeC){
+                                    if(nodeC==nodeD && 
+                                        nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                                        operationDone = true; // single bubble on front side
+                                    }
+                                }                                   
                             }
-                            if (nodeC){
-                                if(nodeC==nodeD && 
-                                    nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
-                                    operationDone = true; // single bubble on front side
-                                }
-                            }                                   
                         }
-                                         
+                        else if(areEquivalentContigCoverages(contig_a, contig_c, A, C, 0.25) && 
+                            areEquivalentContigCoverages(contig_b, contig_d, B, D, 0.25)){ // && 
+                            // std::min(scoreAC,scoreBD) > std::max(scoreAD,scoreBC)){
+                            std::cout << "split found by coverage\n";
+                            operationDone = true;
+                            
+                        }                 
                         if (operationDone){
                             disentanglePair(contig, backNode, node, a, b, c, d);
                             it = nodeMap.erase(it);
@@ -1017,11 +1025,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         }
 
                     }
-                    else if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
-                        bool test1 = areEquivalentContigCoverages(contig_a, contig_c, A, C, 0.15);
-                        bool test2 = areEquivalentContigCoverages(contig_a, contig_d, A, D, 0.15);
-                        // std::cout << "test1 " << test1 << " test2 " << test2 << "\n"; 
-                    }
+                   
 
                     else{ // not all distinct --> usually some looping or bubble on either side
                         std::cout << "not all contigs distinct or desired split not found, " << contig << "\n";
@@ -1083,10 +1087,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 
 bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, std::list<JuncResult> A, std::list<JuncResult> B, double frac){
     // double alpha = 0.05 // significance level 
-    double ma = contig_a->getAvgCoverage();
-    double mb = contig_b->getAvgCoverage();
-    double sa = contig_a->getCoverageSampleVariance();
-    double sb = contig_b->getCoverageSampleVariance();
+    double ma = contig_a->getAvgCoverage(A);
+    double mb = contig_b->getAvgCoverage(B);
+    double sa = contig_a->getCoverageSampleVariance(A);
+    double sb = contig_b->getCoverageSampleVariance(B);
     int na = A.size();
     int nb = B.size();
     int df = na + nb - 2;

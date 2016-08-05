@@ -25,9 +25,13 @@ ContigNode::ContigNode(){
     
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     //std::cout << "Getting candidate pairs.\n";
-    clock_t t = clock();
+    // clock_t t = clock();
     std::set<kmer_type> seenKmers = {};
     std::deque<NodeQueueEntry> queue= {};
+    if (maxDist <= contigs[index]->getSeq().length()){
+        Contig * contig = contigs[index];
+        return contig->getJuncResults(contig->getSide(this, index),0, maxDist);
+    }  
     queue.push_back(NodeQueueEntry(this, index, 0));
     std::list<JuncResult> results = {};
 
