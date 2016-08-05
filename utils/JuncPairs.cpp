@@ -118,6 +118,14 @@ ContigJuncList ContigJuncList::concatenate(ContigJuncList otherList){
     return ContigJuncList(newSeq, newDist, newCov);
 }
 
+ContigJuncList ContigJuncList::getScaledContigJuncs(double scale_factor){
+    junc_list newCov(coverages);
+    for(auto it = coverages.begin(); it != coverages.end(); it++){
+        newCov.push_back(*it * scale_factor);
+    }
+    return ContigJuncList(seq,distances,newCov);
+}
+
 //Averages all coverage values in list
 double ContigJuncList::getAvgCoverage(){
     double covSum = 0;

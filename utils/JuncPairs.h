@@ -95,6 +95,8 @@ public:
 
     double getCoverageSampleVariance();
     double getCoverageSampleVariance(std::list<JuncResult> results);
+    ContigJuncList getScaledContigJuncs(double scale_factor);
+
 
     //Prints distances then coverages to a string
     std::string getStringRep();

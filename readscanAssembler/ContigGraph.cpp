@@ -1107,6 +1107,14 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
     double t_lo = (diff - thresh_lo) / two_samp_var;
     double t_hi = (diff - thresh_hi) / two_samp_var; 
     std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
+    if (sa > 10){
+        std::cout << "contig a junc results\n";
+        contig_a->contigJuncs.printJuncResults(A);
+    }
+    if (sb > 10){
+        std::cout << "contig b junc results\n";
+        contig_b->contigJuncs.printJuncResults(B);
+    }
     std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
     std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
     if (t_lo >= c_t && t_hi <= -c_t){
@@ -1138,10 +1146,33 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     ContigNode* nodeC = contigC->otherEndNode(forwardNode);
     ContigNode* nodeD = contigD->otherEndNode(forwardNode);
 
-    // if(!allDistinct({backNode, forwardNode, nodeA, nodeB, nodeC, nodeD})){
-    //     std::cout << "not all distinct\n";
-    //     // return false;
-    // }
+    double covA = contigA->getAvgCoverage();
+    double covB = contigB->getAvgCoverage();
+    double covC = contigC->getAvgCoverage();
+    double covD = contigD->getAvgCoverage();
+
+    int lenA = contigA->getSeq().length();
+    int lenB = contigB->getSeq().length();
+    int lenC = contigC->getSeq().length();
+    int lenD = contigD->getSeq().length();
+
+    ContigJuncList origJuncs = contig->contigJuncs;
+    ContigJuncList newJuncs;
+    
+    //new ContigJuncList(contig->contigJuncs->seq, contig->contigJuncs->distances, contig->contigJuncs->coverages);
+    double AC_weight = (covA*lenA + covC*lenC) / (lenA + lenC);
+    double BD_weight = (covB*lenB + covD*lenD) / (lenB + lenD);
+    double scale_factor_AC = AC_weight  / (AC_weight + BD_weight);
+    double scale_factor_BD = 1 - scale_factor_AC; 
+    newJuncs = origJuncs.getScaledContigJuncs(scale_factor_AC);   
+    std::cout << "AC factor " << scale_factor_AC << ", BD factor " << scale_factor_BD <<  ", original juncs\n";
+    origJuncs.printJuncResults(backNode->getPairCandidates(4, contig->getSeq().length()) );
+      
+    contig->setContigJuncs(newJuncs);
+    std::cout << "after first scaling\n";
+    newJuncs.printJuncResults(backNode->getPairCandidates(4, contig->getSeq().length()) );
+
+
     Contig* contigAC = contigA->concatenate(contig, contigA->getSide(backNode), contig->getSide(backNode));
     contigAC = contigAC->concatenate(contigC, contigAC->getSide(forwardNode), contigC->getSide(forwardNode));
     if(nodeA){
@@ -1153,6 +1184,12 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     if(!nodeA && !nodeC){
         isolated_contigs.push_back(*contigAC);
     }
+
+    // clear coverages in newJuncs, set to original values scaled second way
+    newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BD);     
+    contig->setContigJuncs(newJuncs);
+    std::cout << "after second scaling\n";
+    newJuncs.printJuncResults(backNode->getPairCandidates(4, contig->getSeq().length()) );
 
     Contig* contigBD = contigB->concatenate(contig, contigB->getSide(backNode), contig->getSide(backNode));
     contigBD = contigBD->concatenate(contigD, contigBD->getSide(forwardNode), contigD->getSide(forwardNode));
