@@ -931,10 +931,11 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     int len_c = contig_c->getSeq().length();
                     int len_d = contig_d->getSeq().length();
                     
-                    A = backNode->getPairCandidates(a, std::min(len_a, insertSize));
-                    B = backNode->getPairCandidates(b, std::min(len_b, insertSize));
-                    C = node->getPairCandidates(c, std::min(len_c,insertSize));
-                    D = node->getPairCandidates(d, std::min(len_d, insertSize));
+                    // add 1 to always get at least a flanking junction
+                    A = backNode->getPairCandidates(a, std::min(len_a+1, insertSize));
+                    B = backNode->getPairCandidates(b, std::min(len_b+1, insertSize));
+                    C = node->getPairCandidates(c, std::min(len_c+1,insertSize));
+                    D = node->getPairCandidates(d, std::min(len_d+1, insertSize));
                 
                     scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
                     scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
