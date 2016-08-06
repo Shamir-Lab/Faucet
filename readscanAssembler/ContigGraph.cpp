@@ -1167,11 +1167,11 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     double scale_factor_BD = 1 - scale_factor_AC; 
     newJuncs = origJuncs.getScaledContigJuncs(scale_factor_AC);   
     std::cout << "AC factor " << scale_factor_AC << ", BD factor " << scale_factor_BD <<  ", original juncs\n";
-    origJuncs.printJuncResults(backNode->getPairCandidates(4, contig->getSeq().length()) );
+    origJuncs.printJuncValues();//(backNode->getPairCandidates(4, contig->getSeq().length()+1) );
       
     contig->setContigJuncs(newJuncs);
     std::cout << "after first scaling\n";
-    newJuncs.printJuncResults(backNode->getPairCandidates(4, contig->getSeq().length()) );
+    newJuncs.printJuncValues();//backNode->getPairCandidates(4, contig->getSeq().length()+1) );
 
 
     Contig* contigAC = contigA->concatenate(contig, contigA->getSide(backNode), contig->getSide(backNode));
@@ -1190,7 +1190,7 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BD);     
     contig->setContigJuncs(newJuncs);
     std::cout << "after second scaling\n";
-    newJuncs.printJuncResults(backNode->getPairCandidates(4, contig->getSeq().length()) );
+    newJuncs.printJuncValues();//backNode->getPairCandidates(4, contig->getSeq().length()+1) );
 
     Contig* contigBD = contigB->concatenate(contig, contigB->getSide(backNode), contig->getSide(backNode));
     contigBD = contigBD->concatenate(contigD, contigBD->getSide(forwardNode), contigD->getSide(forwardNode));

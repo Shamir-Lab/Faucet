@@ -28,6 +28,13 @@ ContigJuncList::ContigJuncList(){
   seq = "";
 }
 
+void ContigJuncList::printJuncValues(){
+    for(auto itC = coverages.begin(), itD = distances.begin(); itC != coverages.end(); itC++, itD++){
+        std::cout << (unsigned int)*itD << ", " << (unsigned int)*itC <<" ; "; 
+    }
+    std::cout << "\n";
+}
+
 void ContigJuncList::printJuncResults(std::list<JuncResult> results){
     for(auto it = results.begin(); it != results.end(); it++){
         std::cout << print_kmer(it->kmer) << " " << it->distance << " " 
@@ -121,7 +128,8 @@ ContigJuncList ContigJuncList::concatenate(ContigJuncList otherList){
 ContigJuncList ContigJuncList::getScaledContigJuncs(double scale_factor){
     junc_list newCov(coverages);
     for(auto it = coverages.begin(); it != coverages.end(); it++){
-        newCov.push_back(*it * scale_factor);
+        newCov.push_back((int) std::round(*it * scale_factor));
+        newCov.pop_front();
     }
     return ContigJuncList(seq,distances,newCov);
 }
