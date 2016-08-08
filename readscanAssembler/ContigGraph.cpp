@@ -181,15 +181,15 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
 
     bool result = false;
     deleteTipsAndClean();
-    if(breakPathsAndClean(short_pair_filter, insertSize)){
-        result = true;
-    }
-    if(disentangleAndClean(short_pair_filter, read_length)){
-        result = true;
-    }
-    if(disentangleAndClean(long_pair_filter, insertSize)){
-        result = true;
-    }
+    // if(breakPathsAndClean(short_pair_filter, insertSize)){
+    //     result = true;
+    // }
+    // if(disentangleAndClean(short_pair_filter, read_length)){
+    //     result = true;
+    // }
+    // if(disentangleAndClean(long_pair_filter, insertSize)){
+    //     result = true;
+    // }
     
    
 
@@ -374,38 +374,31 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
 int ContigGraph::deleteTipsAndLowCoverageContigs(){
     printf("Deleting tips and low coverage contigs. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0;
-    std::set<kmer_type> seenKmers = {};
+    // std::set<kmer_type> seenKmers = {};
 
     //looks through all contigs adjacent to nodes
     int k = 1;
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+    // for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+    it = nodeMap.begin();
+    while(it != nodeMap.end()){
         if(k % 10000 == 0){
             std::cout << k << " nodes processed.\n";
         }
         k++;
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
-        if (seenKmers.find(kmer) == seenKmers.end()){
+        if (expiredKmers.find(kmer) == expiredKmers.end()){
             for(int i = 0; i < 5; i++){
                 Contig* contig = node->contigs[i];
                 if(contig){
-                    if(isTip(node, i)){
-                        numDeleted++;
-                        deleteContig(contig);
-
-                    }
-                    
-                    else if(isLowCovContig(contig)){
-                        numDeleted++;
+                    if(isTip(node, i) || isLowCovContig(contig)){
+                        numDeleted++;                    
                         ContigNode* far_node = contig->otherEndNode(node);
                         deleteContig(contig);
                         kmer_type far_kmer;
                         if (far_node){
                             far_kmer = far_node->getKmer();
-                        }
-
-                        if (far_node){
-                            if (testAndCutIfDegenerate(far_node)) seenKmers.insert(far_kmer);
+                            if (testAndCutIfDegenerate(far_node)) {expiredKmers.insert(far_kmer);}
 
                             if (far_node == node){ 
                                 // hairpin - break to avoid revisiting collapsed node
@@ -414,7 +407,7 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
                             }
                             else if(far_node->numPathsOut() == 1){
                                 collapseNode(far_node, far_kmer);         
-                                seenKmers.insert(far_kmer);
+                                expiredKmers.insert(far_kmer);
                        
                             }
                         }
@@ -422,11 +415,11 @@ int ContigGraph::deleteTipsAndLowCoverageContigs(){
                 } 
             }     
             
-            if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
+            if (testAndCutIfDegenerate(node)) expiredKmers.insert(kmer);
 
-            if(node->numPathsOut() == 1 && seenKmers.find(kmer) == seenKmers.end()){
+            if(node->numPathsOut() == 1 && expiredKmers.find(kmer) == expiredKmers.end()){
                 collapseNode(node, kmer);         
-                seenKmers.insert(kmer);
+                expiredKmers.insert(kmer);
        
             }
             
@@ -817,7 +810,7 @@ int ContigGraph::collapseBulges(int max_dist){
                 }             
             }
             numDeleted++;
-            it++;
+             it++;
         }
         else{
             it++;
@@ -1004,8 +997,9 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                                 }                                   
                             }
                         }
-                        else if(areEquivalentContigCoverages(contig_a, contig_c, A, C, 0.25) && 
-                            areEquivalentContigCoverages(contig_b, contig_d, B, D, 0.25)){ // && 
+                        else if(areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.25, insertSize) && 
+                            areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.25, insertSize)){ //&& 
+                            // std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){ // && 
                             // std::min(scoreAC,scoreBD) > std::max(scoreAD,scoreBC)){
                             std::cout << "split found by coverage\n";
                             operationDone = true;
@@ -1074,8 +1068,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     }
                     if (orientation==4 && !operationDone) {std::cout << "no decision\n";}
 
-                }
-                
+                }          
 
             }
        }
@@ -1086,8 +1079,13 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     return disentangled;
 }
 
-bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, std::list<JuncResult> A, std::list<JuncResult> B, double frac){
+bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, 
+        ContigNode * node_a, ContigNode * node_b, double frac, int insertSize){
     // double alpha = 0.05 // significance level 
+    int len_a = contig_a->getSeq().length();
+    int len_b = contig_b->getSeq().length();
+    std::list<JuncResult> A = contig_a->getJuncResults(contig_a->getSide(node_a, node_a->indexOf(contig_a)),0, std::min(len_a, insertSize));
+    std::list<JuncResult> B = contig_b->getJuncResults(contig_b->getSide(node_b, node_b->indexOf(contig_b)),0, std::min(len_b, insertSize));
     double ma = contig_a->getAvgCoverage(A);
     double mb = contig_b->getAvgCoverage(B);
     double sa = contig_a->getCoverageSampleVariance(A);
@@ -1095,7 +1093,7 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
     int na = A.size();
     int nb = B.size();
     int df = na + nb - 2;
-    if (!(sa > 0 && sb > 0 && df > 0)){ return false; }
+    if (!((sa > 0 || sb > 0) && (na > 1 && nb > 1))){ return false; }
     double diff = ma - mb;
     double thresh_hi = frac*ma;
     double thresh_lo = -frac*ma;
@@ -1166,12 +1164,12 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     double scale_factor_AC = AC_weight  / (AC_weight + BD_weight);
     double scale_factor_BD = 1 - scale_factor_AC; 
     newJuncs = origJuncs.getScaledContigJuncs(scale_factor_AC);   
-    std::cout << "AC factor " << scale_factor_AC << ", BD factor " << scale_factor_BD <<  ", original juncs\n";
-    origJuncs.printJuncValues();//(backNode->getPairCandidates(4, contig->getSeq().length()+1) );
+    // std::cout << "AC factor " << scale_factor_AC << ", BD factor " << scale_factor_BD <<  ", original juncs\n";
+    // origJuncs.printJuncValues();
       
     contig->setContigJuncs(newJuncs);
-    std::cout << "after first scaling\n";
-    newJuncs.printJuncValues();//backNode->getPairCandidates(4, contig->getSeq().length()+1) );
+    // std::cout << "after first scaling\n";
+    // newJuncs.printJuncValues();
 
 
     Contig* contigAC = contigA->concatenate(contig, contigA->getSide(backNode), contig->getSide(backNode));
@@ -1189,8 +1187,8 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     // clear coverages in newJuncs, set to original values scaled second way
     newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BD);     
     contig->setContigJuncs(newJuncs);
-    std::cout << "after second scaling\n";
-    newJuncs.printJuncValues();//backNode->getPairCandidates(4, contig->getSeq().length()+1) );
+    // std::cout << "after second scaling\n";
+    // newJuncs.printJuncValues();
 
     Contig* contigBD = contigB->concatenate(contig, contigB->getSide(backNode), contig->getSide(backNode));
     contigBD = contigBD->concatenate(contigD, contigBD->getSide(forwardNode), contigD->getSide(forwardNode));

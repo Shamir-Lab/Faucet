@@ -29,6 +29,7 @@ std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
 unordered_map<kmer_type,ContigNode> nodeMap;
 unordered_map<kmer_type,ContigNode>::iterator it;
+unordered_set<kmer_type> expiredKmers;
 
 int read_length;
 
@@ -81,7 +82,7 @@ public:
     bool breakPathsAndClean(Bloom* pair_filter, int insertSize);
     bool disentangleAndClean(Bloom* pair_filter, int insertSize);
     bool areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, 
-        std::list<JuncResult> A, std::list<JuncResult> B, double frac);
+        ContigNode * node_a, ContigNode * node_b, double frac, int insertSize);
 
 private:
     int popBubblesByCoverageRatio();

@@ -28,17 +28,22 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     // clock_t t = clock();
     std::set<kmer_type> seenKmers = {};
     std::deque<NodeQueueEntry> queue= {};
-    if (maxDist <= contigs[index]->getSeq().length()){
-        Contig * contig = contigs[index];
-        return contig->getJuncResults(contig->getSide(this, index),0, maxDist);
-    }  
+    // if (maxDist <= contigs[index]->getSeq().length()){
+    //     Contig * contig = contigs[index];
+    //     return contig->getJuncResults(contig->getSide(this, index),0, maxDist);
+    // }  
     queue.push_back(NodeQueueEntry(this, index, 0));
     std::list<JuncResult> results = {};
 
     while (!queue.empty()){
         NodeQueueEntry entry = queue.front();
         queue.pop_front();
-        kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
+        kmer_type unique_kmer;
+        if (!entry.node->contigs[entry.index]){
+            continue; // don't advance if at dead end
+        }else {
+            unique_kmer = entry.node->getUniqueKmer(entry.index);
+        }
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
             seenKmers.insert(unique_kmer);
             if(entry.startDist <= maxDist){
@@ -71,8 +76,12 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     while (!queue.empty()){
         NodeQueueEntry entry = queue.front();
         queue.pop_front();
-        
-        kmer_type unique_kmer = entry.node->getUniqueKmer(entry.index);
+        kmer_type unique_kmer;
+        if (!entry.node->contigs[entry.index]){
+            continue; // don't advance if at dead end
+        }else {
+            unique_kmer = entry.node->getUniqueKmer(entry.index);
+        }
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
         
             seenKmers.insert(unique_kmer);
