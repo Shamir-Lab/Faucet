@@ -111,16 +111,22 @@ void ContigGraph::switchToNodeVector(){
                 }
             }
         }
-        it++;
+        ++it;
         nodeMap.erase(kmer);
     }
 }
 
 bool ContigGraph::deleteTipsAndClean(){
     bool result = false;
-    if(deleteTipsAndLowCoverageContigs() > 0){
+    if(deleteTips() > 0){//deleteTipsAndLowCoverageContigs() > 0){
         result = true;
     } 
+    if (removeChimericExtensions(150) > 0){
+        result  = true;
+    }
+    // if(deleteIsolatedContigs() > 0){
+    //     result = true;
+    // }
     // if(popBubblesByCoverageRatio() > 0){
     //     result = true;
     // }  
@@ -141,9 +147,6 @@ bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
     // }
     if(collapseBulges(150) > 0){
         result = true;
-    }
-    if (removeChimericExtensions(150) > 0){
-        result  = true;
     }
     // if(destroyDegenerateNodes() > 0){
     //     result = true;
@@ -198,7 +201,7 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
 
 bool ContigGraph::checkGraph(){
     printf("Checking node mapped contigs.\n");
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
         kmer_type kmer = it->first;
         ContigNode* node = &it->second;
 
@@ -229,7 +232,7 @@ bool ContigGraph::checkGraph(){
 
     printf("Checking %d isolated contigs.\n", isolated_contigs.size());
     //prints isolated contigs
-    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
+    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig* contig = &*it;
         if(contig->node1_p || contig->node2_p){
             printf("GRAPHERROR: isolated contig has pointer to at least one node.\n");
@@ -266,7 +269,7 @@ std::vector<int> ContigGraph::getUnsupportedExtensions(ContigNode* node, Bloom* 
 
 bool ContigGraph::isTip(ContigNode* node, int index){
     Contig* contig = node->contigs[index];
-    if(contig->getSeq().length() < read_length && contig->otherEndNode(node) == nullptr){
+    if(contig->getSeq().length() < 100 && contig->otherEndNode(node) == nullptr){
         return true;
     }
     return false;
@@ -340,7 +343,7 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
     clock_t t = clock();
     //looks through all contigs adjacent to nodes
     int j = 1;
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
         if(j % 1000 == 0){
             std::cout << j << " nodes processed. Time: "<< clock()-t << "\n";
             t = clock();
@@ -349,7 +352,7 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
         ContigNode* node = &it->second;
         //printf("Got node.\n");
         std::vector<int> unsupported = getUnsupportedExtensions(node, pair_filter,insertSize);
-        for(auto it = unsupported.begin(); it != unsupported.end(); it++){
+        for(auto it = unsupported.begin(); it != unsupported.end(); ++it){
                     numBroken++;
                     // printf("Deleting contig %d \n" , numDeleted);
                     // std::cout << "Sequence: " << contig->seq << "\n";
@@ -371,80 +374,91 @@ int ContigGraph::breakUnsupportedPaths(Bloom* pair_filter, int insertSize){
     return numBroken;
 }   
 
-int ContigGraph::deleteTipsAndLowCoverageContigs(){
-    printf("Deleting tips and low coverage contigs. Starting with %d nodes. \n", nodeMap.size());
+
+int ContigGraph::deleteIsolatedContigs(){
     int numDeleted = 0;
-    // std::set<kmer_type> seenKmers = {};
-
-    //looks through all contigs adjacent to nodes
-    int k = 1;
-    // for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
-    it = nodeMap.begin();
-    while(it != nodeMap.end()){
-        if(k % 10000 == 0){
-            std::cout << k << " nodes processed.\n";
-        }
-        k++;
-        ContigNode* node = &it->second;
-        kmer_type kmer = it->first;
-        if (expiredKmers.find(kmer) == expiredKmers.end()){
-            for(int i = 0; i < 5; i++){
-                Contig* contig = node->contigs[i];
-                if(contig){
-                    if(isTip(node, i) || isLowCovContig(contig)){
-                        numDeleted++;                    
-                        ContigNode* far_node = contig->otherEndNode(node);
-                        deleteContig(contig);
-                        kmer_type far_kmer;
-                        if (far_node){
-                            far_kmer = far_node->getKmer();
-                            if (testAndCutIfDegenerate(far_node)) {expiredKmers.insert(far_kmer);}
-
-                            if (far_node == node){ 
-                                // hairpin - break to avoid revisiting collapsed node
-                                // treating node (below) will make sure it is collapsed 
-                                break;
-                            }
-                            else if(far_node->numPathsOut() == 1){
-                                collapseNode(far_node, far_kmer);         
-                                expiredKmers.insert(far_kmer);
-                       
-                            }
-                        }
-                    }
-                } 
-            }     
-            
-            if (testAndCutIfDegenerate(node)) expiredKmers.insert(kmer);
-
-            if(node->numPathsOut() == 1 && expiredKmers.find(kmer) == expiredKmers.end()){
-                collapseNode(node, kmer);         
-                expiredKmers.insert(kmer);
-       
-            }
-            
-        }
-
-    }
-    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); k_it++){
-        nodeMap.erase(*k_it);
-    }
-    printf("Deleted %d tips and low coverage contigs. %d nodes remain\n", numDeleted, nodeMap.size());
-    numDeleted = 0;
     printf("Deleting isolated low mass contigs. Starting with %d.\n", isolated_contigs.size());
-    //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
         Contig* contig = &*it;
         if(isLowMassContig(contig)){
             numDeleted++;
             it = isolated_contigs.erase(it);
         }
-        else it++;
+        else ++it;
     }
-
     printf("Deleted %d isolated low mass contigs. %d nodes remain\n", numDeleted, isolated_contigs.size());
     return numDeleted;
-}   
+}
+
+
+// int ContigGraph::deleteTipsAndLowCoverageContigs(){
+//     printf("Deleting tips and low coverage contigs. Starting with %d nodes. \n", nodeMap.size());
+//     int numDeleted = 0;
+
+//     //looks through all contigs adjacent to nodes
+//     it = nodeMap.begin();
+//     while(it != nodeMap.end()){        
+//         ContigNode* node = &it->second;
+//         kmer_type kmer = it->first;
+//         if (expiredKmers.find(kmer) == expiredKmers.end()){
+//             for(int i = 0; i < 5; i++){
+//                 Contig* contig = node->contigs[i];
+//                 if(contig){
+//                     if(isTip(node, i) || isLowCovContig(contig)){
+//                         ContigNode* far_node = contig->otherEndNode(node);
+//                         if (far_node==node){continue;} // ignore hairpins - avoids revisiting same node
+//                         numDeleted++;                     
+//                         kmer_type far_kmer;
+//                         if (far_node){
+//                             far_kmer = far_node->getKmer();
+//                             expiredKmers.insert(far_kmer);
+//                         }
+//                         deleteContig(contig);
+//                         if (far_node){
+//                             testAndCutIfDegenerate(far_node);                            
+//                             if(far_node->numPathsOut() == 1){
+//                                 collapseNode(far_node, far_kmer);         
+//                             }
+//                         }
+//                     }
+//                 }
+//             }                 
+//             if (testAndCutIfDegenerate(node)) {
+//                 expiredKmers.insert(kmer);
+//                 it = nodeMap.erase(it);       
+//             }
+//             else if(node->numPathsOut() == 1 && expiredKmers.find(kmer) == expiredKmers.end()){
+//                 collapseNode(node, kmer);         
+//                 expiredKmers.insert(kmer);
+//                 it = nodeMap.erase(it);       
+//             }
+//             else{
+//                 ++it;
+//             }            
+//         }
+//         else{ // expired kmer that hasn't been deleted yet
+//             it = nodeMap.erase(it);
+//         }
+//     }
+//     // for (auto k_it = expiredKmers.begin(); k_it != expiredKmers.end(); ++k_it){
+//     //     nodeMap.erase(*k_it);
+//     // }
+//     printf("Deleted %d tips and low coverage contigs. %d nodes remain\n", numDeleted, nodeMap.size());
+//     numDeleted = 0;
+//     // printf("Deleting isolated low mass contigs. Starting with %d.\n", isolated_contigs.size());
+//     // //prints isolated contigs
+//     // for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
+//     //     Contig* contig = &*it;
+//     //     if(isLowMassContig(contig)){
+//     //         numDeleted++;
+//     //         it = isolated_contigs.erase(it);
+//     //     }
+//     //     else ++it;
+//     // }
+
+//     // printf("Deleted %d isolated low mass contigs. %d nodes remain\n", numDeleted, isolated_contigs.size());
+//     return numDeleted;
+// }   
 
 bool ContigGraph::testAndCutIfDegenerate(ContigNode* node){
     if(node->numPathsOut() == 0){
@@ -479,7 +493,7 @@ int ContigGraph::destroyDegenerateNodes(){
             it = nodeMap.erase(it);
         }
         else{
-            it++;
+            ++it;
         }
     }
 
@@ -631,6 +645,40 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
 
 }
 
+int ContigGraph::deleteTips(){
+    printf("Deleting tips. Starting with %d nodes. \n", nodeMap.size());
+    int numDeleted = 0;
+    it = nodeMap.begin();
+    while(it != nodeMap.end()){  
+        bool collapsed = false;      
+        ContigNode* node = &it->second;
+        kmer_type kmer = it->first;
+        for(int i = 0; i < 4; i++){ // only look forward - not sure if need to look at back node
+            Contig* contig = node->contigs[i];
+            if(contig){
+                if(isTip(node, i)){ // just means it's short and has no node at other end
+                    cutPath(node,i);              
+                    deleteContig(contig);
+                    numDeleted++;
+                }
+            }
+            if (node->numPathsOut()==1){
+                collapseNode(node, kmer);
+                collapsed = true; 
+                break;        
+            }
+
+        }
+        if (collapsed){
+            it = nodeMap.erase(it);     
+        }
+        else{
+            ++it;
+        }
+    }
+    printf("Deleted %d tips. %d nodes remain\n", numDeleted, nodeMap.size());
+}
+
 int ContigGraph::removeChimericExtensions(int insertSize){
     printf("Removing chimeric extensions. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0; 
@@ -642,7 +690,8 @@ int ContigGraph::removeChimericExtensions(int insertSize){
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
 
-        if (node->numPathsOut() == 2 && seenKmers.find(kmer) == seenKmers.end()){ // 
+        // always try to collapse highest coverage extension Q with lowest coverage ext. P
+        if (node->numPathsOut() > 1 && seenKmers.find(kmer) == seenKmers.end()){ // 
             std::vector<int> inds = node->getIndicesOut();
             std::vector<double> covs;
             std::vector<int> lengths;
@@ -652,56 +701,54 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                 covs.push_back(tig->getAvgCoverage());
                 lengths.push_back(tig->getSeq().length());
             }
-            // (covs[0] + covs[1] > contig->getAvgCoverage()) &&
-            if (((std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 3 && contig->getSeq().length() >= insertSize) ||
-                std::max(covs[0]/covs[1], covs[1]/covs[0]) >= 10)){
-                int P_index, Q_index;
-                auto result = std::minmax_element(covs.begin(), covs.end());
-                P_index = inds[(result.first - covs.begin())];
-                Q_index = inds[(result.second - covs.begin())]; // higher coverage node
-                Contig* P = node->contigs[P_index];
-                Contig* Q = node->contigs[Q_index];
+            auto result = std::minmax_element(covs.begin(), covs.end());
+            int P_index = inds[(result.first - covs.begin())];
+            int Q_index = inds[(result.second - covs.begin())]; // higher coverage node
+            Contig* P = node->contigs[P_index];
+            Contig* Q = node->contigs[Q_index];
+            ContigNode * far_node = P->otherEndNode(node);
 
-                ContigNode * far_node = P->otherEndNode(node);
-                if (far_node){
-                    if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
-                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
-                        printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
-                        kmer_type far_kmer;
-                        if (far_node){
-                            far_kmer = far_node->getKmer();
-                        }
-                        deleteContig(P);
-
-                        if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
-                        if(node->numPathsOut() == 1){
-                            collapseNode(node, kmer);         
-                            seenKmers.insert(kmer);     
-                        }
-                        
-                        if (far_node){
-                            if (testAndCutIfDegenerate(far_node)) seenKmers.insert(far_kmer);
-                            if(far_node->numPathsOut() == 1){
-                                collapseNode(far_node, far_kmer);         
-                                seenKmers.insert(far_kmer);
-                            }             
-                        }
-                        numDeleted++;
+            if ( ((Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize) ||
+                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && 
+                far_node && far_node!= node ) {
+                if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
+                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                    printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+                    
+                    kmer_type far_kmer = far_node->getKmer();
+                    cutPath(node, P_index);
+                    cutPath(far_node, far_node->indexOf(P));
+                    deleteContig(P);
+                    if(far_node->numPathsOut() == 1){
+                        collapseNode(far_node, far_kmer);         
+                        seenKmers.insert(far_kmer);
                     }
-                }
-            }        
-        }
-        it++;
-    }
 
-    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); k_it++){
+                    if(node->numPathsOut() == 1){
+                        collapseNode(node, kmer);                                                
+                        it = nodeMap.erase(it);       
+                    }else{
+                        ++it;
+                    }                                                       
+                    numDeleted++;
+                }else{
+                    ++it;
+                }
+
+            }else{
+                ++it;
+            }      
+        }
+        else{
+            ++it;
+        }
+    }
+    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); ++k_it){
         nodeMap.erase(*k_it);
     }
     printf("removed %d chimeric contigs.\n", numDeleted);
     printf("%d nodes left in node map \n", nodeMap.size());
-
     return numDeleted; 
-
 }
 
 int ContigGraph::collapseBulges(int max_dist){
@@ -734,13 +781,13 @@ int ContigGraph::collapseBulges(int max_dist){
             int P_index, Q_index;
             
             if (std::max(covs[0]/covs[1],covs[1]/covs[0]) < 1.5) {
-                it++;
+                ++it;
                 continue;
             }
 
             if (lengths[0]==lengths[1]){
                 if (covs[0]==covs[1]){
-                    it++;
+                    ++it;
                     continue; 
                 }
                 auto result = std::minmax_element(covs.begin(), covs.end());
@@ -784,7 +831,7 @@ int ContigGraph::collapseBulges(int max_dist){
             }
             int P_cov = std::round(P->getAvgCoverage()); 
             // for (std::list<Contig*>::iterator *it = path.begin(); it != path.end(); ++it){
-            // for(auto it = path.begin(); it != path.end(); it++){
+            // for(auto it = path.begin(); it != path.end(); ++it){
             //     Contig* contig = *it;
             //     // if(contig->node1_p || contig->node2_p){
             //     if(contig->node1_p){
@@ -810,14 +857,14 @@ int ContigGraph::collapseBulges(int max_dist){
                 }             
             }
             numDeleted++;
-             it++;
+             ++it;
         }
         else{
-            it++;
+            ++it;
         }
     }
 
-    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); k_it++){
+    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); ++k_it){
         nodeMap.erase(*k_it);
     }
 
@@ -831,7 +878,7 @@ int ContigGraph::popBubblesByCoverageRatio(){
     printf("Popping bubbles. Starting with %d nodes. \n", nodeMap.size());
 
     int numDeleted = 0;
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
         
         ContigNode* node = &it->second;
         if (isBubble(node)){
@@ -1010,7 +1057,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             it = nodeMap.erase(it);
                             if(it != nodeMap.end()){
                                 if(backNode->getKmer() == it->first){
-                                    it++;
+                                    ++it;
                                 }
                             }
                             nodeMap.erase(backNode->getKmer());
@@ -1056,7 +1103,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             it = nodeMap.erase(it);
                             if(it != nodeMap.end()){
                                 if(backNode->getKmer() == it->first){
-                                    it++;
+                                    ++it;
                                 }
                             }
                             nodeMap.erase(backNode->getKmer());
@@ -1072,7 +1119,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 
             }
        }
-       it++;
+       ++it;
     }
 
     printf("Done disentangling %d pairs of nodes.\n", disentangled);
@@ -1212,7 +1259,7 @@ int ContigGraph::collapseDummyNodes(){
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
-        it++;
+        ++it;
         if(node->numPathsOut() == 1){
             numCollapsed++;
             collapseNode(node, kmer);
@@ -1288,7 +1335,7 @@ void ContigGraph::printGraph(string fileName){
     }
     printf("printed %d node-connected contigs\n", node_contig_count);
     //prints isolated contigs
-    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
+    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig* contig = &*it;
         printContigFastG(&fastgFile, contig);
 
@@ -1318,7 +1365,7 @@ void ContigGraph::printContigs(string fileName){
     //printf("Printing contigs from contig graph of %d nodes.\n", nodeMap.size());
 
     //prints contigs that are adjacent to nodes
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); it++){
+    for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
         ContigNode* node = &it->second;
         for(int i = 0; i < 5; i++){
             if(node->contigs[i]){
@@ -1335,7 +1382,7 @@ void ContigGraph::printContigs(string fileName){
     }
 
     //prints isolated contigs
-    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); it++){
+    for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig contig = *it;
         jFile << ">Contig" << lineNum << "\n";
         lineNum++;

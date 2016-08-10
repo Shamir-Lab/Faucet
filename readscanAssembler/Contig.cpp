@@ -316,7 +316,7 @@ string Contig::getFastGHeader(bool RC){
 
     //not empty, add neighbors to line
     stream << ":";
-    for(auto it = neighbors.begin(); it != neighbors.end(); it++){
+    for(auto it = neighbors.begin(); it != neighbors.end(); ++it){
     	Contig* neighbor = it->first;
     	bool RC = it->second;
     	stream << neighbor->getFastGName(RC) << ",";

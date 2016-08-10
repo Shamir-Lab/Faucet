@@ -29,7 +29,7 @@ std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
 unordered_map<kmer_type,ContigNode> nodeMap;
 unordered_map<kmer_type,ContigNode>::iterator it;
-unordered_set<kmer_type> expiredKmers;
+// unordered_set<kmer_type> expiredKmers;
 
 int read_length;
 
@@ -87,6 +87,8 @@ public:
 private:
     int popBubblesByCoverageRatio();
     int deleteTipsAndLowCoverageContigs();   //remove tips, chimeras, and bubbles. Return number of deleted contigs.
+    int deleteTips();
+    int deleteIsolatedContigs();
     bool testAndCutIfDegenerate(ContigNode* node);
     int breakUnsupportedPaths(Bloom* pair_filter, int insertSize); //removes extensions of junctions not supported by paired ends
     int collapseDummyNodes(); //removes nodes with only one real extension, merges forward and back contigs

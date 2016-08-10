@@ -36,7 +36,7 @@ void ContigJuncList::printJuncValues(){
 }
 
 void ContigJuncList::printJuncResults(std::list<JuncResult> results){
-    for(auto it = results.begin(); it != results.end(); it++){
+    for(auto it = results.begin(); it != results.end(); ++it){
         std::cout << print_kmer(it->kmer) << " " << it->distance << " " 
             << it->coverage << " , ";
     }
@@ -127,7 +127,7 @@ ContigJuncList ContigJuncList::concatenate(ContigJuncList otherList){
 
 ContigJuncList ContigJuncList::getScaledContigJuncs(double scale_factor){
     junc_list newCov(coverages);
-    for(auto it = coverages.begin(); it != coverages.end(); it++){
+    for(auto it = coverages.begin(); it != coverages.end(); ++it){
         newCov.push_back((int) std::round(*it * scale_factor));
         newCov.pop_front();
     }
@@ -141,7 +141,7 @@ double ContigJuncList::getAvgCoverage(){
         printf("ERROR: empty junctions list\n");
         return 0;
     }
-    for(auto it = coverages.begin(); it != coverages.end(); it++){
+    for(auto it = coverages.begin(); it != coverages.end(); ++it){
         covSum += (double) *it;
     }
     return covSum / coverages.size();
@@ -150,7 +150,7 @@ double ContigJuncList::getAvgCoverage(){
 double ContigJuncList::getAvgCoverage(std::list<JuncResult> results){
     if (results.size()==0){return 0;}
     double covSum = 0;
-    for(auto it = results.begin(); it != results.end(); it++){
+    for(auto it = results.begin(); it != results.end(); ++it){
         covSum += (double) it->coverage; 
     }
     return covSum / results.size();
@@ -163,7 +163,7 @@ double ContigJuncList::getCoverageSampleVariance(){
     }
     double mean = getAvgCoverage();
     double sum_sqrs = 0;
-    for(auto it = coverages.begin(); it != coverages.end(); it++){
+    for(auto it = coverages.begin(); it != coverages.end(); ++it){
         sum_sqrs += pow(mean - (double) *it, 2); 
     }
     return pow(sum_sqrs / (coverages.size()-1), 0.5);
@@ -173,7 +173,7 @@ double ContigJuncList::getCoverageSampleVariance(std::list<JuncResult> results){
     if (results.size() < 2) {return 0;}
     double mean = getAvgCoverage(results);
     double sum_sqrs = 0;
-    for(auto it = results.begin(); it != results.end(); it++){
+    for(auto it = results.begin(); it != results.end(); ++it){
         sum_sqrs += pow(mean - (double) it->coverage, 2); 
     }
     return pow(sum_sqrs / (results.size()-1), 0.5);
@@ -183,7 +183,7 @@ double ContigJuncList::getCoverageSampleVariance(std::list<JuncResult> results){
 //Sums all distance values
 int ContigJuncList::getTotalDistance(){
     int totalDist = 0;
-    for(auto it = distances.begin(); it != distances.end(); it++){
+    for(auto it = distances.begin(); it != distances.end(); ++it){
         totalDist += (int) *it;
     }
     return totalDist;
@@ -194,11 +194,11 @@ std::string ContigJuncList::getStringRep(){
     stringstream stream;
     stream << getSeq() << "\n";
     stream << "Distances: ";
-    for(auto it = distances.begin(); it != distances.end(); it++){
+    for(auto it = distances.begin(); it != distances.end(); ++it){
         stream << (int)*it << " ";
     }
     stream << ". Coverages: ";
-    for(auto it = coverages.begin(); it != coverages.end(); it++){
+    for(auto it = coverages.begin(); it != coverages.end(); ++it){
         stream << (int)*it << " ";
     }
     return stream.str();

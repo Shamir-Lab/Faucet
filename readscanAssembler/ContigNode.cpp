@@ -225,8 +225,8 @@ int ContigNode::indexOf(Contig* contig){
             return i;
         }
     }
-    printf("ERROR: tried to find index of contig that's not present.");
-    return 5;
+    throw std::logic_error("ERROR: tried to find index of contig that's not present.");
+    // return 5;
 }
 
 void ContigNode::update(int nucExt, Contig* contig){
@@ -244,8 +244,8 @@ kmer_type ContigNode::getKmer(){
             return contigs[i]->getNodeKmer(this);
         }
     }
-    printf("ERROR: No valid contigs from which to getKmer()\n");
-    return 0;
+   // intentionally don't return 0 here because that could be a valid kmer value
+    throw std::logic_error("No valid contigs from which to getKmer()");
 }
 
 ContigNode* ContigNode::getNeighbor(int index){
