@@ -184,15 +184,15 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
 
     bool result = false;
     deleteTipsAndClean();
-    // if(breakPathsAndClean(short_pair_filter, insertSize)){
-    //     result = true;
-    // }
-    // if(disentangleAndClean(short_pair_filter, read_length)){
-    //     result = true;
-    // }
-    // if(disentangleAndClean(long_pair_filter, insertSize)){
-    //     result = true;
-    // }
+    if(breakPathsAndClean(short_pair_filter, insertSize)){
+        result = true;
+    }
+    if(disentangleAndClean(short_pair_filter, read_length)){
+        result = true;
+    }
+    if(disentangleAndClean(long_pair_filter, insertSize)){
+        result = true;
+    }
     
    
 
@@ -707,9 +707,10 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             Contig* P = node->contigs[P_index];
             Contig* Q = node->contigs[Q_index];
             ContigNode * far_node = P->otherEndNode(node);
-
-            if ( ((Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize) ||
-                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && 
+            
+            if ( ((Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && 
+                contig->getSeq().length() >= insertSize) ||
+                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) &&          
                 far_node && far_node!= node ) {
                 if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
                     std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
@@ -1077,9 +1078,23 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             nodeB != node && nodeB != backNode &&
                             nodeD != node && nodeD != backNode
                             ){
-                            
-                            if(( (scoreAD>0 || scoreBC>0) && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
-                                (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
+                            // reset score to be based on each contig's junctions only, instead of BFS up to I.S. forward
+                            // A = contig_a->getJuncResults(contig_a->getSide(backNode, backNode->indexOf(contig_a)),0, std::min(len_a, insertSize));
+                            // B = contig_b->getJuncResults(contig_b->getSide(backNode, backNode->indexOf(contig_b)),0, std::min(len_b, insertSize));
+                            // C = contig_c->getJuncResults(contig_c->getSide(node, node->indexOf(contig_c)),0, std::min(len_c, insertSize));
+                            // D = contig_d->getJuncResults(contig_d->getSide(node, node->indexOf(contig_d)),0, std::min(len_d, insertSize));
+                            // scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
+                            // scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
+                            // scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
+                            // scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
+                            // std::cout << "performed rescoring for loops\n";
+                            // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                            // std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';
+
+
+                            if(( (scoreAD>0 || scoreBC>0) )){
+                                // && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
+                                // (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
                                 // II. loop - genomic repeat                            
                                 
                                 Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
@@ -1337,7 +1352,9 @@ void ContigGraph::printGraph(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig* contig = &*it;
-        printContigFastG(&fastgFile, contig);
+        // if (contig->getSeq().length() >= 200){
+           printContigFastG(&fastgFile, contig);
+        // }
 
     }
     printf("printed %d isolated contigs\n", isolated_contigs.size());
@@ -1384,10 +1401,13 @@ void ContigGraph::printContigs(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig contig = *it;
-        jFile << ">Contig" << lineNum << "\n";
-        lineNum++;
-        //printf("Printing isolated contig.\n");
-        jFile << canon_contig(contig.getSeq()) << "\n";
+        // if (contig.getSeq().length() >= 200){
+
+            jFile << ">Contig" << lineNum << "\n";
+            lineNum++;
+            //printf("Printing isolated contig.\n");
+            jFile << canon_contig(contig.getSeq()) << "\n";
+        // }
     }
 
     //printf("Done printing contigs from contig graph.\n");
