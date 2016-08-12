@@ -170,12 +170,12 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     // if(collapseBulges(150) > 0){
     //     result = true;
     // }
-    if(destroyDegenerateNodes() > 0){
-        result = true;
-    }
-    if(collapseDummyNodes() > 0){
-        result = true;
-    }
+    // if(destroyDegenerateNodes() > 0){
+    //     result = true;
+    // }
+    // if(collapseDummyNodes() > 0){
+    //     result = true;
+    // }
 
     return result;
 }
@@ -468,8 +468,10 @@ bool ContigGraph::testAndCutIfDegenerate(ContigNode* node){
         return true;
     }
     else if(!node->contigs[4]){
+        std::cout << "found no back node\n";
         for(int j = 0; j < 4; j++){
             if(node->contigs[j]){
+                std::cout << "tried to remove contig from degenerate\n";
                 cutPath(node,j);
             }
         }
@@ -653,14 +655,20 @@ int ContigGraph::deleteTips(){
         bool collapsed = false;      
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
-        for(int i = 0; i < 4; i++){ // only look forward - not sure if need to look at back node
+        for(int i = 0; i < 5; i++){ 
             Contig* contig = node->contigs[i];
             if(contig){
-                if(isTip(node, i)){ // just means it's short and has no node at other end
+                if(isTip(node, i) && i != 4){ // just means it's short and has no node at other end
                     cutPath(node,i);              
                     deleteContig(contig);
                     numDeleted++;
+                }else if(isTip(node,i)){ // i = 4
+                    deleteContig(contig);
+                    testAndCutIfDegenerate(node);
+                    collapsed = true; 
+                    break;   
                 }
+
             }
             if (node->numPathsOut()==1){
                 collapseNode(node, kmer);
@@ -1072,30 +1080,16 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 
                     else{ // not all distinct --> usually some looping or bubble on either side
                         std::cout << "not all contigs distinct or desired split not found, " << contig << "\n";
-                        // take care of each case separately
 
                         if (nodeA==node && nodeC==backNode && 
                             nodeB != node && nodeB != backNode &&
                             nodeD != node && nodeD != backNode
                             ){
-                            // reset score to be based on each contig's junctions only, instead of BFS up to I.S. forward
-                            // A = contig_a->getJuncResults(contig_a->getSide(backNode, backNode->indexOf(contig_a)),0, std::min(len_a, insertSize));
-                            // B = contig_b->getJuncResults(contig_b->getSide(backNode, backNode->indexOf(contig_b)),0, std::min(len_b, insertSize));
-                            // C = contig_c->getJuncResults(contig_c->getSide(node, node->indexOf(contig_c)),0, std::min(len_c, insertSize));
-                            // D = contig_d->getJuncResults(contig_d->getSide(node, node->indexOf(contig_d)),0, std::min(len_d, insertSize));
-                            // scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
-                            // scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
-                            // scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
-                            // scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
-                            // std::cout << "performed rescoring for loops\n";
-                            // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                            // std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';
-
-
+                           
                             if(( (scoreAD>0 || scoreBC>0) )){
                                 // && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
                                 // (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
-                                // II. loop - genomic repeat                            
+                                // loop - genomic repeat                            
                                 
                                 Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
                                 contigBRCRD = contigBRCRD->concatenate(contig_c, contigBRCRD->getSide(node), contig_c->getSide(node));
