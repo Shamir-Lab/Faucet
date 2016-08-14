@@ -324,15 +324,18 @@ void ContigGraph::cutPath(ContigNode* node, int index){
     //printf("A\n");
     if(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2){ //to handle hairpins
        // printf("A1\n");
+        int otherIndex = contig->getIndex(otherSide);
         contig->setSide(side, nullptr); //set to point to null instead of the node
         contig->setSide(otherSide, nullptr);
+        node->breakPath(index);
+        node->breakPath(otherIndex);
     }
     else{
         //printf("A2\n");
         contig->setSide(side, nullptr);
+        node->breakPath(index);
     }
     //printf("To break path.\n");
-    node->breakPath(index);
 }
 
 
@@ -718,8 +721,8 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             
             if ( ((Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && 
                 contig->getSeq().length() >= insertSize) ||
-                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) &&          
-                far_node && far_node!= node ) {
+                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && far_node){ //&&          
+                // far_node && far_node!= node ) {
                 if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
                     std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
                     printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
@@ -739,19 +742,22 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                         newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
                         Q->setContigJuncs(newJuncs);
                         std::cout <<  "updated juncs\n";
-                        contig->contigJuncs.printJuncValues();
+                        Q->contigJuncs.printJuncValues();
                     }
                     // TODO(? - not sure if justified if length difference large):
                     // if P much shorter than Q add average coverage only up to P's length
 
                     cutPath(node, P_index);
-                    cutPath(far_node, far_node->indexOf(P));                    
+                    if (node != far_node){
+                        cutPath(far_node, far_node->indexOf(P)); 
+                        if(far_node->numPathsOut() == 1){
+                            collapseNode(far_node, far_kmer);         
+                            seenKmers.insert(far_kmer);
+                        } 
+                    }                  
                     deleteContig(P);
                     
-                    if(far_node->numPathsOut() == 1){
-                        collapseNode(far_node, far_kmer);         
-                        seenKmers.insert(far_kmer);
-                    }
+                    
 
                     if(node->numPathsOut() == 1){
                         collapseNode(node, kmer);                                                
