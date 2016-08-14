@@ -468,10 +468,10 @@ bool ContigGraph::testAndCutIfDegenerate(ContigNode* node){
         return true;
     }
     else if(!node->contigs[4]){
-        std::cout << "found no back node\n";
+        // std::cout << "found no back node\n";
         for(int j = 0; j < 4; j++){
             if(node->contigs[j]){
-                std::cout << "tried to remove contig from degenerate\n";
+                // std::cout << "tried to remove contig from degenerate\n";
                 cutPath(node,j);
             }
         }
@@ -725,9 +725,29 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                     printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
                     
                     kmer_type far_kmer = far_node->getKmer();
+                    int P_len = P->getSeq().length();
+                    int Q_len = Q->getSeq().length();
+                    // coverage updates - if lengths similar add P's average to Q
+                    if (std::abs(P_len - Q_len) <= 4 || std::max(P_len,Q_len)-std::min(P_len, Q_len) <= 0.05*(std::max(P_len,Q_len))){
+                        double P_cov = P->getAvgCoverage(); 
+                        ContigJuncList  origJuncs, newJuncs;
+                       
+                        origJuncs = Q->contigJuncs;
+                        std::cout << "P cov " << P_cov << ", original juncs on Q\n";
+                        origJuncs.printJuncValues();
+
+                        newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
+                        Q->setContigJuncs(newJuncs);
+                        std::cout <<  "updated juncs\n";
+                        contig->contigJuncs.printJuncValues();
+                    }
+                    // TODO: if P much shorter than Q add average coverage only up to P's length
+
+
                     cutPath(node, P_index);
-                    cutPath(far_node, far_node->indexOf(P));
+                    cutPath(far_node, far_node->indexOf(P));                    
                     deleteContig(P);
+                    
                     if(far_node->numPathsOut() == 1){
                         collapseNode(far_node, far_kmer);         
                         seenKmers.insert(far_kmer);
@@ -823,7 +843,7 @@ int ContigGraph::collapseBulges(int max_dist){
                         auto result = std::minmax_element(covs.begin(), covs.end());
                         P_index = inds[(result.first - covs.begin())];
                         Q_index = inds[(result.second - covs.begin())];
-                        std::cout << "picked P and Q by coverage when should have been picked by path\n";
+                        // std::cout << "picked P and Q by coverage when should have been picked by path\n";
                     }
                 }
                
@@ -838,18 +858,20 @@ int ContigGraph::collapseBulges(int max_dist){
             if (far_node){
                 far_kmer = far_node->getKmer();
             }
-            int P_cov = std::round(P->getAvgCoverage()); 
-            // for (std::list<Contig*>::iterator *it = path.begin(); it != path.end(); ++it){
-            // for(auto it = path.begin(); it != path.end(); ++it){
-            //     Contig* contig = *it;
-            //     // if(contig->node1_p || contig->node2_p){
-            //     if(contig->node1_p){
-            //         contig->node1_p->cov[contig->ind1] += P_cov;
-            //     }
-            //     if(contig->node2_p){
-            //         contig->node2_p->cov[contig->ind2] += P_cov;
-            //     }
-            // }
+            double P_cov = P->getAvgCoverage(); 
+            ContigJuncList  origJuncs, newJuncs;
+           
+            for(auto it = path.begin(); it != path.end(); ++it){
+                Contig* contig = *it;
+                origJuncs = contig->contigJuncs;
+                // std::cout << "P cov " << P_cov << ", original juncs\n";
+                // origJuncs.printJuncValues();
+
+                newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
+                contig->setContigJuncs(newJuncs);
+                // std::cout <<  "updated juncs\n";
+                // contig->contigJuncs.printJuncValues();
+            }
             deleteContig(P);
 
             if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);

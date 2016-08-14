@@ -125,6 +125,17 @@ ContigJuncList ContigJuncList::concatenate(ContigJuncList otherList){
     return ContigJuncList(newSeq, newDist, newCov);
 }
 
+ContigJuncList ContigJuncList::getShiftedCoverageContigJuncs(double shift){
+    junc_list newCov(coverages);
+    for(auto it = coverages.begin(); it != coverages.end(); ++it){
+        double val = (double) *it+shift;   
+        newCov.push_back((int) std::round((val > 255) ? 255: val));
+        newCov.pop_front();
+    }
+    return ContigJuncList(seq,distances,newCov);
+}
+
+
 ContigJuncList ContigJuncList::getScaledContigJuncs(double scale_factor){
     junc_list newCov(coverages);
     for(auto it = coverages.begin(); it != coverages.end(); ++it){
