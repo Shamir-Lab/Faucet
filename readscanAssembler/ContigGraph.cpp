@@ -741,8 +741,8 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                         std::cout <<  "updated juncs\n";
                         contig->contigJuncs.printJuncValues();
                     }
-                    // TODO: if P much shorter than Q add average coverage only up to P's length
-
+                    // TODO(? - not sure if justified if length difference large):
+                    // if P much shorter than Q add average coverage only up to P's length
 
                     cutPath(node, P_index);
                     cutPath(far_node, far_node->indexOf(P));                    
@@ -1045,7 +1045,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){// &&
                         std::cout << "all contigs distinct, " << contig << "\n";
-                        if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
+                        if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
+                            (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 1000 && len_c >= 1000)){
 
                             std::cout << "desired split found\n";
                             if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
