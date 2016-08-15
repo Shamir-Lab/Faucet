@@ -54,6 +54,7 @@ public:
     double getCoverageSampleVariance();
     double getCoverageSampleVariance(std::list<JuncResult> results);
     ContigJuncList getScaledContigJuncs(double scale_factor);
+    ContigJuncList getShiftedCoverageContigJuncs(double shift);
 
 
     //Prints distances then coverages to a string
@@ -64,5 +65,7 @@ private:
     junc_list coverages;
     std::string seq; //string sequence, represented forward from side 1 to side 2
 };
+
+
 
 #endif

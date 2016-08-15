@@ -2,7 +2,6 @@
 #define JUNC_PAIR_SEARCH
 
 #include "Kmer.h"
-#include "ContigJuncList.h"
 #include <sstream>
 #include <deque>
 #include <algorithm> 
@@ -48,5 +47,4 @@ struct JuncPairResult{
     int distance;
     int coverage;
 };
-
 #endif

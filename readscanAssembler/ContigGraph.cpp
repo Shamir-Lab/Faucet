@@ -170,12 +170,12 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     // if(collapseBulges(150) > 0){
     //     result = true;
     // }
-    if(destroyDegenerateNodes() > 0){
-        result = true;
-    }
-    if(collapseDummyNodes() > 0){
-        result = true;
-    }
+    // if(destroyDegenerateNodes() > 0){
+    //     result = true;
+    // }
+    // if(collapseDummyNodes() > 0){
+    //     result = true;
+    // }
 
     return result;
 }
@@ -184,15 +184,15 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
 
     bool result = false;
     deleteTipsAndClean();
-    // if(breakPathsAndClean(short_pair_filter, insertSize)){
-    //     result = true;
-    // }
-    // if(disentangleAndClean(short_pair_filter, read_length)){
-    //     result = true;
-    // }
-    // if(disentangleAndClean(long_pair_filter, insertSize)){
-    //     result = true;
-    // }
+    if(breakPathsAndClean(short_pair_filter, insertSize)){
+        result = true;
+    }
+    if(disentangleAndClean(short_pair_filter, read_length)){
+        result = true;
+    }
+    if(disentangleAndClean(long_pair_filter, insertSize)){
+        result = true;
+    }
     
    
 
@@ -324,15 +324,18 @@ void ContigGraph::cutPath(ContigNode* node, int index){
     //printf("A\n");
     if(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2){ //to handle hairpins
        // printf("A1\n");
+        int otherIndex = contig->getIndex(otherSide);
         contig->setSide(side, nullptr); //set to point to null instead of the node
         contig->setSide(otherSide, nullptr);
+        node->breakPath(index);
+        node->breakPath(otherIndex);
     }
     else{
         //printf("A2\n");
         contig->setSide(side, nullptr);
+        node->breakPath(index);
     }
     //printf("To break path.\n");
-    node->breakPath(index);
 }
 
 
@@ -468,8 +471,10 @@ bool ContigGraph::testAndCutIfDegenerate(ContigNode* node){
         return true;
     }
     else if(!node->contigs[4]){
+        // std::cout << "found no back node\n";
         for(int j = 0; j < 4; j++){
             if(node->contigs[j]){
+                // std::cout << "tried to remove contig from degenerate\n";
                 cutPath(node,j);
             }
         }
@@ -653,14 +658,20 @@ int ContigGraph::deleteTips(){
         bool collapsed = false;      
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
-        for(int i = 0; i < 4; i++){ // only look forward - not sure if need to look at back node
+        for(int i = 0; i < 5; i++){ 
             Contig* contig = node->contigs[i];
             if(contig){
-                if(isTip(node, i)){ // just means it's short and has no node at other end
+                if(isTip(node, i) && i != 4){ // just means it's short and has no node at other end
                     cutPath(node,i);              
                     deleteContig(contig);
                     numDeleted++;
+                }else if(isTip(node,i)){ // i = 4
+                    deleteContig(contig);
+                    testAndCutIfDegenerate(node);
+                    collapsed = true; 
+                    break;   
                 }
+
             }
             if (node->numPathsOut()==1){
                 collapseNode(node, kmer);
@@ -707,22 +718,46 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             Contig* P = node->contigs[P_index];
             Contig* Q = node->contigs[Q_index];
             ContigNode * far_node = P->otherEndNode(node);
-
-            if ( ((Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize) ||
-                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && 
-                far_node && far_node!= node ) {
+            
+            if ( ((Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && 
+                contig->getSeq().length() >= insertSize) ||
+                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && far_node){ //&&          
+                // far_node && far_node!= node ) {
                 if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
                     std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
                     printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
                     
                     kmer_type far_kmer = far_node->getKmer();
-                    cutPath(node, P_index);
-                    cutPath(far_node, far_node->indexOf(P));
-                    deleteContig(P);
-                    if(far_node->numPathsOut() == 1){
-                        collapseNode(far_node, far_kmer);         
-                        seenKmers.insert(far_kmer);
+                    int P_len = P->getSeq().length();
+                    int Q_len = Q->getSeq().length();
+                    // coverage updates - if lengths similar add P's average to Q
+                    if (std::abs(P_len - Q_len) <= 4 || std::max(P_len,Q_len)-std::min(P_len, Q_len) <= 0.05*(std::max(P_len,Q_len))){
+                        double P_cov = P->getAvgCoverage(); 
+                        ContigJuncList  origJuncs, newJuncs;
+                       
+                        origJuncs = Q->contigJuncs;
+                        std::cout << "P cov " << P_cov << ", original juncs on Q\n";
+                        origJuncs.printJuncValues();
+
+                        newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
+                        Q->setContigJuncs(newJuncs);
+                        std::cout <<  "updated juncs\n";
+                        Q->contigJuncs.printJuncValues();
                     }
+                    // TODO(? - not sure if justified if length difference large):
+                    // if P much shorter than Q add average coverage only up to P's length
+
+                    cutPath(node, P_index);
+                    if (node != far_node){
+                        cutPath(far_node, far_node->indexOf(P)); 
+                        if(far_node->numPathsOut() == 1){
+                            collapseNode(far_node, far_kmer);         
+                            seenKmers.insert(far_kmer);
+                        } 
+                    }                  
+                    deleteContig(P);
+                    
+                    
 
                     if(node->numPathsOut() == 1){
                         collapseNode(node, kmer);                                                
@@ -814,7 +849,7 @@ int ContigGraph::collapseBulges(int max_dist){
                         auto result = std::minmax_element(covs.begin(), covs.end());
                         P_index = inds[(result.first - covs.begin())];
                         Q_index = inds[(result.second - covs.begin())];
-                        std::cout << "picked P and Q by coverage when should have been picked by path\n";
+                        // std::cout << "picked P and Q by coverage when should have been picked by path\n";
                     }
                 }
                
@@ -829,18 +864,20 @@ int ContigGraph::collapseBulges(int max_dist){
             if (far_node){
                 far_kmer = far_node->getKmer();
             }
-            int P_cov = std::round(P->getAvgCoverage()); 
-            // for (std::list<Contig*>::iterator *it = path.begin(); it != path.end(); ++it){
-            // for(auto it = path.begin(); it != path.end(); ++it){
-            //     Contig* contig = *it;
-            //     // if(contig->node1_p || contig->node2_p){
-            //     if(contig->node1_p){
-            //         contig->node1_p->cov[contig->ind1] += P_cov;
-            //     }
-            //     if(contig->node2_p){
-            //         contig->node2_p->cov[contig->ind2] += P_cov;
-            //     }
-            // }
+            double P_cov = P->getAvgCoverage(); 
+            ContigJuncList  origJuncs, newJuncs;
+           
+            for(auto it = path.begin(); it != path.end(); ++it){
+                Contig* contig = *it;
+                origJuncs = contig->contigJuncs;
+                // std::cout << "P cov " << P_cov << ", original juncs\n";
+                // origJuncs.printJuncValues();
+
+                newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
+                contig->setContigJuncs(newJuncs);
+                // std::cout <<  "updated juncs\n";
+                // contig->contigJuncs.printJuncValues();
+            }
             deleteContig(P);
 
             if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
@@ -1014,7 +1051,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){// &&
                         std::cout << "all contigs distinct, " << contig << "\n";
-                        if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
+                        if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
+                            (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 1000 && len_c >= 1000)){
 
                             std::cout << "desired split found\n";
                             if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
@@ -1071,16 +1109,16 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 
                     else{ // not all distinct --> usually some looping or bubble on either side
                         std::cout << "not all contigs distinct or desired split not found, " << contig << "\n";
-                        // take care of each case separately
 
                         if (nodeA==node && nodeC==backNode && 
                             nodeB != node && nodeB != backNode &&
                             nodeD != node && nodeD != backNode
                             ){
-                            
-                            if(( (scoreAD>0 || scoreBC>0) && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
-                                (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
-                                // II. loop - genomic repeat                            
+                           
+                            if(( (scoreAD>0 || scoreBC>0) )){
+                                // && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
+                                // (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
+                                // loop - genomic repeat                            
                                 
                                 Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
                                 contigBRCRD = contigBRCRD->concatenate(contig_c, contigBRCRD->getSide(node), contig_c->getSide(node));
@@ -1337,7 +1375,9 @@ void ContigGraph::printGraph(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig* contig = &*it;
-        printContigFastG(&fastgFile, contig);
+        // if (contig->getSeq().length() >= 200){
+           printContigFastG(&fastgFile, contig);
+        // }
 
     }
     printf("printed %d isolated contigs\n", isolated_contigs.size());
@@ -1384,10 +1424,13 @@ void ContigGraph::printContigs(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig contig = *it;
-        jFile << ">Contig" << lineNum << "\n";
-        lineNum++;
-        //printf("Printing isolated contig.\n");
-        jFile << canon_contig(contig.getSeq()) << "\n";
+        // if (contig.getSeq().length() >= 200){
+
+            jFile << ">Contig" << lineNum << "\n";
+            lineNum++;
+            //printf("Printing isolated contig.\n");
+            jFile << canon_contig(contig.getSeq()) << "\n";
+        // }
     }
 
     //printf("Done printing contigs from contig graph.\n");
