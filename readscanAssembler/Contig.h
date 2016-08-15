@@ -1,17 +1,18 @@
 #ifndef CONTIG
 #define CONTIG
 
-class ContigNode; // forward declaration
-
 #include "../utils/Kmer.h"
 #include "../utils/JuncPairs.h"
 #include "../utils/Bloom.h"
+#include "../utils/JuncPairs.h"
+#include "../utils/ContigJuncList.h"
 #include "ContigNode.h"
 #include <iostream>
 #include <string.h>
 
 using std::ofstream;
 
+class ContigNode; // forward declaration
 
 class Contig{
 private:
