@@ -1009,10 +1009,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     int len_d = contig_d->getSeq().length();
                     
                     // add 1 to always get at least a flanking junction
-                    A = backNode->getPairCandidates(a, std::min(len_a+1, insertSize));
-                    B = backNode->getPairCandidates(b, std::min(len_b+1, insertSize));
-                    C = node->getPairCandidates(c, std::min(len_c+1,insertSize));
-                    D = node->getPairCandidates(d, std::min(len_d+1, insertSize));
+                    A = backNode->getPairCandidates(a, len_a); //std::min(len_a+1, insertSize));
+                    B = backNode->getPairCandidates(b, len_b); //std::min(len_b+1, insertSize));
+                    C = node->getPairCandidates(c, len_c); //std::min(len_c+1,insertSize));
+                    D = node->getPairCandidates(d, len_d); //std::min(len_d+1, insertSize));
                 
                     scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
                     scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
@@ -1082,8 +1082,9 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                                 }                                   
                             }
                         }
-                        else if(areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.25, insertSize) && 
-                            areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.25, insertSize)){ //&& 
+                        else if( (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) ||
+                            areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize)) && 
+                            std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){ //&& 
                             // std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){ // && 
                             // std::min(scoreAC,scoreBD) > std::max(scoreAD,scoreBC)){
                             std::cout << "split found by coverage\n";
@@ -1169,8 +1170,8 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
     // double alpha = 0.05 // significance level 
     int len_a = contig_a->getSeq().length();
     int len_b = contig_b->getSeq().length();
-    std::list<JuncResult> A = contig_a->getJuncResults(contig_a->getSide(node_a, node_a->indexOf(contig_a)),0, std::min(len_a, insertSize));
-    std::list<JuncResult> B = contig_b->getJuncResults(contig_b->getSide(node_b, node_b->indexOf(contig_b)),0, std::min(len_b, insertSize));
+    std::list<JuncResult> A = contig_a->getJuncResults(contig_a->getSide(node_a, node_a->indexOf(contig_a)),0, len_a); //std::min(len_a, insertSize));
+    std::list<JuncResult> B = contig_b->getJuncResults(contig_b->getSide(node_b, node_b->indexOf(contig_b)),0, len_b); //std::min(len_b, insertSize));
     double ma = contig_a->getAvgCoverage(A);
     double mb = contig_b->getAvgCoverage(B);
     double sa = contig_a->getCoverageSampleVariance(A);
