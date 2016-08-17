@@ -1,8 +1,9 @@
+#include "Contig.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>    // std::reverse
 #include <vector>       // std::vector
-#include "Contig.h"
+
 using std::stringstream;
 using std::ofstream;
 
