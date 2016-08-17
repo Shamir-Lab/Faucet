@@ -1142,10 +1142,13 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             double scale_factor_BD = 1 - scale_factor_AC; 
                             newJuncs = origJuncs.getScaledContigJuncs(scale_factor_AC);   
                             ARC_juncs = contig_a->contigJuncs.concatenate(newJuncs).concatenate(contig_c->contigJuncs); 
+                            newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BD);   
+                            BRD_juncs = contig_b->contigJuncs.concatenate(newJuncs).concatenate(contig_d->contigJuncs); 
 
 
-                            if( (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_a, contig_d)) ||
-                            (areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_b, contig_c) ) ) {
+                            if( areDifferentialContigCoverages(ARC_juncs, BRD_juncs)){
+                            //     (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_a, contig_d)) ||
+                            // (areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_b, contig_c) ) ) {
                                 // std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){
                                 std::cout << "split found by coverage\n";
                                 operationDone = true;
@@ -1273,19 +1276,19 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
     }
 }
 
-bool ContigGraph::areDifferentialContigCoverages(Contig* contig_a, Contig* contig_b){
+bool ContigGraph::areDifferentialContigCoverages(ContigJuncList A, ContigJuncList B){
     // two tailed T-test: 
     // 0.05 significance (alpha) level (halved b/c two-tailed) 
-    int len_a = contig_a->getSeq().length();
-    int len_b = contig_b->getSeq().length();
-    std::list<JuncResult> A = contig_a->getJuncResults(1, 0, len_a);
-    std::list<JuncResult> B = contig_b->getJuncResults(1, 0, len_b);
-    double ma = contig_a->getAvgCoverage(A);
-    double mb = contig_b->getAvgCoverage(B);
-    double sa = contig_a->getCoverageSampleVariance(A);
-    double sb = contig_b->getCoverageSampleVariance(B);
-    int na = A.size();
-    int nb = B.size();
+    // int len_a = contig_a->getSeq().length();
+    // int len_b = contig_b->getSeq().length();
+    // std::list<JuncResult> A = contig_a->getJuncResults(1, 0, len_a);
+    // std::list<JuncResult> B = contig_b->getJuncResults(1, 0, len_b);
+    double ma = A.getAvgCoverage();
+    double mb = B.getAvgCoverage();
+    double sa = A.getCoverageSampleVariance();
+    double sb = B.getCoverageSampleVariance();
+    int na = A.length();
+    int nb = B.length();
     if (!((sa > 0 || sb > 0) && (na > 2 && nb > 2))){ return false; }
     int df = std::round(pow(sa/na + sb/nb,  2) / (pow(sa/na, 2)/(na-1) + pow(sb/nb, 2)/(nb-1)));
     double two_samp_var = pow(pow(sa,2)/na + pow(sb,2)/nb , 0.5);
@@ -1294,14 +1297,16 @@ bool ContigGraph::areDifferentialContigCoverages(Contig* contig_a, Contig* conti
     std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
     if (sa > 10){
         std::cout << "contig a junc results\n";
-        contig_a->contigJuncs.printJuncResults(A);
+        A.printJuncValues();
+        // contig_a->contigJuncs.printJuncResults(A);
     }
     if (sb > 10){
         std::cout << "contig b junc results\n";
-        contig_b->contigJuncs.printJuncResults(B);
+        B.printJuncValues();
+        // contig_b->contigJuncs.printJuncResults(B);
     }
     // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << "\n";
-    std::cout << "Diff test: two_samp_var " << two_samp_var << "df " << df << " T " << T << " c_t " << c_t << "\n"; 
+    std::cout << "Diff test: two_samp_var " << two_samp_var << " df " << df << " T " << T << " c_t " << c_t << "\n"; 
     if (T > c_t){
         std::cout << "returned true\n";
         return true;
