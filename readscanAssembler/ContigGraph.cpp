@@ -7,61 +7,119 @@ unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
 }
 
-double get_critical_val(int df){
+double get_critical_val(int df, double sig){
     // critical values for t distribution at 0.05 alpha level
     std::unordered_map <int,double> df_critical_vals;
-    df_critical_vals[1]=6.314;
-    df_critical_vals[2]=2.92;
-    df_critical_vals[3]=2.353;
-    df_critical_vals[4]=2.132;
-    df_critical_vals[5]=2.015;
-    df_critical_vals[6]=1.943;
-    df_critical_vals[7]=1.895;
-    df_critical_vals[8]=1.86;
-    df_critical_vals[9]=1.833;
-    df_critical_vals[10]=1.812;
-    df_critical_vals[11]=1.796;
-    df_critical_vals[12]=1.782;
-    df_critical_vals[13]=1.771;
-    df_critical_vals[14]=1.761;
-    df_critical_vals[15]=1.753;
-    df_critical_vals[16]=1.746;
-    df_critical_vals[17]=1.740;
-    df_critical_vals[18]=1.734;
-    df_critical_vals[19]=1.729;
-    df_critical_vals[20]=1.725;
-    df_critical_vals[21]=1.721;
-    df_critical_vals[22]=1.717;
-    df_critical_vals[23]=1.714;
-    df_critical_vals[24]=1.711;
-    df_critical_vals[25]=1.708;
-    df_critical_vals[26]=1.706;
-    df_critical_vals[27]=1.703;
-    df_critical_vals[28]=1.701;
-    df_critical_vals[29]=1.699;
-    df_critical_vals[30]=1.697;
+    if (sig == 0.05){
+        df_critical_vals[1]=6.314;
+        df_critical_vals[2]=2.92;
+        df_critical_vals[3]=2.353;
+        df_critical_vals[4]=2.132;
+        df_critical_vals[5]=2.015;
+        df_critical_vals[6]=1.943;
+        df_critical_vals[7]=1.895;
+        df_critical_vals[8]=1.86;
+        df_critical_vals[9]=1.833;
+        df_critical_vals[10]=1.812;
+        df_critical_vals[11]=1.796;
+        df_critical_vals[12]=1.782;
+        df_critical_vals[13]=1.771;
+        df_critical_vals[14]=1.761;
+        df_critical_vals[15]=1.753;
+        df_critical_vals[16]=1.746;
+        df_critical_vals[17]=1.740;
+        df_critical_vals[18]=1.734;
+        df_critical_vals[19]=1.729;
+        df_critical_vals[20]=1.725;
+        df_critical_vals[21]=1.721;
+        df_critical_vals[22]=1.717;
+        df_critical_vals[23]=1.714;
+        df_critical_vals[24]=1.711;
+        df_critical_vals[25]=1.708;
+        df_critical_vals[26]=1.706;
+        df_critical_vals[27]=1.703;
+        df_critical_vals[28]=1.701;
+        df_critical_vals[29]=1.699;
+        df_critical_vals[30]=1.697;
 
-    if (df <=30){
-        return df_critical_vals[df];
+        if (df <=30){
+            return df_critical_vals[df];
+        }
+        else if(df > 30 && df <=40){
+            return 1.684;
+        }
+        else if (df > 40 && df <=50){
+            return 1.676;
+        }
+        else if(df > 50 && df <=60){
+            return 1.671;
+        }
+        else if(df >60 && df <=80){
+            return 1.664;
+        }
+        else if(df >80 && df <=100){
+            return 1.660;
+        }
+        else{
+            return 1.645;
+        }
+    }else if(sig==0.025){
+        df_critical_vals[1]=12.706;
+        df_critical_vals[2]=4.303;
+        df_critical_vals[3]=3.182;
+        df_critical_vals[4]=2.776;
+        df_critical_vals[5]=2.571;
+        df_critical_vals[6]=2.447;
+        df_critical_vals[7]=2.365;
+        df_critical_vals[8]=2.306;
+        df_critical_vals[9]=2.262;
+        df_critical_vals[10]=2.228;
+        df_critical_vals[11]=2.201;
+        df_critical_vals[12]=2.179;
+        df_critical_vals[13]=2.160;
+        df_critical_vals[14]=2.145;
+        df_critical_vals[15]=2.131;
+        df_critical_vals[16]=2.12;
+        df_critical_vals[17]=2.11;
+        df_critical_vals[18]=2.101;
+        df_critical_vals[19]=2.093;
+        df_critical_vals[20]=2.086;
+        df_critical_vals[21]=2.08;
+        df_critical_vals[22]=2.074;
+        df_critical_vals[23]=2.069;
+        df_critical_vals[24]=2.064;
+        df_critical_vals[25]=2.06;
+        df_critical_vals[26]=2.056;
+        df_critical_vals[27]=2.052;
+        df_critical_vals[28]=2.048;
+        df_critical_vals[29]=2.045;
+        df_critical_vals[30]=2.042;
+
+        if (df <=30){
+            return df_critical_vals[df];
+        }
+        else if(df > 30 && df <=40){
+            return 2.021;
+        }
+        else if (df > 40 && df <=60){
+            return 2.0;
+        }
+        else if(df > 60 && df <=80){
+            return 1.99;
+        }
+        else if(df >80 && df <=100){
+            return 1.984;
+        }
+        else if(df >100 && df <=1000){
+            return 1.962;
+        }
+        else{
+            return 1.96;
+        }
+    }else{
+        throw std::logic_error("tried to get critical value for significance level that is not available");
     }
-    else if(df > 30 && df <=40){
-        return 1.684;
-    }
-    else if (df > 40 && df <=50){
-        return 1.676;
-    }
-    else if(df > 50 && df <=60){
-        return 1.671;
-    }
-    else if(df >60 && df <=80){
-        return 1.664;
-    }
-    else if(df >80 && df <=100){
-        return 1.660;
-    }
-    else{
-        return 1.645;
-    }
+
 }
 
 //returns true if there are no two identical non-null nodes in the list
@@ -1007,7 +1065,11 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     int len_b = contig_b->getSeq().length();
                     int len_c = contig_c->getSeq().length();
                     int len_d = contig_d->getSeq().length();
-                    
+                    double cov_a = contig_a->getAvgCoverage();
+                    double cov_b = contig_b->getAvgCoverage();
+                    double cov_c = contig_c->getAvgCoverage();
+                    double cov_d = contig_d->getAvgCoverage();
+
                     // add 1 to always get at least a flanking junction
                     A = backNode->getPairCandidates(a, len_a); //std::min(len_a+1, insertSize));
                     B = backNode->getPairCandidates(b, len_b); //std::min(len_b+1, insertSize));
@@ -1018,19 +1080,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
                     scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                     scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
-
-                    // if (scoreAC+scoreBD+scoreAD+scoreBC < 2){
-                       
-                    //     A = backNode->getPairCandidates(a, insertSize);
-                    //     B = backNode->getPairCandidates(b, insertSize);
-                    //     C = node->getPairCandidates(c, insertSize);
-                    //     D = node->getPairCandidates(d, insertSize);
-                    
-                    //     scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
-                    //     scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
-                    //     scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
-                    //     scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
-                    // }
 
                     // if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                         std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
@@ -1082,14 +1131,25 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                                 }                                   
                             }
                         }
-                        else if( (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) ||
-                            areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize)) && 
-                            std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){ //&& 
-                            // std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){ // && 
-                            // std::min(scoreAC,scoreBD) > std::max(scoreAD,scoreBC)){
-                            std::cout << "split found by coverage\n";
-                            operationDone = true;
+                        else{
+                            ContigJuncList origJuncs = contig->contigJuncs;
+                            ContigJuncList newJuncs, ARC_juncs, BRD_juncs;
                             
+                            //new ContigJuncList(contig->contigJuncs->seq, contig->contigJuncs->distances, contig->contigJuncs->coverages);
+                            double AC_weight = (cov_a*len_a + cov_c*len_c) / (len_a + len_c);
+                            double BD_weight = (cov_b*len_b + cov_d*len_d) / (len_b + len_d);
+                            double scale_factor_AC = AC_weight  / (AC_weight + BD_weight);
+                            double scale_factor_BD = 1 - scale_factor_AC; 
+                            newJuncs = origJuncs.getScaledContigJuncs(scale_factor_AC);   
+                            ARC_juncs = contig_a->contigJuncs.concatenate(newJuncs).concatenate(contig_c->contigJuncs); 
+
+
+                            if( (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_a, contig_d)) ||
+                            (areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_b, contig_c) ) ) {
+                                // std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){
+                                std::cout << "split found by coverage\n";
+                                operationDone = true;
+                            }
                         }                 
                         if (operationDone){
                             disentanglePair(contig, backNode, node, a, b, c, d);
@@ -1167,7 +1227,8 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 
 bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, 
         ContigNode * node_a, ContigNode * node_b, double frac, int insertSize){
-    // double alpha = 0.05 // significance level 
+    // two one sided T-tests: frac is portion of a's mean allowed to vary
+    // 0.05 significance level 
     int len_a = contig_a->getSeq().length();
     int len_b = contig_b->getSeq().length();
     std::list<JuncResult> A = contig_a->getJuncResults(contig_a->getSide(node_a, node_a->indexOf(contig_a)),0, len_a); //std::min(len_a, insertSize));
@@ -1179,7 +1240,7 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
     int na = A.size();
     int nb = B.size();
     int df = na + nb - 2;
-    if (!((sa > 0 || sb > 0) && (na > 1 && nb > 1))){ return false; }
+    if (!((sa > 0 || sb > 0) && (na > 2 && nb > 2))){ return false; }
     double diff = ma - mb;
     double thresh_hi = frac*ma;
     double thresh_lo = -frac*ma;
@@ -1188,7 +1249,7 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
         thresh_lo = -frac*mb;
     }
     double two_samp_var = pow(pow(sa,2)/na + pow(sb,2)/nb , 0.5);
-    double c_t = get_critical_val(df);
+    double c_t = get_critical_val(df, 0.05);
     double t_lo = (diff - thresh_lo) / two_samp_var;
     double t_hi = (diff - thresh_hi) / two_samp_var; 
     std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
@@ -1203,6 +1264,45 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
     std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
     std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
     if (t_lo >= c_t && t_hi <= -c_t){
+        std::cout << "returned true\n";
+        return true;
+    }
+    else {
+        std::cout << "returned false\n"; 
+        return false;
+    }
+}
+
+bool ContigGraph::areDifferentialContigCoverages(Contig* contig_a, Contig* contig_b){
+    // two tailed T-test: 
+    // 0.05 significance (alpha) level (halved b/c two-tailed) 
+    int len_a = contig_a->getSeq().length();
+    int len_b = contig_b->getSeq().length();
+    std::list<JuncResult> A = contig_a->getJuncResults(1, 0, len_a);
+    std::list<JuncResult> B = contig_b->getJuncResults(1, 0, len_b);
+    double ma = contig_a->getAvgCoverage(A);
+    double mb = contig_b->getAvgCoverage(B);
+    double sa = contig_a->getCoverageSampleVariance(A);
+    double sb = contig_b->getCoverageSampleVariance(B);
+    int na = A.size();
+    int nb = B.size();
+    if (!((sa > 0 || sb > 0) && (na > 2 && nb > 2))){ return false; }
+    int df = std::round(pow(sa/na + sb/nb,  2) / (pow(sa/na, 2)/(na-1) + pow(sb/nb, 2)/(nb-1)));
+    double two_samp_var = pow(pow(sa,2)/na + pow(sb,2)/nb , 0.5);
+    double c_t = get_critical_val(df, 0.025);
+    double T = std::abs((ma - mb)/two_samp_var);
+    std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
+    if (sa > 10){
+        std::cout << "contig a junc results\n";
+        contig_a->contigJuncs.printJuncResults(A);
+    }
+    if (sb > 10){
+        std::cout << "contig b junc results\n";
+        contig_b->contigJuncs.printJuncResults(B);
+    }
+    // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << "\n";
+    std::cout << "Diff test: two_samp_var " << two_samp_var << "df " << df << " T " << T << " c_t " << c_t << "\n"; 
+    if (T > c_t){
         std::cout << "returned true\n";
         return true;
     }
@@ -1256,7 +1356,6 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     contig->setContigJuncs(newJuncs);
     // std::cout << "after first scaling\n";
     // newJuncs.printJuncValues();
-
 
     Contig* contigAC = contigA->concatenate(contig, contigA->getSide(backNode), contig->getSide(backNode));
     contigAC = contigAC->concatenate(contigC, contigAC->getSide(forwardNode), contigC->getSide(forwardNode));
@@ -1376,9 +1475,9 @@ void ContigGraph::printGraph(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig* contig = &*it;
-        // if (contig->getSeq().length() >= 200){
+        if (contig->getSeq().length() >= 200){
            printContigFastG(&fastgFile, contig);
-        // }
+        }
 
     }
     printf("printed %d isolated contigs\n", isolated_contigs.size());
@@ -1425,13 +1524,13 @@ void ContigGraph::printContigs(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig contig = *it;
-        // if (contig.getSeq().length() >= 200){
+        if (contig.getSeq().length() >= 200){
 
             jFile << ">Contig" << lineNum << "\n";
             lineNum++;
             //printf("Printing isolated contig.\n");
             jFile << canon_contig(contig.getSeq()) << "\n";
-        // }
+        }
     }
 
     //printf("Done printing contigs from contig graph.\n");
