@@ -1146,9 +1146,13 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             BRD_juncs = contig_b->contigJuncs.concatenate(newJuncs).concatenate(contig_d->contigJuncs); 
 
 
-                            if( areDifferentialContigCoverages(ARC_juncs, BRD_juncs)){
-                            //     (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_a, contig_d)) ||
-                            // (areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_b, contig_c) ) ) {
+                            if( areEquivalentContigCoverages(contig_a->contigJuncs, contig_c->contigJuncs, 0.10) &&
+                                areDifferentialContigCoverages(contig_a->contigJuncs, contig_d->contigJuncs) && 
+                                areDifferentialContigCoverages(contig_b->contigJuncs, contig_c->contigJuncs) ){
+                                // areEquivalentContigCoverages(contig_b->contigJuncs, contig_d->contigJuncs, 0.10) ) &&
+                                // areDifferentialContigCoverages(ARC_juncs, BRD_juncs)){
+                                //     (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_a, contig_d)) ||
+                                // (areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_b, contig_c) ) ) {
                                 // std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){
                                 std::cout << "split found by coverage\n";
                                 operationDone = true;
@@ -1228,18 +1232,19 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     return disentangled;
 }
 
-bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, 
-        ContigNode * node_a, ContigNode * node_b, double frac, int insertSize){
+bool ContigGraph::areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac){
+    // Contig* contig_a, Contig* contig_b, 
+    //     ContigNode * node_a, ContigNode * node_b, double frac, int insertSize){
     // two one sided T-tests: frac is portion of a's mean allowed to vary
     // 0.05 significance level 
-    int len_a = contig_a->getSeq().length();
-    int len_b = contig_b->getSeq().length();
-    std::list<JuncResult> A = contig_a->getJuncResults(contig_a->getSide(node_a, node_a->indexOf(contig_a)),0, len_a); //std::min(len_a, insertSize));
-    std::list<JuncResult> B = contig_b->getJuncResults(contig_b->getSide(node_b, node_b->indexOf(contig_b)),0, len_b); //std::min(len_b, insertSize));
-    double ma = contig_a->getAvgCoverage(A);
-    double mb = contig_b->getAvgCoverage(B);
-    double sa = contig_a->getCoverageSampleVariance(A);
-    double sb = contig_b->getCoverageSampleVariance(B);
+    // int len_a = contig_a->getSeq().length();
+    // int len_b = contig_b->getSeq().length();
+    // std::list<JuncResult> A = contig_a->getJuncResults(contig_a->getSide(node_a, node_a->indexOf(contig_a)),0, len_a); //std::min(len_a, insertSize));
+    // std::list<JuncResult> B = contig_b->getJuncResults(contig_b->getSide(node_b, node_b->indexOf(contig_b)),0, len_b); //std::min(len_b, insertSize));
+    double ma = A.getAvgCoverage();
+    double mb = B.getAvgCoverage();
+    double sa = A.getCoverageSampleVariance();
+    double sb = B.getCoverageSampleVariance();
     int na = A.size();
     int nb = B.size();
     int df = na + nb - 2;
@@ -1256,22 +1261,22 @@ bool ContigGraph::areEquivalentContigCoverages(Contig* contig_a, Contig* contig_
     double t_lo = (diff - thresh_lo) / two_samp_var;
     double t_hi = (diff - thresh_hi) / two_samp_var; 
     std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
-    if (sa > 10){
+    if (true){//sa > 10 || sb > 10){
         std::cout << "contig a junc results\n";
-        contig_a->contigJuncs.printJuncResults(A);
-    }
-    if (sb > 10){
+        A.printJuncValues();
+        // contig_a->contigJuncs.printJuncResults(A);
         std::cout << "contig b junc results\n";
-        contig_b->contigJuncs.printJuncResults(B);
+        B.printJuncValues();
+        // contig_b->contigJuncs.printJuncResults(B);
     }
     std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
     std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
     if (t_lo >= c_t && t_hi <= -c_t){
-        std::cout << "returned true\n";
+        std::cout << "returned equivalent\n";
         return true;
     }
     else {
-        std::cout << "returned false\n"; 
+        std::cout << "returned not equivalent\n"; 
         return false;
     }
 }
@@ -1287,20 +1292,18 @@ bool ContigGraph::areDifferentialContigCoverages(ContigJuncList A, ContigJuncLis
     double mb = B.getAvgCoverage();
     double sa = A.getCoverageSampleVariance();
     double sb = B.getCoverageSampleVariance();
-    int na = A.length();
-    int nb = B.length();
+    int na = A.size();
+    int nb = B.size();
     if (!((sa > 0 || sb > 0) && (na > 2 && nb > 2))){ return false; }
     int df = std::round(pow(sa/na + sb/nb,  2) / (pow(sa/na, 2)/(na-1) + pow(sb/nb, 2)/(nb-1)));
     double two_samp_var = pow(pow(sa,2)/na + pow(sb,2)/nb , 0.5);
     double c_t = get_critical_val(df, 0.025);
     double T = std::abs((ma - mb)/two_samp_var);
     std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
-    if (sa > 10){
+    if (true){ //sa > 10 || sb > 10){
         std::cout << "contig a junc results\n";
         A.printJuncValues();
         // contig_a->contigJuncs.printJuncResults(A);
-    }
-    if (sb > 10){
         std::cout << "contig b junc results\n";
         B.printJuncValues();
         // contig_b->contigJuncs.printJuncResults(B);
@@ -1308,11 +1311,11 @@ bool ContigGraph::areDifferentialContigCoverages(ContigJuncList A, ContigJuncLis
     // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << "\n";
     std::cout << "Diff test: two_samp_var " << two_samp_var << " df " << df << " T " << T << " c_t " << c_t << "\n"; 
     if (T > c_t){
-        std::cout << "returned true\n";
+        std::cout << "returned differential\n";
         return true;
     }
     else {
-        std::cout << "returned false\n"; 
+        std::cout << "returned not differential\n"; 
         return false;
     }
 }

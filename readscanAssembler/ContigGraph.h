@@ -81,8 +81,7 @@ public:
     bool deleteTipsAndClean();
     bool breakPathsAndClean(Bloom* pair_filter, int insertSize);
     bool disentangleAndClean(Bloom* pair_filter, int insertSize);
-    bool areEquivalentContigCoverages(Contig* contig_a, Contig* contig_b, 
-        ContigNode * node_a, ContigNode * node_b, double frac, int insertSize);
+    bool areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac);
     bool areDifferentialContigCoverages(ContigJuncList A, ContigJuncList B);
 
 

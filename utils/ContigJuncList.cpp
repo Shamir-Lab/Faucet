@@ -20,6 +20,10 @@ ContigJuncList::ContigJuncList(){
   seq = "";
 }
 
+int ContigJuncList::size(){
+    return coverages.size();
+}
+
 void ContigJuncList::printJuncValues(){
     for(auto itC = coverages.begin(), itD = distances.begin(); itC != coverages.end(); itC++, itD++){
         std::cout << (unsigned int)*itD << ", " << (unsigned int)*itC <<" ; "; 

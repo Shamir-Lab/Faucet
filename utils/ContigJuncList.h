@@ -34,6 +34,7 @@ public:
     void printJuncResults(int side, int startDist, int maxDist);
     void printJuncResults(std::list<JuncResult> results);
     void printJuncValues();
+    int size();
 
     //Used for reversing a contig.  Simply reverses both lists
     void reverse();
