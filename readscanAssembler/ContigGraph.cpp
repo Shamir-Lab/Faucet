@@ -450,76 +450,7 @@ int ContigGraph::deleteIsolatedContigs(){
     printf("Deleted %d isolated low mass contigs. %d nodes remain\n", numDeleted, isolated_contigs.size());
     return numDeleted;
 }
-
-
-// int ContigGraph::deleteTipsAndLowCoverageContigs(){
-//     printf("Deleting tips and low coverage contigs. Starting with %d nodes. \n", nodeMap.size());
-//     int numDeleted = 0;
-
-//     //looks through all contigs adjacent to nodes
-//     it = nodeMap.begin();
-//     while(it != nodeMap.end()){        
-//         ContigNode* node = &it->second;
-//         kmer_type kmer = it->first;
-//         if (expiredKmers.find(kmer) == expiredKmers.end()){
-//             for(int i = 0; i < 5; i++){
-//                 Contig* contig = node->contigs[i];
-//                 if(contig){
-//                     if(isTip(node, i) || isLowCovContig(contig)){
-//                         ContigNode* far_node = contig->otherEndNode(node);
-//                         if (far_node==node){continue;} // ignore hairpins - avoids revisiting same node
-//                         numDeleted++;                     
-//                         kmer_type far_kmer;
-//                         if (far_node){
-//                             far_kmer = far_node->getKmer();
-//                             expiredKmers.insert(far_kmer);
-//                         }
-//                         deleteContig(contig);
-//                         if (far_node){
-//                             testAndCutIfDegenerate(far_node);                            
-//                             if(far_node->numPathsOut() == 1){
-//                                 collapseNode(far_node, far_kmer);         
-//                             }
-//                         }
-//                     }
-//                 }
-//             }                 
-//             if (testAndCutIfDegenerate(node)) {
-//                 expiredKmers.insert(kmer);
-//                 it = nodeMap.erase(it);       
-//             }
-//             else if(node->numPathsOut() == 1 && expiredKmers.find(kmer) == expiredKmers.end()){
-//                 collapseNode(node, kmer);         
-//                 expiredKmers.insert(kmer);
-//                 it = nodeMap.erase(it);       
-//             }
-//             else{
-//                 ++it;
-//             }            
-//         }
-//         else{ // expired kmer that hasn't been deleted yet
-//             it = nodeMap.erase(it);
-//         }
-//     }
-//     // for (auto k_it = expiredKmers.begin(); k_it != expiredKmers.end(); ++k_it){
-//     //     nodeMap.erase(*k_it);
-//     // }
-//     printf("Deleted %d tips and low coverage contigs. %d nodes remain\n", numDeleted, nodeMap.size());
-//     numDeleted = 0;
-//     // printf("Deleting isolated low mass contigs. Starting with %d.\n", isolated_contigs.size());
-//     // //prints isolated contigs
-//     // for(auto it = isolated_contigs.begin(); it != isolated_contigs.end();){
-//     //     Contig* contig = &*it;
-//     //     if(isLowMassContig(contig)){
-//     //         numDeleted++;
-//     //         it = isolated_contigs.erase(it);
-//     //     }
-//     //     else ++it;
-//     // }
-
-//     // printf("Deleted %d isolated low mass contigs. %d nodes remain\n", numDeleted, isolated_contigs.size());
-//     return numDeleted;
-// }   
+ 
 
 bool ContigGraph::testAndCutIfDegenerate(ContigNode* node){
     if(node->numPathsOut() == 0){
@@ -612,26 +543,7 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
         }
     }
 
-    //Looks for junction pairs one full insert size apart
-    //Only searches for pairs at distances [IS-readLength, IS+readLength]
-    //TODO: come up with way of gauging variance in IS and redefine this based on that
-    // std::reverse(leftCand.begin(), leftCand.end());
-    // auto rightStart = rightCand.begin();
-    // for(auto itL = leftCand.begin(); itL != leftCand.end(); itL++){
-    //     while(rightStart != rightCand.end() && rightStart->distance + itL->distance < insertSize - readLength){
-    //         rightStart++;
-    //     }
-    //     if(rightStart == rightCand.end()) {break;}
-    //     for(auto itR = rightStart; itR != rightCand.end() 
-    //         && itR->distance + itL->distance < insertSize + readLength; itR++){
-    //         counter++;
-    //         if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
-    //             //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
-    //             score += 1;
-    //         } 
-    //     }
-    // }
-
+    
     //std::cout << "Total pairs: " << rightCand.size()*leftCand.size() << ", counter: " << counter << "\n";
     //std::cout << "Junctions: " << leftCand.size() << "," << rightCand.size() << ". Score: " << score << "\n";
     return score; //getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
@@ -1185,12 +1097,20 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             ){
                            
                             if(( (scoreAD>0 || scoreBC>0) )){
-                                // && scoreBD>0 && (contig->getSeq().length() + contig_a->getSeq().length()) <= insertSize)||
-                                // (std::min(scoreAD , scoreBC) > 0 && scoreBD == 0) ){
                                 // loop - genomic repeat                            
-                                
+
+                                ContigJuncList origJuncs = contig->contigJuncs;   
+                                ContigJuncList newJuncs;                             
+                                double BC_weight = (cov_b*len_b + cov_c*len_c) / (len_b + len_c);
+                                double CD_weight = (cov_c*len_c + cov_d*len_d) / (len_c + len_d);
+                                double scale_factor_BC = BC_weight  / (BC_weight + CD_weight);
+                                double scale_factor_CD = 1 - scale_factor_BC; 
+                                newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BC);   
+                                contig->setContigJuncs(newJuncs);
                                 Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
                                 contigBRCRD = contigBRCRD->concatenate(contig_c, contigBRCRD->getSide(node), contig_c->getSide(node));
+                                newJuncs = origJuncs.getScaledContigJuncs(scale_factor_CD);   
+                                contig->setContigJuncs(newJuncs);
                                 contigBRCRD = contigBRCRD->concatenate(contig, contigBRCRD->getSide(backNode), contig->getSide(backNode));
                                 contigBRCRD = contigBRCRD->concatenate(contig_d, contigBRCRD->getSide(node), contig_d->getSide(node));
                                 if(nodeB){
@@ -1202,7 +1122,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                                 if(!nodeB && !nodeD){
                                     isolated_contigs.push_back(*contigBRCRD);
                                 }
-
+                                std::cout << "split found for loop\n";
                                 operationDone = true;
                             }                        
                         }
