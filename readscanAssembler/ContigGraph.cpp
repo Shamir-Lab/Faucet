@@ -1065,16 +1065,17 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     int len_b = contig_b->getSeq().length();
                     int len_c = contig_c->getSeq().length();
                     int len_d = contig_d->getSeq().length();
+
                     double cov_a = contig_a->getAvgCoverage();
                     double cov_b = contig_b->getAvgCoverage();
                     double cov_c = contig_c->getAvgCoverage();
                     double cov_d = contig_d->getAvgCoverage();
 
                     // add 1 to always get at least a flanking junction
-                    A = backNode->getPairCandidates(a, len_a); //std::min(len_a+1, insertSize));
-                    B = backNode->getPairCandidates(b, len_b); //std::min(len_b+1, insertSize));
-                    C = node->getPairCandidates(c, len_c); //std::min(len_c+1,insertSize));
-                    D = node->getPairCandidates(d, len_d); //std::min(len_d+1, insertSize));
+                    A = backNode->getPairCandidates(a, std::min(len_a, insertSize));
+                    B = backNode->getPairCandidates(b, std::min(len_b, insertSize));
+                    C = node->getPairCandidates(c, std::min(len_c, insertSize));
+                    D = node->getPairCandidates(d, std::min(len_d, insertSize));
                 
                     scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
                     scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
@@ -1084,7 +1085,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     // if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
                         std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
                         std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
-                        std::cout << "covA: " << contig_a->getAvgCoverage() << ", covB: "<< contig_b->getAvgCoverage() << ", covC: " << contig_c->getAvgCoverage() << ", covD: "<< contig_d->getAvgCoverage() <<'\n';                
+                        std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
                         std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
                         std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';
                         if (orientation == 1){
