@@ -584,7 +584,19 @@ int ContigGraph::deleteTips(){
             if(contig){
                 if(isTip(node, i) && i != 4){ // just means it's short and has no node at other end
                     double cov = contig->getAvgCoverage();
-                    // get maxContig coming off node
+                    std::pair <Contig*, Contig*> Pair = getMinMaxForwardExtensions(node, "coverage");
+                    Contig * Q = Pair.second; 
+                    if (i != node->indexOf(Q)){
+                        ContigJuncList origJuncs = Q->contigJuncs;
+                        std::cout << "before transferring tip coverage of "<< cov << " over length "<< contig->getSeq().length() << "\n";
+                        Q->contigJuncs.printJuncValues();
+
+                        ContigJuncList newJuncs = origJuncs.getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length());
+                        Q->setContigJuncs(newJuncs);
+                        std::cout << "after transferring tip coverage\n";
+
+                        Q->contigJuncs.printJuncValues();
+                    }
                     // add cov to its contigJuncList using getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length())
                     cutPath(node,i);              
                     deleteContig(contig);

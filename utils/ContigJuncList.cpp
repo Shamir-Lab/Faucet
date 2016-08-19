@@ -123,14 +123,18 @@ ContigJuncList ContigJuncList::concatenate(ContigJuncList otherList){
 
 // shifts coverage value up only up to maxDist - the rest are uneffected
 ContigJuncList ContigJuncList::getShiftedCoverageContigJuncsRange(double shift, int maxDist){
-    junc_list newCov(coverages);
-    for(auto itD = distances.begin(), itC = ++coverages.begin();
-        itC != coverages.end(); ++itD, ++itC){
+    junc_list newCov;
+    for(auto itD = distances.begin(), itC = coverages.begin();
+        itC != coverages.end(); ){
+
         double val = (double) *itC+shift; 
-        if (*itD < maxDist){  
-            newCov.pop_front();
-            newCov.push_front((int) std::round((val > 255) ? 255: val));
+        if (*itD < maxDist){ 
+            newCov.push_back((int) std::round((val > 255) ? 255: val));
+        }else{
+            newCov.push_back(*itC);
         }
+        ++itD;
+        ++itC;
     }
     return ContigJuncList(seq,distances,newCov);
 }
