@@ -50,13 +50,16 @@ file_prefix.contigs, file_prefix.graph.
 */
 
 void argumentError(){
-    fprintf (stderr,"usage:\n");
-    fprintf (stderr,"./mink -read_load_file filename -read_scan_file filename -size_kmer k -max_read_length length -estimated_kmers num_kmers -file_prefix prefix");
-    fprintf(stderr, "Optional arguments: --fastq -fp rate -j j  --two_hash -bloom_file filename -junctions_file filename --paired_ends\n");
+    fprintf (stderr,"Usage:\n");
+    fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -file_prefix <prefix>");
+    fprintf(stderr, "\nOptional arguments: --fastq -fp rate <rate> -j <j>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends\n");
 }
 
 int handle_arguments(int argc, char *argv[]){
-
+    if (argc==1){
+        argumentError();
+        return 1;
+    }
     for(int i = 1; i < argc; i++){
         if(0 == strcmp(argv[i] , "-read_load_file")) //1st arg: read file name
                 read_load_file = string(argv[i+1]), i++;
@@ -97,10 +100,15 @@ int handle_arguments(int argc, char *argv[]){
                 long_pair_filter_file = string(argv[i+1]) + ".long_pair_filter";
                 from_junctions = true, i++;
         }
+        else if (0 == strcmp(argv[i] , "--help") || 0 == strcmp(argv[i] , "-h")){
+            argumentError();
+            return 1;
+        }
         else {
-                fprintf (stderr, "Cannot parse tag %s\n", argv[i]);
-                argumentError();
-                return 1; }
+            fprintf (stderr, "Cannot parse tag %s\n", argv[i]);
+            argumentError();
+            return 1; 
+        }
         
     }
 
