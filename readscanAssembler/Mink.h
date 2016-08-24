@@ -30,6 +30,7 @@ bool just_load = false;
 bool fastq = false;
 bool node_graph = false;
 bool paired_ends = false;
+bool no_cleaning = false;
 int maxSpacerDist = 100; //max is 128, smaller --> more frequent spacers, bigger --> less frequent.  Measured in base pairs
 int64_t nb_reads;
 

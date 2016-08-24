@@ -61,9 +61,9 @@ public:
 
     //Scans one input read; breaks into small segments and calls scan_forward
     //Returns back junctions along read from beginning to end
-    std::list<kmer_type> scanInputRead(string read);
+    std::list<kmer_type> scanInputRead(string read, bool no_cleaning);
 
-    void scanReads(bool fastq, bool paired_ends); //scans all the reads.  Fastq if fastq, otherwise fasta
+    void scanReads(bool fastq, bool paired_ends, bool no_cleaning); //scans all the reads.  Fastq if fastq, otherwise fasta
     void printScanSummary(); //prints statistics from the readscan
     
     //Determines if the given ReadKmer is a junction.
@@ -86,7 +86,7 @@ public:
     //Junction to point to the end of the read.
     //If there are no junctions, add_fake_junction is called
     //Returns back junctions along the read from beginning to end
-    std::list<kmer_type> scan_forward(string read); 
+    std::list<kmer_type> scan_forward(string read, bool no_cleaning); 
 
     ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, int maxSpacerDist);
 };

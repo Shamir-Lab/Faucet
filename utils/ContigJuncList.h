@@ -56,7 +56,7 @@ public:
     double getCoverageSampleVariance(std::list<JuncResult> results);
     ContigJuncList getScaledContigJuncs(double scale_factor);
     ContigJuncList getShiftedCoverageContigJuncs(double shift);
-    ContigJuncList getShiftedCoverageContigJuncsRange(double shift, int maxDist);
+    ContigJuncList getShiftedCoverageContigJuncsRange(double shift, int maxDist, int side);
 
 
     //Prints distances then coverages to a string

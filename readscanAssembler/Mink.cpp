@@ -52,7 +52,7 @@ file_prefix.contigs, file_prefix.graph.
 void argumentError(){
     fprintf (stderr,"Usage:\n");
     fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -file_prefix <prefix>");
-    fprintf(stderr, "\nOptional arguments: --fastq -fp rate <rate> -j <j>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends\n");
+    fprintf(stderr, "\nOptional arguments: --fastq -fp rate <rate> -j <j>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
 int handle_arguments(int argc, char *argv[]){
@@ -79,13 +79,15 @@ int handle_arguments(int argc, char *argv[]){
                 file_prefix = string(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "--two_hash")) //use two hash function BF instead of optimal size BF
                 two_hash = true; 
-        else if(0 == strcmp(argv[i] , "--just_load_bloom")) //stop after loading blom
+        else if(0 == strcmp(argv[i] , "--just_load_bloom")) //stop after loading bloom
                 just_load = true;
-        else if(0 == strcmp(argv[i] , "--fastq")) //stop after loading blom
+        else if(0 == strcmp(argv[i] , "--no_cleaning")) //stop after building contigmap
+                no_cleaning = true;            
+        else if(0 == strcmp(argv[i] , "--fastq")) //input is fastq file
                 fastq = true;
         else if(0 == strcmp(argv[i], "--node_graph")) //use node graph rather than contig graph
                 node_graph = true; 
-        else if(0 == strcmp(argv[i], "--paired_ends")) //use node graph rather tha ncontig graph
+        else if(0 == strcmp(argv[i], "--paired_ends")) //assume interleaved paired end reads
                 paired_ends = true;
         else if(0 == strcmp(argv[i] , "-bloom_file")){
                 bloom_input_file = string(argv[i+1]);
@@ -149,7 +151,7 @@ int handle_arguments(int argc, char *argv[]){
     
     printf("File prefix: %s\n", &file_prefix[0]);
 
-    printf("Max spacer dist: %d", maxSpacerDist);
+    printf("Max spacer dist: %d\n", maxSpacerDist);
     
     if(two_hash){
         printf("Using 2 hash functions.\n");
@@ -197,11 +199,11 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
 }
 
 //Builds the junction map from either a file or the readscan
-void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker){
+void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, bool no_cleaning){
     ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker, maxSpacerDist);
      
     //scan reads, print summary
-    scanner->scanReads(fastq, paired_ends);
+    scanner->scanReads(fastq, paired_ends, no_cleaning);
     scanner->printScanSummary();
 }
 
@@ -237,10 +239,12 @@ int main(int argc, char *argv[])
         long_pair_filter->load(&long_pair_filter_file[0]);
     }
     else{
-        buildJunctionMapFromReads(junctionMap, bloom, short_pair_filter, long_pair_filter, jchecker);
+        buildJunctionMapFromReads(junctionMap, bloom, short_pair_filter, long_pair_filter, jchecker, no_cleaning);
         junctionMap->writeToFile(file_prefix + ".junctions");
-        short_pair_filter->dump(&(file_prefix + ".short_pair_filter")[0]);
-        long_pair_filter->dump(&(file_prefix + ".long_pair_filter")[0]);
+        if(!no_cleaning){
+            short_pair_filter->dump(&(file_prefix + ".short_pair_filter")[0]);
+            long_pair_filter->dump(&(file_prefix + ".long_pair_filter")[0]);
+        }
     }
     //dump junctions to file
     
@@ -256,6 +260,7 @@ int main(int argc, char *argv[])
     contigGraph->printGraph(file_prefix + ".raw_graph.fastg");
     contigGraph->printContigs(file_prefix + ".raw_contigs.fasta");
 
+    if (no_cleaning){ return 0; }
     while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter, 740));
 
     Contig* longContig = contigGraph->getLongestContig();

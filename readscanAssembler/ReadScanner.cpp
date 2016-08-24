@@ -99,7 +99,7 @@ kmer_type ReadScanner::add_fake_junction(string read){
 //Also updates the relevant distance field on the first junction to point to the start of the read, and on the last
 //Junction to point to the end of the read.
 //If there are no junctions, add_fake_junction is called
-std::list<kmer_type> ReadScanner::scan_forward(string read){
+std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   std::list<kmer_type> result = {};
   ReadKmer* readKmer = new ReadKmer(&read);//stores current kmer throughout
 
@@ -189,22 +189,22 @@ std::list<kmer_type> ReadScanner::scan_forward(string read){
   else {
     lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
   }
-
-  if(result.size()==2){
-    if (firstBackJunc && lastForwardJunc && !(rev_pos > for_pos)){
-      // printf("accepted rev_pos %d for_pos %d\n", rev_pos, for_pos);
-      short_pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
+  if (!no_cleaning){
+    if(result.size()==2){
+      if (firstBackJunc && lastForwardJunc && !(rev_pos > for_pos)){
+        // printf("accepted rev_pos %d for_pos %d\n", rev_pos, for_pos);
+        short_pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
+      }
+    }
+    else if(result.size()>2){ 
+      // copy list to vector to be able to iterate over - not sure if this is optimal
+      std::vector<kmer_type> v{ std::begin(result), std::end(result) };
+      for (int i = 0; i< v.size()-2; i++){
+        short_pair_filter->addPair(JuncPair(v[i], v[i+2]));            
+      }
+      v.clear();
     }
   }
-  else if(result.size()>2){ 
-    // copy list to vector to be able to iterate over - not sure if this is optimal
-    std::vector<kmer_type> v{ std::begin(result), std::end(result) };
-    for (int i = 0; i< v.size()-2; i++){
-      short_pair_filter->addPair(JuncPair(v[i], v[i+2]));            
-    }
-    v.clear();
-  }
-
   delete lastKmer;
   delete readKmer;
   delete firstBackJunc;
@@ -239,7 +239,7 @@ std::list<string> ReadScanner::getValidReads(string read){
 }
 
 //returns back junctions for use in paired end info
-std::list<kmer_type> ReadScanner::scanInputRead(string read){
+std::list<kmer_type> ReadScanner::scanInputRead(string read, bool no_cleaning){
   std::list<kmer_type> result = {};
   std::list<string> readList = getUnambiguousReads(read);
   std::list<string> validReads;
@@ -253,7 +253,7 @@ std::list<kmer_type> ReadScanner::scanInputRead(string read){
           while(!validReads.empty()){
             validRead = validReads.front();
             validReads.pop_front();
-            result.splice(result.end(),scan_forward(validRead));
+            result.splice(result.end(),scan_forward(validRead, no_cleaning));
             readsNoErrors++;
           }
         }
@@ -262,7 +262,7 @@ std::list<kmer_type> ReadScanner::scanInputRead(string read){
     return result;
 }
 
-void ReadScanner::scanReads(bool fastq, bool paired_ends)
+void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
 {
   NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, 
   NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0, 
@@ -289,10 +289,10 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends)
     getline(solidReads, read);//since it's a fasta we skip the first of every pair of lines
     
     if(firstEnd){
-      backJuncs1 = scanInputRead(read);
+      backJuncs1 = scanInputRead(read, no_cleaning);
     }
     else{
-      backJuncs2 = scanInputRead(read);
+      backJuncs2 = scanInputRead(read, no_cleaning);
     }
     
     if(paired_ends && !firstEnd){//Current logic: ensure each one in the first list has a pair in the second
@@ -303,24 +303,26 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends)
             //printf("Processing one back junc 1\n");
             kmer_type pair1 = *it;
             bool paired = false;
-            for(auto it2 = backJuncs2.begin(); it2 != backJuncs2.end(); it2++){
-              kmer_type pair2 = *it2;
-               //printf("Adding pair\n");
-               //pair_filter->addPair(JuncPair(pair1, pair2));
-            
-              if(long_pair_filter->containsPair(JuncPair(pair1,pair2))){
-                  paired = true;
+            if (!no_cleaning){
+              for(auto it2 = backJuncs2.begin(); it2 != backJuncs2.end(); it2++){
+                kmer_type pair2 = *it2;
+                 //printf("Adding pair\n");
+                 //pair_filter->addPair(JuncPair(pair1, pair2));
+              
+                if(long_pair_filter->containsPair(JuncPair(pair1,pair2))){
+                    paired = true;
+                }
               }
-            }
-            if (!paired){
-              long_pair_filter->addPair(JuncPair(pair1, *backJuncs2.begin()));
-              // long_pair_filter->addPair(JuncPair(pair1, backJuncs2.back()));
-            }
+              if (!paired){
+                long_pair_filter->addPair(JuncPair(pair1, *backJuncs2.begin()));
+                // long_pair_filter->addPair(JuncPair(pair1, backJuncs2.back()));
+              }
+          }
         }
       }
       else{emptyCount++;}
     }
-    if ((readsProcessed%10000)==0) fprintf (stderr,"Reads processed: %c %lld",13,(long long)readsProcessed);
+    if ((readsProcessed%10000)==0) fprintf (stderr," reads processed: %c %lld",13,(long long)readsProcessed);
     readsProcessed++;
     if(fastq) getline(solidReads, read), getline(solidReads, read); //if fastq skip two more lines
     firstEnd = !firstEnd;

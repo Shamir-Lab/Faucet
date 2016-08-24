@@ -77,14 +77,22 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             Contig* forwardContig;
             Contig* backwardContig;
             for ( int i = 0 ; i < 4 ; i++ ){ 
+                std::cout << "80\n";
                 if ( junction.getCoverage(i) > 0 ) { //for every valid path out- should only be 1
+                                    std::cout << "82\n";
                     forwardContig = getContig(junction, kmer, i);
                 }
             }
+            std::cout << "86\n";
             backwardContig = getContig(junction, kmer, 4);
+            std::cout << "88\n";
 
             contigGraph->addIsolatedContig(*backwardContig->concatenate(forwardContig, 1, 1));
+            std::cout << "91\n";
+
             delete(forwardContig);
+            std::cout << "94\n";
+
             delete(backwardContig);
         }
         else{
@@ -107,13 +115,19 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     std::deque<unsigned char> coverages;
     std::deque<unsigned char> distances;
     int index = startIndex;
+                    std::cout << "118\n";
+
     coverages.push_back(junc.getCoverage(startIndex));
     string contigString(print_kmer(kmer));
+                    std::cout << "122\n";
+
     if(index == 4) contigString = print_kmer(revcomp(kmer));
     BfSearchResult result;
 
     bool done = false;
     Contig* contig = new Contig();
+                    std::cout << "130\n";
+
     while(!done){
         result = findNeighbor(junc, kmer, index);
 
@@ -121,16 +135,21 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             contigString += result.contig.substr(sizeKmer); //trim off the first k chars to avoid repeats 
         }
         distances.push_back((unsigned char) result.distance);
+                        std::cout << "138\n";
+
         if(result.isNode){
             Junction nextJunc = *getJunction(result.kmer);
            
             coverages.push_back(nextJunc.getCoverage(result.index));
-            
+                            std::cout << "144\n";
+
             if (nextJunc.numPathsOut() == 1){
                 junc = nextJunc;
                 kmer = result.kmer;
                 index = junc.getOppositeIndex(result.index);
                 // kmers_to_destroy.push_back(kmer); 
+                                std::cout << "152\n";
+
                 if (result.kmer == startKmer){
                     done = true;
                 }
@@ -146,6 +165,8 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             done = true;
         }
     }
+                    std::cout << "168\n";
+
     contig->setContigJuncs(ContigJuncList(contigString, distances, coverages));
     if(result.isNode){
         contig->setIndices(startIndex, result.index);
@@ -153,12 +174,15 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     else{
         contig->setIndices(startIndex, 4);
     }
+                std::cout << "177\n";
 
     //destroy all kmers found
     for(auto it = kmers_to_destroy.begin(); it != kmers_to_destroy.end(); it++){
         kmer_type toDestroy = *it;
         killJunction(toDestroy);
     }
+                    std::cout << "185\n";
+
     kmers_to_destroy.clear();
 
      return contig;

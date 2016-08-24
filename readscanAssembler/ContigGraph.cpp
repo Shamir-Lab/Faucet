@@ -586,17 +586,18 @@ int ContigGraph::deleteTips(){
                     double cov = contig->getAvgCoverage();
                     std::pair <Contig*, Contig*> Pair = getMinMaxForwardExtensions(node, "coverage");
                     Contig * Q = Pair.second; 
-                    if (i != node->indexOf(Q)){
-                        ContigJuncList origJuncs = Q->contigJuncs;
-                        std::cout << "before transferring tip coverage of "<< cov << " over length "<< contig->getSeq().length() << "\n";
-                        Q->contigJuncs.printJuncValues();
+                    // if (i != node->indexOf(Q)){
+                    //     ContigJuncList origJuncs = Q->contigJuncs;
+                    //     std::cout << "before transferring tip coverage of "<< cov << " over length "<< contig->getSeq().length() 
+                    //         << " on side " << contig->getSide(node) << " to contig of length " << Q->getSeq().length() << "\n";
+                    //     Q->contigJuncs.printJuncValues();
 
-                        ContigJuncList newJuncs = origJuncs.getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length());
-                        Q->setContigJuncs(newJuncs);
-                        std::cout << "after transferring tip coverage\n";
+                    //     ContigJuncList newJuncs = origJuncs.getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length(), Q->getSide(node));
+                    //     Q->setContigJuncs(newJuncs);
+                    //     std::cout << "after transferring tip coverage\n";
 
-                        Q->contigJuncs.printJuncValues();
-                    }
+                    //     Q->contigJuncs.printJuncValues();
+                    // }
                     // add cov to its contigJuncList using getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length())
                     cutPath(node,i);              
                     deleteContig(contig);
@@ -657,19 +658,19 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                     int P_len = P->getSeq().length();
                     int Q_len = Q->getSeq().length();
                     // coverage updates - if lengths similar add P's average to Q
-                    if (std::abs(P_len - Q_len) <= 4 || std::max(P_len,Q_len)-std::min(P_len, Q_len) <= 0.05*(std::max(P_len,Q_len))){
-                        double P_cov = P->getAvgCoverage(); 
-                        ContigJuncList  origJuncs, newJuncs;
+                    // if (std::abs(P_len - Q_len) <= 4 || std::max(P_len,Q_len)-std::min(P_len, Q_len) <= 0.05*(std::max(P_len,Q_len))){
+                    //     double P_cov = P->getAvgCoverage(); 
+                    //     ContigJuncList  origJuncs, newJuncs;
                        
-                        origJuncs = Q->contigJuncs;
-                        std::cout << "P cov " << P_cov << ", original juncs on Q\n";
-                        origJuncs.printJuncValues();
+                    //     origJuncs = Q->contigJuncs;
+                    //     std::cout << "P cov " << P_cov << ", original juncs on Q\n";
+                    //     origJuncs.printJuncValues();
 
-                        newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
-                        Q->setContigJuncs(newJuncs);
-                        std::cout <<  "updated juncs\n";
-                        Q->contigJuncs.printJuncValues();
-                    }
+                    //     newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
+                    //     Q->setContigJuncs(newJuncs);
+                    //     std::cout <<  "updated juncs\n";
+                    //     Q->contigJuncs.printJuncValues();
+                    // }
                     // TODO(? - not sure if justified if length difference large):
                     // if P much shorter than Q add average coverage only up to P's length
 
