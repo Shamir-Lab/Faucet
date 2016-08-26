@@ -43,12 +43,17 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                     Contig* contig = getContig(junction, kmer, i);
                     ContigNode* otherNode = nullptr;
                     kmer_type far_kmer = contig->getSideKmer(2);
-                    if(isJunction(far_kmer)){ //complex junction- should create a contig node
-                        //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
-                        Junction* far_junc = getJunction(far_kmer);
-                        otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet
+                    if (isJunction(far_kmer)){
+
+                        if(far_kmer!=kmer){ //complex junction- should create a contig node
+                            //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
+                            Junction* far_junc = getJunction(far_kmer);
+                            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet
+                            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
+                        }else{ // inverted repeat - looped back to source junction
+                            contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);                            
+                        }
                     }
-                    contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                 }
             }
         }
@@ -59,7 +64,7 @@ void JunctionMap::destroyComplexJunctions(){
     for(auto it = junctionMap.begin(); it != junctionMap.end(); ){ //for each junction
         kmer_type kmer = it->first;
         Junction junction = it->second;
-        if ( junction.numPathsOut() > 1 ) { //if the junction is not complex
+        if ( junction.numPathsOut() > 1 ) { //if the junction is complex
             it++;
             killJunction(kmer);
         }
@@ -138,7 +143,10 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
                         std::cout << "138\n";
 
         if(result.isNode){
+                            std::cout << "140\n";
+
             Junction nextJunc = *getJunction(result.kmer);
+                            std::cout << "142\n";
            
             coverages.push_back(nextJunc.getCoverage(result.index));
                             std::cout << "144\n";
@@ -146,6 +154,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             if (nextJunc.numPathsOut() == 1){
                 junc = nextJunc;
                 kmer = result.kmer;
+                                std::cout << "148\n";
                 index = junc.getOppositeIndex(result.index);
                 // kmers_to_destroy.push_back(kmer); 
                                 std::cout << "152\n";
@@ -179,7 +188,9 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     //destroy all kmers found
     for(auto it = kmers_to_destroy.begin(); it != kmers_to_destroy.end(); it++){
         kmer_type toDestroy = *it;
-        killJunction(toDestroy);
+        if (toDestroy != startKmer){
+            killJunction(toDestroy);
+        }
     }
                     std::cout << "185\n";
 
@@ -213,6 +224,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
         if(isJunction(doubleKmer.kmer)){
+            std::cout << "227\n";
             return BfSearchResult(doubleKmer.kmer, true, 4, 1, contig);
         }
     }
@@ -239,7 +251,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
     //if we're at or past the position where the sink would be, record the value for later use
     if(dist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
+        std::cout << "254\n";
+
         if(dist > maxDist){
+            std::cout << "257\n";
+
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
             std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
             std::cout << "Searching from junction " << junc.toString() << "\n";
@@ -254,11 +270,14 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         //move forward if possible
         int validExtension = getValidJExtension(doubleKmer);
         if(validExtension == -1){//Then we're at the end of the line! Found a sink.
-            return sinkResult;
+            std::cout << "269\n";
+            return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); //sinkResult;
         }
         if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions- but it's still a sink!
-            return sinkResult;
+            std::cout << "273\n";
+            return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); //sinkResult;
         }
+        std::cout << "276\n";
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
         doubleKmer.forward(validExtension); 
         contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
@@ -271,21 +290,25 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break;
         }
         dist++;
+        std::cout << "293\n";
 
         //handle forward junction case
         if(isJunction(doubleKmer.kmer)){
+            std::cout << "296\n";
             juncResult = BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
             break; 
         }
 
         //if we're at the position where the sink would be, record the value for later use
         if(dist == maxDist){ 
+            std::cout << "303\n";
             sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig);
         }
     }
 
     //if no junction was found, must be a sink!
     if(juncResult.kmer == -1){
+        std::cout << "310\n";
         return sinkResult;
     }
 
@@ -293,9 +316,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     int otherMaxDist = getJunction(juncResult.kmer)->dist[juncResult.index];
     int overlap = otherMaxDist + maxDist - juncResult.distance;
     if(overlap >= 0){
+        std::cout << "318\n";
         return juncResult; //if there is indicated overlap, this is not a sink.
     }
-    return sinkResult; //if there is no indicated overlap between this and the next junction, we found a sink
+    std::cout <<"dist " << dist << " maxDist "<< maxDist << " 321\n";
+    return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); //sinkResult; //if there is no indicated overlap between this and the next junction, we found a sink
 }
 
 
