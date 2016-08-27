@@ -282,6 +282,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             }
             break; // Regardless, if at maxDist, break the loop.
         }
+        if (isJunction(doubleKmer.revcompKmer)) {
+            std::cout << "index: " << index << "\n";
+            std::cout << "Distance : " << dist << "\n";
+            std::cout << "maxDist : " << maxDist << "\n";
+        }
         assert(!isJunction(doubleKmer.revcompKmer)); // if not at maxDist, we should not hit a junction!
 
 
