@@ -52,22 +52,9 @@ public:
 
     unordered_map<kmer_type,Junction> junctionMap;  //stores the junctions themselves
 
-    //Does bloom scans from the junctions that are not linked to other junctions.  
-    //This identifies all the sinks in the graph and returns them as a set.
-    unordered_set<kmer_type>* getSinks(); 
-
-    //Assumes sinks were already found.
-    //For each junction that has only one real extension, replace it with a marker that stores only the base kmer of that junction
-    //and the one valid extension.  This serves the purpose of the cFP set for Minia.
-    unordered_map<kmer_type, int>* getRealExtensions();
-
     //Returns true if multiple extensions of the given kmer jcheck
     //Assumes the given kmer is in the BF
     bool isBloomJunction(kmer_type kmer);
-
-    //Scans forward from a junction at the specified index i.
-    //If a sink is found, it is returned.  Otherwise, returns NULL
-    kmer_type * findSink(Junction junc, kmer_type kmer ,int i);
 
     //Gets the valid extension of the given kmer based on the bloom filter and cFPs.  Uses JChecking! so this cuts off tips
     //Assume the given kmer is not a junction

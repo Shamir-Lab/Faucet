@@ -235,6 +235,9 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
                 1, // distance 1
                 contig);
         }
+        if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
+
+        }
         dist = 2; // if we arrived here, we didn't return above, and can search at distance 2.
         if(isJunction(doubleKmer.kmer)){
             return BfSearchResult(doubleKmer.kmer, 
@@ -250,7 +253,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     int nextJuncDist, nextJuncExtIndex;
 
     //if we're at or past the position where the sink would be, record the value for later use
-    if(dist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
+    if(dist >= maxDist){ //REMOVED THE - 2 * jchecker->j
 
         if(dist > maxDist){ // dist >= maxDist should really only occur iff dist == maxDist. Otherwise maxDist pointed to a reverse kmer as a sink, which is wrong.
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
@@ -258,7 +261,6 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             std::cout << "Searching from junction " << junc.toString() << "\n";
             std::cout << "Searching from index " << index << "\n";
         }
-        assert(dist == maxDist); // After printing error messages, kill program if corresponding assertion fails
         sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // set up sink result if we are at dist == maxDist -> the sink
     }
 
@@ -277,10 +279,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         dist++;
         //handle backward junction case
         if (dist == maxDist) { 
-            if(isJunction(doubleKmer.revcompKmer)){ // If at maxDist, and found junction, return it!
-                return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
-            }
-            break; // Regardless, if at maxDist, break the loop.
+            break; //if at maxDist, break the loop.
         }
         if (isJunction(doubleKmer.revcompKmer)) {
             std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
@@ -290,10 +289,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         dist++;
         //handle forward junction case
         if (dist == maxDist) {
-            if(isJunction(doubleKmer.kmer)){ // if found a junction, and at maxDist, return it!
-                return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
-            } 
-            break; // break regardless if at maxDist
+            break; // break if at maxDist
         }
         if (isJunction(doubleKmer.kmer)) {
             std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
@@ -304,6 +300,12 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
     // If we get here, we must not have found a junction. Make sure it looks like a sink, and return it.
     assert(dist == maxDist); // This just checks the loop logic
+    
+    if(isJunction(doubleKmer.kmer)){ // if found a junction, return it!
+        return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
+    } 
+
+    // If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the junction
     if(index == 4) { // These tests make sure sink points away from junction, since at this point we know we found a sink.
         assert(dist % 2 == 1);  
     } else{
@@ -318,7 +320,6 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 //Assume the given kmer is not a junction
 //Returns -1 if there is no valid extension
 //Returns -2 if there are multiple
-//ASSUMES NO CFP SET- since this is only done in findSinks, BEFORE the cFPs are found
 int JunctionMap::getValidJExtension(DoubleKmer kmer){
     kmer_type nextKmer;
     int answer = -1;
@@ -337,136 +338,6 @@ int JunctionMap::getValidJExtension(DoubleKmer kmer){
     return answer;
 }
 
-//Scans forward from junction junc at index i with bloom filter
-//If it hits another junction at or before the distance specified by the given junction, it returns null
-//If it does not, it keeps scanning until it hits another junction or an actual sink
-//If it hits a sink, it returns it.  If it hits a junction, it tests how far that junction points along the path.
-//Based on the indicated overlap, it either decides the entire intermediate sequence is real or the connection is a 
-//false positive connection
-//Assumes that the junction at the given index is not linked.  If its linked there's no need to do a search.
-kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index){
-    DoubleKmer doubleKmer(startKmer);
-    kmer_type kmer;
-    int scanDist;
-    int maxDist = junc.dist[index];
-
-    //First, process the first 1-2 kmers in order to reach the first kmer from which can properly bloom scan.  
-    //This is different for forwards and backward extensions.
-    if(index == 4){
-        //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
-        if(isJunction(doubleKmer.revcompKmer)){
-            return NULL;
-        }
-        scanDist = 1;
-        doubleKmer.reverse(); 
-    }
-    else{
-        //if we're searching forwards, we need to specially handle the first extension since the junction tells us where to go.
-        //From there, we can scan normally.
-        doubleKmer.forward(index);
-        if(isJunction(doubleKmer.kmer) || isJunction(doubleKmer.revcompKmer)){
-            return NULL;
-        }
-        scanDist = 2;
-    }
-    
-    //After the scan loop, these will store the needed info about the junction found
-    kmer_type nextJunc = -1; 
-    int nextJuncDist, nextJuncExtIndex;
-    int lastNuc; //stores the last nuc so we know which extension we came from. 
-
-    kmer_type sinkKmer;
-    //if we're at or past the position where the sink would be, record the value for later use
-    if(scanDist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
-        if(scanDist > maxDist){
-            printf("Error: scanDist %d is greater than maxDist %d.\n", scanDist, maxDist);
-        }
-        sinkKmer = doubleKmer.kmer;
-    }
-
-    //Scan forward until there's no chance of finding a junction that indicates an overlapping kmer 
-    while(scanDist < maxDist + maxReadLength*2){ 
-
-        //move forward if possible
-        int validExtension = getValidJExtension(doubleKmer);
-        if(validExtension == -1){//Then we're at the end of the line! Found a sink.
-            return new kmer_type(sinkKmer);
-        }
-        if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions, since a real kmer with two extensions would be a junction!
-            // I don't like this test- the above comment should be true, ASSUMING all other code is correct. This is dangerous.
-            assert(scanDist >= maxDist); // this adds some more assurance to the claim, since we should NEVER see this case before maxDist. Still not my favorite code.
-            return new kmer_type(sinkKmer);
-        }
-        lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
-        doubleKmer.forward(validExtension); // move forward based on the extension found by bloom scan
-        scanDist++;
-
-        //handle backward junction case
-        if(isJunction(doubleKmer.revcompKmer)){
-            nextJunc = doubleKmer.revcompKmer;
-            nextJuncDist = scanDist;
-            nextJuncExtIndex = lastNuc;
-            break;
-        }
-        scanDist++;
-
-        //handle forward junction case
-        if(isJunction(doubleKmer.kmer)){
-            nextJunc = doubleKmer.kmer;
-            nextJuncDist = scanDist;
-            nextJuncExtIndex = 4;
-            break; 
-        }
-
-        //if we're at the position where the sink would be, record the value for later use
-        if(scanDist == maxDist){ 
-            sinkKmer = doubleKmer.kmer;
-        }
-    }
-
-    //if no junction was found, must be a sink!
-    if(nextJunc == -1){
-        return new kmer_type(sinkKmer);
-    }
-
-    //Otherwise, we found a junction, but it may or may not indicate an actual link.  Calculate overlap distance to verify.
-    int otherMaxDist = getJunction(nextJunc)->dist[nextJuncExtIndex];
-    int overlap = otherMaxDist + maxDist - nextJuncDist;
-    if(overlap >= 0){
-        return NULL; //if there is indicated overlap, this is not a sink.
-    }
-    return new kmer_type(sinkKmer); //if there is no indicated overlap between this and the next junction, we found a sink!
-}
-
-//Iterates through all of the junctions
-//For each, bloom scans in every direction till another junction is hit or the stored distance is reached
-//If there is no junction within that distance, a sink has been reached, and is added to the set of sinks.
-//To be used FIRST after read scan
-unordered_set<kmer_type>* JunctionMap::getSinks(){
-    printf("Getting sinks.\n");
-    unordered_set<kmer_type>* sinks = new unordered_set<kmer_type>({});
-    kmer_type kmer;
-    Junction junction;
-    int juncsTested = 0;
-    for(auto it = junctionMap.begin(); it != junctionMap.end(); it++, juncsTested++){
-        kmer = it->first;
-        junction = it->second;
-        for(int i = 0; i < 5; i++){
-            if( !junction.linked[i] && junction.getCoverage(i) > 0 ){ //need the || since we want to scan backwards, but we don't store backwards coverage
-                kmer_type* sink = findSink(junction, kmer, i);
-                
-                if(sink){
-                    kmer_type copy = *sink;
-                    sinks->insert(copy);
-                    delete(sink);
-                }
-            }
-        }
-        if(juncsTested % 10000 == 0) printf("Tested %d/%d junctions for sinks.\n", juncsTested, junctionMap.size());
-    }
-    return sinks;
-}
-
 //Returns true if multiple extensions of the given kmer jcheck
 //Assumes the given kmer is in the BF
 bool JunctionMap::isBloomJunction(kmer_type kmer){
@@ -479,36 +350,6 @@ bool JunctionMap::isBloomJunction(kmer_type kmer){
         }
     }
     return pathCount > 1;
-}
-
-//Iterates through all of the junctions, cleaning the non-complex ones.
-//Every time a non-complex junction is found, the one real extension is added to the RealExtension set and the junction is destroyed
-//To be used AFTER findSinks
-unordered_map<kmer_type,int>* JunctionMap::getRealExtensions(){
-    unordered_map<kmer_type,int>* realExtensions = new unordered_map<kmer_type,int>({});
-    kmer_type kmer;
-    Junction junction;
-    int juncsTested = 0;
-    int juncSize = junctionMap.size();
-    for(auto it = junctionMap.begin(); it != junctionMap.end(); juncsTested++){
-        kmer = it->first;
-        junction = it->second;
-        it++; //must do this before potentially erasing the element
-        if (junction.numPathsOut() == 1){
-            if(isBloomJunction(kmer)){
-                for(int i = 0; i < 4; i++){
-                    if(junction.getCoverage(i) > 0){
-                        //Must record both the base kmer and the valid extension to uniquely identify what's happening, since
-                        //the same kmer can be a valid extension of one junction but an invalid extension of another junction.
-                        (*realExtensions)[kmer] = i; 
-                    }
-                }
-            }
-            junctionMap.erase(kmer); 
-        }
-        if(juncsTested % 10000 == 0) printf("Tested %d/%d junctions for cFPs.\n", juncsTested, juncSize);
-    }
-    return realExtensions;
 }
 
 int JunctionMap::getNumComplexJunctions(){
