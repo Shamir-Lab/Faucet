@@ -30,6 +30,8 @@ private:
     JChecker* jchecker; 
     int maxReadLength; //needed for finding sinks properly- tells you when to stop scanning   
 
+    void printDistAndExtension(int dist, int maxDist, int index);
+ 
     void buildLinearRegions(ContigGraph* contigGraph); //Builds node graph for any connected component that has branching
     void buildBranchingPaths(ContigGraph* contigGraph); //For connected components that have no branching at all- builds contig graph
     void destroyComplexJunctions(); //destroys all complex junctions. used after building branching paths for contig graph

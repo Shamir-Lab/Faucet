@@ -258,8 +258,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         if(dist > maxDist){ // dist >= maxDist should really only occur iff dist == maxDist. Otherwise maxDist pointed to a reverse kmer as a sink, which is wrong.
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
             std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
-            std::cout << "Searching from junction " << junc.toString() << "\n";
-            std::cout << "Searching from index " << index << "\n";
+            printDistAndExtension(dist, maxDist, index);
         }
         sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // set up sink result if we are at dist == maxDist -> the sink
     }
@@ -283,6 +282,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         if (isJunction(doubleKmer.revcompKmer)) {
             std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
+            printDistAndExtension(dist, maxDist, index);
         }
 
 
@@ -293,9 +293,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         if (isJunction(doubleKmer.kmer)) {
             std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
+            printDistAndExtension(dist, maxDist, index);
         }
-
-
     }
 
     // If we get here, we must not have found a junction. Make sure it looks like a sink, and return it.
@@ -307,14 +306,24 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
     // If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the junction
     if(index == 4) { // These tests make sure sink points away from junction, since at this point we know we found a sink.
+        if (dist % 2 != 1) {
+            printDistAndExtension(dist, maxDist, index);
+        }
         assert(dist % 2 == 1);  
     } else{
+        if (dist % 2 != 0) {
+            printDistAndExtension(dist, maxDist, index);
+        }
         assert(dist % 2 == 0);
     }
 
     return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // return the sink!
 }
 
+void JunctionMap::printDistAndExtension(int dist, int maxDist, int index) {
+    std::cout << "Dist: " << dist << ", maxDist: " << maxDist << "\n";
+    std::cout << "Ext: " << index << "\n";
+}
 
 //Gets the valid extension of the given kmer based on the bloom filter and cFPs.  Uses JChecking! so this cuts off tips
 //Assume the given kmer is not a junction
