@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <assert.h>
 using std::ofstream;
 using std::ifstream;
 using std::istringstream;
@@ -210,38 +211,59 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
 BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int index){
     DoubleKmer doubleKmer(startKmer);
     kmer_type kmer;
-    int dist = 1;
+    // represents distance from the start junction- 1 is the reverse kmer after the junction,
+    // 2 is the first forward extension, 3 is the second reverse kmer, etc.
+    int dist = 1; 
+    // Junctions record the farthest distance any read has extended past each extension- this limits the search space of the 
+    // findNeighbor call
     int maxDist = junc.dist[index];
+
     string contig("");
+
     int lastNuc; //stores the last nuc so we know which extension we came from. 
 
     //First, process the first 1-2 kmers in order to reach the first kmer from which can properly bloom scan.  
     //This is different for forwards and backward extensions.
-    if(index == 4){
-        doubleKmer.reverse(); 
-        for(int i = 0; i < sizeKmer; i++){
+    if(index == 4){ // the backwards extension of the junction
+        assert(maxDist % 2 == 1);
+        doubleKmer.reverse(); // turn the input kmer around to start the backward search
+        for(int i = 0; i < sizeKmer; i++){ // add the nucleotides of the start kmer to the found contig
             contig.append(1,getNucChar(code2nucleotide(doubleKmer.kmer, i)));
         }
         //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
-        if(isJunction(doubleKmer.kmer)){
+        if(isJunction(doubleKmer.kmer)){ // if the initial reverse kmer is already a junction, we found a contig! 
             std::cout << "227\n";
-            return BfSearchResult(doubleKmer.kmer, true, 4, 1, contig);
+            return BfSearchResult(doubleKmer.kmer, 
+                true,  // is a node
+                4, // the junctions point away from each other; thus, the start junction is on the backward extension of the found junction
+                1, // Distance 1
+                contig); 
         }
     }
-    else{
-        //in this case thats the next forward kmer- but since we're at a junction we must get there manually using the given index, no bloom scan possible 
-        lastNuc = first_nucleotide(doubleKmer.revcompKmer); 
-        contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0));
+    else{ // forward extension case
+        assert(maxDist % 2 == 0);
+        // here the scan startpoint is the next forward kmer- but since we're at a junction we must get there manually using the 
+        // given index, no bloom scan possible till after that first extension.
+        lastNuc = first_nucleotide(doubleKmer.revcompKmer);  // save the original last nucleotide, since it will be lost by advancing forward
+        contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0)); // add 
         doubleKmer.forward(index);
         for(int i = 0; i < sizeKmer; i++){
             contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
         }
         if(isJunction(doubleKmer.revcompKmer)){
-            return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, 1, contig);
+            return BfSearchResult(doubleKmer.revcompKmer, 
+                true, // is a node
+                lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
+                1, // distance 1
+                contig);
         }
-        dist = 2;
+        dist = 2; // if we arrived here, we didn't return above, and can search at distance 2.
         if(isJunction(doubleKmer.kmer)){
-            return BfSearchResult(doubleKmer.kmer, true, 4, 2, contig);
+            return BfSearchResult(doubleKmer.kmer, 
+                true,  // is a node
+                4,  // backward extension
+                2, // distance 2
+                contig);
         }
     }
     
