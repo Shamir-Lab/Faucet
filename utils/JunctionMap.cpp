@@ -283,11 +283,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break; // Regardless, if at maxDist, break the loop.
         }
         if (isJunction(doubleKmer.revcompKmer)) {
-            std::cout << "index: " << index << "\n";
-            std::cout << "Distance : " << dist << "\n";
-            std::cout << "maxDist : " << maxDist << "\n";
+            std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
         }
-        assert(!isJunction(doubleKmer.revcompKmer)); // if not at maxDist, we should not hit a junction!
 
 
         dist++;
@@ -298,7 +295,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             } 
             break; // break regardless if at maxDist
         }
-        assert(!isJunction(doubleKmer.kmer)); // if not at maxDist, we should not hit a junction!
+        if (isJunction(doubleKmer.kmer)) {
+            std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
+        }
+
+
     }
 
     // If we get here, we must not have found a junction. Make sure it looks like a sink, and return it.
