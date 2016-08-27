@@ -225,7 +225,6 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     //First, process the first 1-2 kmers in order to reach the first kmer from which can properly bloom scan.  
     //This is different for forwards and backward extensions.
     if(index == 4){ // the backwards extension of the junction
-        assert(maxDist % 2 == 1);
         doubleKmer.reverse(); // turn the input kmer around to start the backward search
         for(int i = 0; i < sizeKmer; i++){ // add the nucleotides of the start kmer to the found contig
             contig.append(1,getNucChar(code2nucleotide(doubleKmer.kmer, i)));
@@ -241,14 +240,13 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
     }
     else{ // forward extension case
-        assert(maxDist % 2 == 0);
         // here the scan startpoint is the next forward kmer- but since we're at a junction we must get there manually using the 
         // given index, no bloom scan possible till after that first extension.
         lastNuc = first_nucleotide(doubleKmer.revcompKmer);  // save the original last nucleotide, since it will be lost by advancing forward
-        contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0)); // add 
-        doubleKmer.forward(index);
+        contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0)); // add nucleotide to contig
+        doubleKmer.forward(index); // advance the kmer! Now it's at the extension of the junction instead of the junction itself
         for(int i = 0; i < sizeKmer; i++){
-            contig += getNucChar(code2nucleotide(doubleKmer.kmer, i));
+            contig += getNucChar(code2nucleotide(doubleKmer.kmer, i)); // Add the current k characters to the contig
         }
         if(isJunction(doubleKmer.revcompKmer)){
             return BfSearchResult(doubleKmer.revcompKmer, 
@@ -275,74 +273,63 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     if(dist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
         std::cout << "254\n";
 
-        if(dist > maxDist){
+        if(dist > maxDist){ // dist >= maxDist should really only occur iff dist == maxDist. Otherwise maxDist pointed to a reverse kmer as a sink, which is wrong.
             std::cout << "257\n";
-
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
             std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
             std::cout << "Searching from junction " << junc.toString() << "\n";
             std::cout << "Searching from index " << index << "\n";
         }
-        sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig);
+        assert(dist == maxDist); // After printing error messages, kill program if corresponding assertion fails
+        sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // set up sink result if we are at dist == maxDist -> the sink
     }
 
-    //Scan forward until there's no chance of finding a junction that indicates an overlapping kmer 
-    while(dist < maxDist + maxReadLength*2){ 
+    // Scan forward until maxDist
+    // Here we know we should not ever find a sink, and we can also not find a junction, until maxDist, without violating our assumptions!
+    while(dist < maxDist){ 
 
         //move forward if possible
         int validExtension = getValidJExtension(doubleKmer);
-        if(validExtension == -1){//Then we're at the end of the line! Found a sink.
-            std::cout << "269\n";
-            return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); //sinkResult;
-        }
-        if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions- but it's still a sink!
-            std::cout << "273\n";
-            return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); //sinkResult;
-        }
+        assert(validExtension != -1 && validExtension != -2); // We cannot find a sink closer than maxDist!!
+    
         std::cout << "276\n";
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
         doubleKmer.forward(validExtension); 
         contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
         
         dist++;
-
         //handle backward junction case
-        if(isJunction(doubleKmer.revcompKmer)){
-            juncResult = BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
-            break;
+        if (dist == maxDist) { 
+            if(isJunction(doubleKmer.revcompKmer)){ // If at maxDist, and found junction, return it!
+                return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
+            }
+            break; // Regardless, if at maxDist, break the loop.
         }
+        assert(!isJunction(doubleKmer.revcompKmer)); // if not at maxDist, we should not hit a junction!
+
+
         dist++;
-        std::cout << "293\n";
-
         //handle forward junction case
-        if(isJunction(doubleKmer.kmer)){
-            std::cout << "296\n";
-            juncResult = BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
-            break; 
+        if (dist == maxDist) {
+            if(isJunction(doubleKmer.kmer)){ // if found a junction, and at maxDist, return it!
+                std::cout << "296\n";
+                return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
+            } 
+            break; // break regardless if at maxDist
         }
-
-        //if we're at the position where the sink would be, record the value for later use
-        if(dist == maxDist){ 
-            std::cout << "303\n";
-            sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig);
-        }
+        assert(!isJunction(doubleKmer.kmer)); // if not at maxDist, we should not hit a junction!
+        std::cout << "293\n";
     }
 
-    //if no junction was found, must be a sink!
-    if(juncResult.kmer == -1){
-        std::cout << "310\n";
-        return sinkResult;
+    // If we get here, we must not have found a junction. Make sure it looks like a sink, and return it.
+    assert(dist == maxDist); // This just checks the loop logic
+    if(index == 4) { // These tests make sure sink points away from junction, since at this point we know we found a sink.
+        assert(dist % 2 == 1);  
+    } else{
+        assert(dist % 2 == 0);
     }
 
-    //Otherwise, we found a junction, but it may or may not indicate an actual link.  Calculate overlap distance to verify.
-    int otherMaxDist = getJunction(juncResult.kmer)->dist[juncResult.index];
-    int overlap = otherMaxDist + maxDist - juncResult.distance;
-    if(overlap >= 0){
-        std::cout << "318\n";
-        return juncResult; //if there is indicated overlap, this is not a sink.
-    }
-    std::cout <<"dist " << dist << " maxDist "<< maxDist << " 321\n";
-    return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); //sinkResult; //if there is no indicated overlap between this and the next junction, we found a sink
+    return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // return the sink!
 }
 
 
@@ -424,11 +411,13 @@ kmer_type * JunctionMap::findSink(Junction junc, kmer_type startKmer, int index)
         if(validExtension == -1){//Then we're at the end of the line! Found a sink.
             return new kmer_type(sinkKmer);
         }
-        if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions- but it's still a sink!
+        if(validExtension == -2){ //this ambiguity only happens when a sink has two false extensions, since a real kmer with two extensions would be a junction!
+            // I don't like this test- the above comment should be true, ASSUMING all other code is correct. This is dangerous.
+            assert(scanDist >= maxDist); // this adds some more assurance to the claim, since we should NEVER see this case before maxDist. Still not my favorite code.
             return new kmer_type(sinkKmer);
         }
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
-        doubleKmer.forward(validExtension); 
+        doubleKmer.forward(validExtension); // move forward based on the extension found by bloom scan
         scanDist++;
 
         //handle backward junction case
