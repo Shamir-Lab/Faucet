@@ -83,22 +83,15 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             Contig* forwardContig;
             Contig* backwardContig;
             for ( int i = 0 ; i < 4 ; i++ ){ 
-                std::cout << "80\n";
                 if ( junction.getCoverage(i) > 0 ) { //for every valid path out- should only be 1
-                                    std::cout << "82\n";
                     forwardContig = getContig(junction, kmer, i);
                 }
             }
-            std::cout << "86\n";
             backwardContig = getContig(junction, kmer, 4);
-            std::cout << "88\n";
 
             contigGraph->addIsolatedContig(*backwardContig->concatenate(forwardContig, 1, 1));
-            std::cout << "91\n";
 
             delete(forwardContig);
-            std::cout << "94\n";
-
             delete(backwardContig);
         }
         else{
@@ -121,18 +114,15 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     std::deque<unsigned char> coverages;
     std::deque<unsigned char> distances;
     int index = startIndex;
-                    std::cout << "118\n";
 
     coverages.push_back(junc.getCoverage(startIndex));
     string contigString(print_kmer(kmer));
-                    std::cout << "122\n";
 
     if(index == 4) contigString = print_kmer(revcomp(kmer));
     BfSearchResult result;
 
     bool done = false;
     Contig* contig = new Contig();
-                    std::cout << "130\n";
 
     while(!done){
         result = findNeighbor(junc, kmer, index);
@@ -141,24 +131,18 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             contigString += result.contig.substr(sizeKmer); //trim off the first k chars to avoid repeats 
         }
         distances.push_back((unsigned char) result.distance);
-                        std::cout << "138\n";
 
         if(result.isNode){
-                            std::cout << "140\n";
 
             Junction nextJunc = *getJunction(result.kmer);
-                            std::cout << "142\n";
            
             coverages.push_back(nextJunc.getCoverage(result.index));
-                            std::cout << "144\n";
 
             if (nextJunc.numPathsOut() == 1){
                 junc = nextJunc;
                 kmer = result.kmer;
-                                std::cout << "148\n";
                 index = junc.getOppositeIndex(result.index);
                 // kmers_to_destroy.push_back(kmer); 
-                                std::cout << "152\n";
 
                 if (result.kmer == startKmer){
                     done = true;
@@ -175,7 +159,6 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             done = true;
         }
     }
-                    std::cout << "168\n";
 
     contig->setContigJuncs(ContigJuncList(contigString, distances, coverages));
     if(result.isNode){
@@ -184,7 +167,6 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     else{
         contig->setIndices(startIndex, 4);
     }
-                std::cout << "177\n";
 
     //destroy all kmers found
     for(auto it = kmers_to_destroy.begin(); it != kmers_to_destroy.end(); it++){
@@ -193,7 +175,6 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
             killJunction(toDestroy);
         }
     }
-                    std::cout << "185\n";
 
     kmers_to_destroy.clear();
 
@@ -231,7 +212,6 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
         if(isJunction(doubleKmer.kmer)){ // if the initial reverse kmer is already a junction, we found a contig! 
-            std::cout << "227\n";
             return BfSearchResult(doubleKmer.kmer, 
                 true,  // is a node
                 4, // the junctions point away from each other; thus, the start junction is on the backward extension of the found junction
@@ -271,10 +251,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
     //if we're at or past the position where the sink would be, record the value for later use
     if(dist >= maxDist ){ //REMOVED THE - 2 * jchecker->j
-        std::cout << "254\n";
 
         if(dist > maxDist){ // dist >= maxDist should really only occur iff dist == maxDist. Otherwise maxDist pointed to a reverse kmer as a sink, which is wrong.
-            std::cout << "257\n";
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
             std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
             std::cout << "Searching from junction " << junc.toString() << "\n";
@@ -292,7 +270,6 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         int validExtension = getValidJExtension(doubleKmer);
         assert(validExtension != -1 && validExtension != -2); // We cannot find a sink closer than maxDist!!
     
-        std::cout << "276\n";
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
         doubleKmer.forward(validExtension); 
         contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
@@ -312,13 +289,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         //handle forward junction case
         if (dist == maxDist) {
             if(isJunction(doubleKmer.kmer)){ // if found a junction, and at maxDist, return it!
-                std::cout << "296\n";
                 return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
             } 
             break; // break regardless if at maxDist
         }
         assert(!isJunction(doubleKmer.kmer)); // if not at maxDist, we should not hit a junction!
-        std::cout << "293\n";
     }
 
     // If we get here, we must not have found a junction. Make sure it looks like a sink, and return it.
