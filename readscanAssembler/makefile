@@ -115,15 +115,18 @@ gtest_main.a : gtest-all.o gtest_main.o
 # sample1.o : $(USER_DIR)/sample1.cc $(USER_DIR)/sample1.h $(GTEST_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/sample1.cc
 
-ContigTest.o : $(READSCANNER)/Contig.o $(TEST_PREFIX)ContigTest.cpp $(GTEST_HEADERS)
+ContigTest.o : $(OBJ_BOTH) $(TEST_PREFIX)ContigTest.cpp $(GTEST_HEADERS)
 	g++ $(CFLAGS) -c $(TEST_PREFIX)ContigTest.cpp
+
+ReadscanTest.o : $(OBJ_BOTH) $(TEST_PREFIX)ReadscanTest.cpp $(GTEST_HEADERS)
+	g++ $(CFLAGS) -c $(TEST_PREFIX)ReadscanTest.cpp
 
 #sample1_unittest.o : $(USER_DIR)/sample1_unittest.cc \
 #                     $(USER_DIR)/sample1.h $(GTEST_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/sample1_unittest.cc
 
 
-ExampleTest : $(OBJ_BOTH) ContigTest.o gtest_main.a
+AllTests : $(OBJ_BOTH) ReadscanTest.o ContigTest.o gtest_main.a
 	g++ $(CFLAGS)  $^ -lpthread -o $@
 
 # sample1_unittest : sample1.o sample1_unittest.o gtest_main.a
@@ -208,7 +211,7 @@ ExampleTest : $(OBJ_BOTH) ContigTest.o gtest_main.a
 ../utils/JunctionMap.o: ../utils/JunctionMap.h
 ../utils/JunctionMap.o: ../readscanAssembler/BfSearchResult.h
 ../utils/JunctionMap.o: ../utils/JChecker.h BfSearchResult.h ContigIterator.h
-../utils/JunctionMap.o: ContigGraph.h
+../utils/JunctionMap.o: ContigGraph.h /usr/include/assert.h
 ../utils/Junction.o: ../utils/Junction.h ../utils/Kmer.h
 ../utils/Junction.o: /usr/include/stdint.h /usr/include/features.h
 ../utils/Junction.o: /usr/include/stdc-predef.h /usr/include/limits.h
