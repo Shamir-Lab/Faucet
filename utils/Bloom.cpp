@@ -48,13 +48,12 @@ int Bloom::containsPair(JuncPair pair){
     return contains(hA, hB);
 }
 
-void Bloom::fakify(std::set<bloom_elem> valid_kmers){
+void Bloom::fakify(){
     fake = true;
-    valid_set = valid_kmers;
-    for(auto it = valid_set.begin(); it != valid_set.end(); it++){
-        valid_hash0.insert(get_rolling_hash(*it,0));
-        valid_hash1.insert(get_rolling_hash(*it,1));
-    }
+}
+
+void Bloom::addFakeKmers(std::set<bloom_elem> valid_kmers) {
+    valid_set.insert(valid_kmers.begin(), valid_kmers.end());
 }
 
 

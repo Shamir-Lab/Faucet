@@ -259,7 +259,9 @@ public:
     ***********************************************************************************/
 
     //makes this a fake bloom filter that returns true only on specified kmers
-    void fakify(std::set<bloom_elem> valid_kmers);    
+    void fakify();
+    // Add a set of kmers to the fake bloom's list, so that they will return true
+    void addFakeKmers(std::set<bloom_elem> valid_kmers);
 
     void setSeed(uint64_t seed) ;
 

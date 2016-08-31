@@ -72,13 +72,10 @@
 // </TechnicalDetails>
 
 
-// Tests Factorial().
-// Tests factorial of negative numbers.
-TEST(ContigTest, Construct) {
-  Contig contig = Contig();
-
-  EXPECT_EQ("", contig.getSeq());
-  EXPECT_EQ(-1, contig.ind1);
-  EXPECT_EQ(-1, contig.ind2);
-}
+// TEST(ContigTest, Construct) {
+//   Contig contig = Contig();
+//   EXPECT_EQ("", contig.getSeq());
+//   EXPECT_EQ(-1, contig.ind1);
+//   EXPECT_EQ(-1, contig.ind2);
+// }
 
