@@ -9,10 +9,9 @@ using std::map;
 class readScan : public ::testing::Test {
 
 protected:
-    // string fake_read1 = "ACGGGCGAACTTTCATAGGA";
-    // string fake_read2 = "GGCGAACTAGTCCAT";
-    // string fake_read3 = "AACTTTCATACGATT";
     std::vector<string> reads;
+    std::vector<string> kmers;
+
     Bloom* bloom;
     ReadScanner* scanner;
     int j = 0;
@@ -20,15 +19,6 @@ protected:
     int estimated_kmers = 35;
     int maxSpacerDist = 8;
     double fpRate = .1;
-
-    //this is all the kmers from the reads plus two error kmers that cause a 
-    //TACGA --> ACGATT, ACGAAA branch (fake of length 2)
-    std::vector<string> kmers;
-    // std::vector<string> kmers_1 {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT"
-    //     ,"AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
-    // std::vector<string> kmers_2 {"GGCGA", "GCGAA", "CGAAC", "GAACT", "AACTA","ACTAG"
-    //     , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT"};
-    // std::vector<string> kmers_3 {"AACTT", "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
@@ -74,10 +64,6 @@ protected:
     readScan() {
         kmers = {};
         reads = {};
-        // {"GGCGA", "GCGAA", "CGAAC", "GAACT", "AACTA","ACTAG"
-    //     , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT"};
-    // std::vector<string> kmers_3 {"AACTT", "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
-
         setSizeKmer(5);
 
         bloom = createBloom(); 
@@ -100,11 +86,6 @@ protected:
     }
 };
 
-/**
-* Right now only one of these tests can work- if you comment either out, the other will run!
-* I suspect the solution is something to do with the test construction and destruction- right now we're not using a destructor, 
-* which could be the problem.
-*/
 
 // Two example test cases
 // These aren't engineered to test anything in particular yet, but they give an idea of how to write tests.
@@ -128,13 +109,7 @@ TEST_F(readScan, buildFullMap) {
         "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
         "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
         "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
-    // kmers.insert(kmers.end(), more_kmers.begin(), more_kmers.end());
-    // for (auto& k : kmers){
-    //         std::cout << k << std::endl;
-    //     }
     addKmers(bloom, kmers);
-    // addKmers(bloom, kmers_2);
-    // addKmers(bloom, kmers_3);
 
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
