@@ -72,8 +72,8 @@ protected:
 
     // set up blooms, junction map, jchecker, readscanner for testing
     readScan() {
-        reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
-        kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
+        kmers = {};
+        reads = {};
         // {"GGCGA", "GCGAA", "CGAAC", "GAACT", "AACTA","ACTAG"
     //     , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT"};
     // std::vector<string> kmers_3 {"AACTT", "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
@@ -111,6 +111,9 @@ protected:
 
 // This test adds one read, and adds the reads kmers to the bloom filter, scans and prints the junction map 
 TEST_F(readScan, scanOneRead) {
+    reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
+    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
+
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
@@ -120,6 +123,15 @@ TEST_F(readScan, scanOneRead) {
 
 // Same thing but with three reads
 TEST_F(readScan, buildFullMap) {
+    reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
+    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
+        "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
+        "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
+        "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+    // kmers.insert(kmers.end(), more_kmers.begin(), more_kmers.end());
+    // for (auto& k : kmers){
+    //         std::cout << k << std::endl;
+    //     }
     addKmers(bloom, kmers);
     // addKmers(bloom, kmers_2);
     // addKmers(bloom, kmers_3);
