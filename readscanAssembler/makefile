@@ -73,7 +73,7 @@ CXXFLAGS += -g --std=c++0x -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = ContigTest ReadscanTest
+TESTS = ReadscanTest
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.

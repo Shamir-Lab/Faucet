@@ -79,9 +79,13 @@ protected:
         printf("Done initializing!\n");
     }
     ~readScan(){
+        reads.clear();
+        kmers.clear();
         delete jchecker;
         delete short_pair_filter;
         delete long_pair_filter;
+        delete bloom;
+        delete junctionMap;
         delete scanner;
     }
 };
@@ -91,9 +95,23 @@ protected:
 // These aren't engineered to test anything in particular yet, but they give an idea of how to write tests.
 
 // This test adds one read, and adds the reads kmers to the bloom filter, scans and prints the junction map 
-TEST_F(readScan, scanOneRead) {
-    reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
-    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
+TEST_F(readScan, singleReadNoJunctions) {
+    reads = {"ACGGGCGAACTTTCATAGGA"};
+    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
+        "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
+
+    addKmers(bloom, kmers);
+
+    scanner->scanInputRead(reads[0], true);
+
+    printJunctionMap(*scanner);
+}
+
+TEST_F(readScan, singleReadOneFake) {
+    // added k-mers in BF "AACTC", "ACTCC" create fake junction and branch of length 2
+    reads = {"ACGGGCGAACTTTCATAGGA"};
+    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","AACTC","ACTCC"
+        "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
 
     addKmers(bloom, kmers);
 
