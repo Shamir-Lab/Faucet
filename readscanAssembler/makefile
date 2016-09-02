@@ -57,7 +57,7 @@ clean:
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
-# GTEST_DIR = /home/gil/Summer\ 2015/googletest/googletest
+# GTEST_DIR = <path_to_googletest>/googletest/googletest
 
 # Where to find user code.
 USER_DIR = ..
@@ -73,7 +73,7 @@ CXXFLAGS += -g --std=c++0x -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = ContigTest
+TESTS = ContigTest ReadscanTest
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.

@@ -6,12 +6,13 @@
 #include "../../utils/JunctionMap.h"
 using std::map;
 
-class readscan : public ::testing::Test {
+class readScan : public ::testing::Test {
 
 protected:
-    string fake_read1 = "ACGGGCGAACTTTCATAGGA";
-    string fake_read2 = "GGCGAACTAGTCCAT";
-    string fake_read3 = "AACTTTCATACGATT";
+    // string fake_read1 = "ACGGGCGAACTTTCATAGGA";
+    // string fake_read2 = "GGCGAACTAGTCCAT";
+    // string fake_read3 = "AACTTTCATACGATT";
+    std::vector<string> reads;
     Bloom* bloom;
     ReadScanner* scanner;
     int j = 0;
@@ -22,11 +23,12 @@ protected:
 
     //this is all the kmers from the reads plus two error kmers that cause a 
     //TACGA --> ACGATT, ACGAAA branch (fake of length 2)
-    std::vector<string> kmers_1 {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT"
-        ,"AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
-    std::vector<string> kmers_2 {"GGCGA", "GCGAA", "CGAAC", "GAACT", "AACTA","ACTAG"
-        , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT"};
-    std::vector<string> kmers_3 {"AACTT", "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+    std::vector<string> kmers;
+    // std::vector<string> kmers_1 {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT"
+    //     ,"AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
+    // std::vector<string> kmers_2 {"GGCGA", "GCGAA", "CGAAC", "GAACT", "AACTA","ACTAG"
+    //     , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT"};
+    // std::vector<string> kmers_3 {"AACTT", "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
@@ -69,7 +71,13 @@ protected:
     }
 
     // set up blooms, junction map, jchecker, readscanner for testing
-    readscan() {
+    readScan() {
+        reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
+        kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
+        // {"GGCGA", "GCGAA", "CGAAC", "GAACT", "AACTA","ACTAG"
+    //     , "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT"};
+    // std::vector<string> kmers_3 {"AACTT", "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+
         setSizeKmer(5);
 
         bloom = createBloom(); 
@@ -84,6 +92,12 @@ protected:
         scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker, maxSpacerDist);
         printf("Done initializing!\n");
     }
+    ~readScan(){
+        delete jchecker;
+        delete short_pair_filter;
+        delete long_pair_filter;
+        delete scanner;
+    }
 };
 
 /**
@@ -96,23 +110,23 @@ protected:
 // These aren't engineered to test anything in particular yet, but they give an idea of how to write tests.
 
 // This test adds one read, and adds the reads kmers to the bloom filter, scans and prints the junction map 
-TEST_F(readscan, scan_one_read) {
-    addKmers(bloom, kmers_1);
+TEST_F(readScan, scanOneRead) {
+    addKmers(bloom, kmers);
 
-    scanner->scanInputRead(fake_read1, true);
+    scanner->scanInputRead(reads[0], true);
 
     printJunctionMap(*scanner);
 }
 
 // Same thing but with three reads
-TEST_F(readscan, build_full_map) {
-    addKmers(bloom, kmers_1);
-    addKmers(bloom, kmers_2);
-    addKmers(bloom, kmers_3);
+TEST_F(readScan, buildFullMap) {
+    addKmers(bloom, kmers);
+    // addKmers(bloom, kmers_2);
+    // addKmers(bloom, kmers_3);
 
-    scanner->scanInputRead(fake_read1, true);
-    scanner->scanInputRead(fake_read2, true);
-    scanner->scanInputRead(fake_read3, true);
+    scanner->scanInputRead(reads[0], true);
+    scanner->scanInputRead(reads[1], true);
+    scanner->scanInputRead(reads[2], true);
 
     printJunctionMap(*scanner);
 }
