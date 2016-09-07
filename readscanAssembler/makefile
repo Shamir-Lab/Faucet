@@ -1,6 +1,6 @@
 ######## Mink main makefile ###########
 
-CFLAGS+= --std=c++0x -g -O4 -D_FILE_OFFSET_BITS=64 -isystem $(GTEST_DIR)/include # needed to handle files > 2 GB on 32 bits systems
+CFLAGS+= --std=c++11 -g -O4 -D_FILE_OFFSET_BITS=64 -isystem $(GTEST_DIR)/include # needed to handle files > 2 GB on 32 bits systems
 
 # Prefix for readscan files and util files
 READSCAN_PREFIX =./
@@ -73,7 +73,8 @@ CXXFLAGS += -g --std=c++0x -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = ReadscanTest
+TESTS =  ReadscanTest
+# ContigTest (currently not included)
 
 # All Google Test headers.  Usually you shouldn't change this
 # definition.
@@ -115,8 +116,8 @@ gtest_main.a : gtest-all.o gtest_main.o
 # sample1.o : $(USER_DIR)/sample1.cc $(USER_DIR)/sample1.h $(GTEST_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/sample1.cc
 
-ContigTest.o : $(OBJ_BOTH) $(TEST_PREFIX)ContigTest.cpp $(GTEST_HEADERS)
-	g++ $(CFLAGS) -c $(TEST_PREFIX)ContigTest.cpp
+# ContigTest.o : $(OBJ_BOTH) $(TEST_PREFIX)ContigTest.cpp $(GTEST_HEADERS)
+# 	g++ $(CFLAGS) -c $(TEST_PREFIX)ContigTest.cpp
 
 ReadscanTest.o : $(OBJ_BOTH) $(TEST_PREFIX)ReadscanTest.cpp $(GTEST_HEADERS)
 	g++ $(CFLAGS) -c $(TEST_PREFIX)ReadscanTest.cpp
@@ -126,7 +127,8 @@ ReadscanTest.o : $(OBJ_BOTH) $(TEST_PREFIX)ReadscanTest.cpp $(GTEST_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/sample1_unittest.cc
 
 
-AllTests : $(OBJ_BOTH) ReadscanTest.o ContigTest.o gtest_main.a
+
+AllTests : $(OBJ_BOTH) ReadscanTest.o gtest_main.a
 	g++ $(CFLAGS)  $^ -lpthread -o $@
 
 # sample1_unittest : sample1.o sample1_unittest.o gtest_main.a

@@ -14,11 +14,11 @@ protected:
 
     Bloom* bloom;
     ReadScanner* scanner;
-    int j = 0;
-    int read_length = 30;
-    int estimated_kmers = 35;
-    int maxSpacerDist = 8;
-    double fpRate = .1;
+    int j;
+    int read_length;
+    int estimated_kmers;
+    int maxSpacerDist;
+    double fpRate;
 
     JChecker* jchecker;
     JunctionMap* junctionMap;
@@ -40,6 +40,7 @@ protected:
         }
 
         bloom->addFakeKmers(valids);
+        valids.clear();
     }
 
     // Create a bloom filter, but make it a fake one
@@ -62,6 +63,11 @@ protected:
 
     // set up blooms, junction map, jchecker, readscanner for testing
     readScan() {
+        j = 0;
+        read_length = 30;
+        estimated_kmers = 35;
+        maxSpacerDist = 8;
+        fpRate = .1;
         kmers = {};
         reads = {};
         setSizeKmer(5);
@@ -107,7 +113,7 @@ TEST_F(readScan, singleReadNoJunctions) {
     printJunctionMap(*scanner);
 }
 
-TEST_F(readScan, singleReadOneFake) {
+TEST_F(readScan, singleReadOneFakeJunction) {
     // added k-mers in BF "AACTC", "ACTCC" create fake junction and branch of length 2
     reads = {"ACGGGCGAACTTTCATAGGA"};
     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","AACTC","ACTCC"
@@ -120,19 +126,71 @@ TEST_F(readScan, singleReadOneFake) {
     printJunctionMap(*scanner);
 }
 
-// Same thing but with three reads
-TEST_F(readScan, buildFullMap) {
-    reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
-    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
-        "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
-        "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
-        "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+// Long read, no junctions
+TEST_F(readScan, LongReadNoJunctions) {
+    // 2 repititions of read above, added middle k-mers to k-mer set
+    reads = {"ACGGGCGAACTTTCATAGGATCGCACTCACCCTTAAACGAGAG"};
+    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
+        "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA",
+        "TCGCA","CGCAC","GCACT","CACTC","ACTCA","CTCAC","TCACC","CACCC","ACCCT",
+        "CCCTT","CCTTA","CTTAA","TTAAA","TAAAC","AAACG","AACGA", "ACGAG", "CGAGA", "GAGAG"};
+
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
-    scanner->scanInputRead(reads[1], true);
-    scanner->scanInputRead(reads[2], true);
 
     printJunctionMap(*scanner);
 }
 
+
+// // edge case: long read that's a tandem repeat, no junctions
+// TEST_F(readScan, LongReadNoJunctions) {
+//     // 2 repititions of read above, added middle k-mers to k-mer set
+//     reads = {"ACGGGCGAACTTTCATAGGAACGGGCGAACTTTCATAGGA"};
+//     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
+//         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA",
+//         "AGGAA", "GGAAC", "GAACG","AACGG"}; 
+
+//     addKmers(bloom, kmers);
+
+//     scanner->scanInputRead(reads[0], true);
+
+//     printJunctionMap(*scanner);
+// }
+
+
+// TEST_F(readScan, singleReadTwoFakeJunctions) {
+//     // added k-mers in BF "AACTC", "ACTCC" create fake junction and branch of length 2
+//     // also added "GGGGC", "GGGGG" to create back facing fake junction
+//     reads = {"ACGGGCGAACTTTCATAGGA"};
+//     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","AACTC","ACTCC"
+//         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA", "GGGGC", "GGGGGG"};
+
+//     addKmers(bloom, kmers);
+
+//     scanner->scanInputRead(reads[0], true);
+
+//     printJunctionMap(*scanner);
+// }
+
+// // Same thing but with three reads
+// TEST_F(readScan, buildFullMap) {
+//     reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
+//     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
+//         "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
+//         "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
+//         "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+//     addKmers(bloom, kmers);
+
+//     scanner->scanInputRead(reads[0], true);
+//     scanner->scanInputRead(reads[1], true);
+//     scanner->scanInputRead(reads[2], true);
+
+//     printJunctionMap(*scanner);
+// }
+
+int main(int ac, char* av[])
+{
+  testing::InitGoogleTest(&ac, av);
+  return RUN_ALL_TESTS();
+}

@@ -363,6 +363,7 @@ uint64_t Bloom::get_rolling_hash(uint64_t key, int num_hash)
 
 Bloom::~Bloom()
 {
+    valid_set.clear();
   if(blooma!=NULL) 
     free(blooma);
 }
