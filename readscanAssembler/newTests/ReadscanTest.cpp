@@ -116,7 +116,7 @@ TEST_F(readScan, singleReadNoJunctions) {
 TEST_F(readScan, singleReadOneFakeJunction) {
     // added k-mers in BF "AACTC", "ACTCC" create fake junction and branch of length 2
     reads = {"ACGGGCGAACTTTCATAGGA"};
-    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","AACTC","ACTCC"
+    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","AACTC","ACTCC",
         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
 
     addKmers(bloom, kmers);
@@ -128,13 +128,12 @@ TEST_F(readScan, singleReadOneFakeJunction) {
 
 // Long read, no junctions
 TEST_F(readScan, LongReadNoJunctions) {
-    // 2 repititions of read above, added middle k-mers to k-mer set
-    reads = {"ACGGGCGAACTTTCATAGGATCGCACTCACCCTTAAACGAGAG"};
+    reads = {"ACGGGCGAACTTTCATAGGATCGCACTCAC"}; //CCTTAAACGAGAG
     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA",
-        "TCGCA","CGCAC","GCACT","CACTC","ACTCA","CTCAC","TCACC","CACCC","ACCCT",
-        "CCCTT","CCTTA","CTTAA","TTAAA","TAAAC","AAACG","AACGA", "ACGAG", "CGAGA", "GAGAG"};
-
+        "AGGAT", "GGATC", "GATCG", "ATCGC", "TCGCA", "CGCAC", "GCACT", "GCACT", 
+        "CACTC", "ACTCA", "CTCAC"};
+        
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
@@ -142,36 +141,11 @@ TEST_F(readScan, LongReadNoJunctions) {
     printJunctionMap(*scanner);
 }
 
-
-// // edge case: long read that's a tandem repeat, no junctions
-// TEST_F(readScan, LongReadNoJunctions) {
-//     // 2 repititions of read above, added middle k-mers to k-mer set
-//     reads = {"ACGGGCGAACTTTCATAGGAACGGGCGAACTTTCATAGGA"};
-//     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
-//         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA",
-//         "AGGAA", "GGAAC", "GAACG","AACGG"}; 
-
-//     addKmers(bloom, kmers);
-
-//     scanner->scanInputRead(reads[0], true);
-
-//     printJunctionMap(*scanner);
-// }
+// additional tests wanted:
+// edge case: read that's a tandem repeat, no junctions
+// read with k-mer missing - see getValidReads mechanism works
 
 
-// TEST_F(readScan, singleReadTwoFakeJunctions) {
-//     // added k-mers in BF "AACTC", "ACTCC" create fake junction and branch of length 2
-//     // also added "GGGGC", "GGGGG" to create back facing fake junction
-//     reads = {"ACGGGCGAACTTTCATAGGA"};
-//     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","AACTC","ACTCC"
-//         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA", "GGGGC", "GGGGGG"};
-
-//     addKmers(bloom, kmers);
-
-//     scanner->scanInputRead(reads[0], true);
-
-//     printJunctionMap(*scanner);
-// }
 
 // // Same thing but with three reads
 // TEST_F(readScan, buildFullMap) {

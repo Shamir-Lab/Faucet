@@ -129,7 +129,10 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
       junctionMap->createJunction(readKmer);
       junc = junctionMap->getJunction(readKmer);
     }
-
+    else{
+      std::cout << "found real junction\n";
+      std::cout << print_kmer(readKmer->doubleKmer.getCanon()) << std::endl;
+    }
     result.push_back(readKmer->getRealExtension());
 
     // mark first R junction and last F junction
@@ -184,10 +187,12 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   if(!lastKmer){
       NbNoJuncs++;
       result.push_back(add_fake_junction(read));
+      std::cout << "added fake junction" << std::endl;
   }
   //If there was at least one junction, point the last junction found to the end of the read
   else {
     lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
+    std::cout << "some junction exists, connecting with end of read" << std::endl;
   }
   if (!no_cleaning){
     if(result.size()==2){
@@ -250,6 +255,7 @@ std::list<kmer_type> ReadScanner::scanInputRead(string read, bool no_cleaning){
         if(read.length() >= sizeKmer + 2*jchecker->j + 1){
           unambiguousReads++;
           validReads = getValidReads(read);
+          std::cout << "there are " << validReads.size() << " valid reads\n";
           while(!validReads.empty()){
             validRead = validReads.front();
             validReads.pop_front();
