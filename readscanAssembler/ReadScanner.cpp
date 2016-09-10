@@ -63,17 +63,17 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
   {
       //check for an already found junciton
       if(junctionMap->isJunction(readKmer->getKmer())){
-        std::cout << "known junction found\n";
+        // std::cout << "known junction found\n";
         return true;
       }
       //check for a new junction, or for the max spacer dist
       if(readKmer->getTotalPos() - lastJuncPos >= maxSpacerDist*2-1 ){ //|| testForJunction(*readKmer)){
         //printf("Junc dist: %d", readKmer->getTotalPos() - lastJuncPos);
-        std::cout << "max spacer distance surpassed\n";
+        // std::cout << "max spacer distance surpassed\n";
         return true;
       }
       if(testForJunction(*readKmer)){
-        std::cout << "new BF junction found\n";
+        // std::cout << "new BF junction found\n";
         return true;
       }
       NbProcessed++;
@@ -137,7 +137,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
     }
     // else{
     //   std::cout << "found real junction\n";
-      std::cout << print_kmer(readKmer->doubleKmer.getCanon()) << std::endl;
+      // std::cout << print_kmer(readKmer->doubleKmer.getCanon()) << std::endl;
     // }
     result.push_back(readKmer->getRealExtension());
 
@@ -173,7 +173,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
     }
     //If this is the first junction, link it to the beginning of the read.
     else{ 
-      std::cout<< "first junc position is " << readKmer->getTotalPos()-2*jchecker->j <<std::endl;
+      // std::cout<< "first junc position is " << readKmer->getTotalPos()-2*jchecker->j <<std::endl;
       lastKmer = new ReadKmer(readKmer);
       junc
         ->update(readKmer->getExtensionIndex(BACKWARD), readKmer->getTotalPos()-2*jchecker->j);//-2*j ADDED
@@ -194,12 +194,12 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   if(!lastKmer){
       NbNoJuncs++;
       result.push_back(add_fake_junction(read));
-      std::cout << "added fake junction" << std::endl;
+      // std::cout << "added fake junction" << std::endl;
   }
   //If there was at least one junction, point the last junction found to the end of the read
   else {
     lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
-    std::cout << "some junction exists, connecting with end of read" << std::endl;
+    // std::cout << "some junction exists, connecting with end of read" << std::endl;
   }
   if (!no_cleaning){
     if(result.size()==2){
@@ -262,7 +262,7 @@ std::list<kmer_type> ReadScanner::scanInputRead(string read, bool no_cleaning){
         if(read.length() >= sizeKmer + 2*jchecker->j + 1){
           unambiguousReads++;
           validReads = getValidReads(read);
-          std::cout << "there are " << validReads.size() << " valid reads\n";
+          // std::cout << "there are " << validReads.size() << " valid reads\n";
           while(!validReads.empty()){
             validRead = validReads.front();
             validReads.pop_front();

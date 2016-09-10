@@ -213,10 +213,10 @@ TEST_F(readScan, LongReadNoJunctions) {
     }
 }
 
+
 // additional tests wanted:
 // edge case: read that's a tandem repeat, no junctions
 // read with k-mer missing - see getValidReads mechanism works
-
 
 
 // Same thing but with three reads
@@ -231,9 +231,37 @@ TEST_F(readScan, buildFullMap) {
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
     scanner->scanInputRead(reads[2], true);
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
-    printJunctionMap(*scanner);
+    // Expected junctions & distances
+    // CTAGT 
+    // 0 8 3 0 3 
+    // TCATA 
+    // 0 10 0 6 12 
+    // GAACT 
+    // 3 0 12 0 13 
+    //assert some of junction k-mers in map
+    ASSERT_EQ(map.count(getKmerFromRead("CTAGT", 0)),1);
+    ASSERT_EQ(map.count(getKmerFromRead("GAACT", 0)),1);
+    // only map is correct size
+    ASSERT_EQ(map.size(),3);
+    for (auto& kv : map){
+        // assert distances are correct
+        if (print_kmer(kv.first)=="GAACT"){
+            ASSERT_EQ(kv.second.dist[0],3);
+            ASSERT_EQ(kv.second.dist[4],13);            
+        }
+        if (print_kmer(kv.first)=="CTAGT"){
+            ASSERT_EQ(kv.second.dist[1],8);
+            ASSERT_EQ(kv.second.dist[4],3);    
+        }
+    }
+    // printJunctionMap(*scanner);
 }
+
+// add separate to JunctionMapTest
+// test building of map, then removal of complex junctions - closer to 
+// then
 
 int main(int ac, char* av[])
 {
