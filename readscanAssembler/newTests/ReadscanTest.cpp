@@ -109,8 +109,29 @@ TEST_F(readScan, singleReadNoJunctions) {
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    // Expected junctions & distances
+    // TCCTA 
+    // 0 0 15 0 1 
+    // AACTT 
+    // 0 0 15 0 15 
+    //assert junction k-mers in map
+    ASSERT_EQ(map.count(getKmerFromRead("TCCTA", 0)),1);
+    ASSERT_EQ(map.count(getKmerFromRead("AACTT", 0)),1);
+    // only these junction in map
+    ASSERT_EQ(map.size(),2);
 
-    printJunctionMap(*scanner);
+    for (auto& kv : map){
+        // assert distances are correct
+        if (print_kmer(kv.first)=="TCCTA"){
+            ASSERT_EQ(kv.second.dist[2],15);
+            ASSERT_EQ(kv.second.dist[4],1);            
+        }
+        if (print_kmer(kv.first)=="AACTT"){
+            ASSERT_EQ(kv.second.dist[2],15);
+            ASSERT_EQ(kv.second.dist[4],15);    
+        }
+    }
 }
 
 TEST_F(readScan, singleReadOneFakeJunction) {
@@ -122,13 +143,33 @@ TEST_F(readScan, singleReadOneFakeJunction) {
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
-
-    printJunctionMap(*scanner);
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    // Expected junctions & distances
+    // CCTAT 
+    // 0 0 0 15 3 
+    // GAACT 
+    // 0 0 15 0 13 
+    //assert junction k-mers in map
+    ASSERT_EQ(map.count(getKmerFromRead("CCTAT", 0)),1);
+    ASSERT_EQ(map.count(getKmerFromRead("GAACT", 0)),1);
+    // only these junction in map
+    ASSERT_EQ(map.size(),2);
+    for (auto& kv : map){
+        // assert distances are correct
+        if (print_kmer(kv.first)=="CCTAT"){
+            ASSERT_EQ(kv.second.dist[3],15);
+            ASSERT_EQ(kv.second.dist[4],3);            
+        }
+        if (print_kmer(kv.first)=="GAACT"){
+            ASSERT_EQ(kv.second.dist[2],15);
+            ASSERT_EQ(kv.second.dist[4],13);    
+        }
+    }
 }
 
 // Long read, no junctions
 TEST_F(readScan, LongReadNoJunctions) {
-    reads = {"ACGGGCGAACTTTCATAGGATCGCACTCAC"}; //CCTTAAACGAGAG
+    reads = {"ACGGGCGAACTTTCATAGGATCGCACTCAC"};
     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA",
         "AGGAT", "GGATC", "GATCG", "ATCGC", "TCGCA", "CGCAC", "GCACT", "GCACT", 
@@ -137,8 +178,39 @@ TEST_F(readScan, LongReadNoJunctions) {
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    // Expected junctions & distances
+    // ATCGC 
+    // 1 0 0 0 3 
+    // TGCGA 
+    // 0 0 1 0 11 
+    // CGATC 
+    // 0 1 0 0 3 
+    // GGATC 
+    // 0 0 0 1 12 
+    // TTCAT 
+    // 12 0 0 0 15 
+    // TTCGC 
+    // 0 1 0 0 15 
+    // GGCGA 
+    // 1 0 0 0 7 
 
-    printJunctionMap(*scanner);
+    //assert some of junction k-mers in map
+    ASSERT_EQ(map.count(getKmerFromRead("ATCGC", 0)),1);
+    ASSERT_EQ(map.count(getKmerFromRead("GGATC", 0)),1);
+    // only map is correct size
+    ASSERT_EQ(map.size(),7);
+    for (auto& kv : map){
+        // assert distances are correct
+        if (print_kmer(kv.first)=="GGATC"){
+            ASSERT_EQ(kv.second.dist[3],1);
+            ASSERT_EQ(kv.second.dist[4],12);            
+        }
+        if (print_kmer(kv.first)=="TTCGC"){
+            ASSERT_EQ(kv.second.dist[1],1);
+            ASSERT_EQ(kv.second.dist[4],15);    
+        }
+    }
 }
 
 // additional tests wanted:
@@ -147,21 +219,21 @@ TEST_F(readScan, LongReadNoJunctions) {
 
 
 
-// // Same thing but with three reads
-// TEST_F(readScan, buildFullMap) {
-//     reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
-//     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
-//         "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
-//         "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
-//         "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
-//     addKmers(bloom, kmers);
+// Same thing but with three reads
+TEST_F(readScan, buildFullMap) {
+    reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
+    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
+        "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
+        "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
+        "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+    addKmers(bloom, kmers);
 
-//     scanner->scanInputRead(reads[0], true);
-//     scanner->scanInputRead(reads[1], true);
-//     scanner->scanInputRead(reads[2], true);
+    scanner->scanInputRead(reads[0], true);
+    scanner->scanInputRead(reads[1], true);
+    scanner->scanInputRead(reads[2], true);
 
-//     printJunctionMap(*scanner);
-// }
+    printJunctionMap(*scanner);
+}
 
 int main(int ac, char* av[])
 {
