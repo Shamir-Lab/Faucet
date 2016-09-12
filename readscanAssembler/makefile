@@ -73,7 +73,7 @@ CXXFLAGS += -g --std=c++0x -Wall -Wextra -pthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS =  ReadscanTest
+TESTS =  ReadscanTest JunctionMapTest
 # ContigTest (currently not included)
 
 # All Google Test headers.  Usually you shouldn't change this
@@ -122,13 +122,17 @@ gtest_main.a : gtest-all.o gtest_main.o
 ReadscanTest.o : $(OBJ_BOTH) $(TEST_PREFIX)ReadscanTest.cpp $(GTEST_HEADERS)
 	g++ $(CFLAGS) -c $(TEST_PREFIX)ReadscanTest.cpp
 
+JunctionMapTest.o : $(OBJ_BOTH) $(TEST_PREFIX)JunctionMapTest.cpp $(GTEST_HEADERS)
+	g++ $(CFLAGS) -c $(TEST_PREFIX)JunctionMapTest.cpp
+
+
 #sample1_unittest.o : $(USER_DIR)/sample1_unittest.cc \
 #                     $(USER_DIR)/sample1.h $(GTEST_HEADERS)
 #	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/sample1_unittest.cc
 
 
 
-AllTests : $(OBJ_BOTH) ReadscanTest.o gtest_main.a
+AllTests : $(OBJ_BOTH) ReadscanTest.o JunctionMapTest.o gtest_main.a
 	g++ $(CFLAGS)  $^ -lpthread -o $@
 
 # sample1_unittest : sample1.o sample1_unittest.o gtest_main.a

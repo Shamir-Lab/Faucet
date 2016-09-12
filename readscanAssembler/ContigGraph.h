@@ -2,7 +2,7 @@
 #define CONTIG_GRAPH
 
 class ContigGraph; //forward declare
-
+#include <ostream>
 #include <fstream>
 #include <iostream> 
 #include <unordered_map>
@@ -34,6 +34,7 @@ unordered_map<kmer_type,ContigNode>::iterator it;
 int read_length;
 
 public: 
+    std::vector<Contig> * getIsolatedContigs();
     unordered_map<kmer_type, ContigNode> * getNodeMap();
     void switchToNodeVector();
     void setReadLength(int length);
@@ -65,7 +66,7 @@ public:
     bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize); //Cleans graph and returns true if any changes were made
 
     bool checkGraph();
-    void printContigFastG(ofstream* fastgFile, Contig * contig);
+    void printContigFastG(std::ostream* fastgFile, Contig * contig);
     void printContigs(string filename); //prints the contigs raw
     void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();

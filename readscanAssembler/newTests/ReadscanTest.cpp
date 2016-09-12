@@ -263,8 +263,8 @@ TEST_F(readScan, buildFullMap) {
 // test building of map, then removal of complex junctions - closer to 
 // then
 
-int main(int ac, char* av[])
-{
-  testing::InitGoogleTest(&ac, av);
-  return RUN_ALL_TESTS();
-}
+// int main(int ac, char* av[])
+// {
+//   testing::InitGoogleTest(&ac, av);
+//   return RUN_ALL_TESTS();
+// }

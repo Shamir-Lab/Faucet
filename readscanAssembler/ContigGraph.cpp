@@ -7,6 +7,11 @@ unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
 }
 
+std::vector<Contig> * ContigGraph::getIsolatedContigs(){
+    return &isolated_contigs;
+}
+
+
 double get_critical_val(int df, double sig){
     // critical values for t distribution at 0.05 alpha level
     std::unordered_map <int,double> df_critical_vals;
@@ -1279,7 +1284,7 @@ void ContigGraph::printGraph(string fileName){
     printf("Done printing graph from contig graph iterator.\n");
 }
 
-void ContigGraph::printContigFastG(ofstream* fastgFile, Contig * contig){
+void ContigGraph::printContigFastG(std::ostream* fastgFile, Contig * contig){
     *fastgFile << contig->getFastGHeader(true) << "\n";
     *fastgFile << contig->getSeq() << "\n";
     *fastgFile << contig->getFastGHeader(false) << "\n";
