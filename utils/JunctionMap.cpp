@@ -302,6 +302,9 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     
     if(isJunction(doubleKmer.kmer)){ // if found a junction, return it!
         return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
+    }
+    if(isJunction(doubleKmer.revcompKmer)){ // in case k-mer is 'problematic, pseudo-palindromic' & puts us on reverse strand
+        return BfSearchResult(doubleKmer.revcompKmer, true, 4, dist, contig);
     } 
 
     // If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the junction
