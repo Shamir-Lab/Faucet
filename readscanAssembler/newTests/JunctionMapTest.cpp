@@ -68,13 +68,13 @@ protected:
         //prints contigs that are adjacent to nodes
         while(contigIt->hasNextContig()){
             Contig* contig = contigIt->getContig();
-            graph->printContigFastG(&std::cerr, contig);
+            graph->printContigFastG(&std::cout, contig);
         }
         //prints isolated contigs
         std::vector<Contig> * isolated_contigs = graph->getIsolatedContigs();
         for(auto it = isolated_contigs->begin(); it != isolated_contigs->end(); ++it){
             Contig* contig = &*it;       
-            graph->printContigFastG(&std::cerr, contig);
+            graph->printContigFastG(&std::cout, contig);
         }
     }
 
@@ -143,9 +143,23 @@ TEST_F(juncMapData, buildBranchingPaths) {
     std::cout << "built branching paths\n";
     printContigGraph(contigGraph);
 
+    printf("Destroying complex junctions.\n");
+    junctionMap->destroyComplexJunctions();
+    printContigGraph(contigGraph);
+
+
+    printf("Building linear regions.\n");
+    junctionMap->buildLinearRegions(contigGraph);
+    printContigGraph(contigGraph);
+
+    printf("Checking graph.\n");
+    contigGraph->checkGraph();
 
 
 }
+
+
+
 
 
 // int main(int ac, char* av[])
