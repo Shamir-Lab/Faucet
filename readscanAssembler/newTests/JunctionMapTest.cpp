@@ -145,9 +145,9 @@ TEST_F(juncMapData, buildBranchingPaths) {
 
     printf("Destroying complex junctions.\n");
     junctionMap->destroyComplexJunctions();
-    printContigGraph(contigGraph);
-
-
+    std::cout << "map before changes\n";
+    printJunctionMap(*scanner);
+    
     printf("Building linear regions.\n");
     junctionMap->buildLinearRegions(contigGraph);
     printContigGraph(contigGraph);

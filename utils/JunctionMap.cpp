@@ -55,6 +55,7 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);                            
                         }
                     }
+                    contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                 }
             }
         }
@@ -144,7 +145,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
                 index = junc.getOppositeIndex(result.index);
                 // kmers_to_destroy.push_back(kmer); 
 
-                if (result.kmer == startKmer){
+                if (result.kmer == startKmer || result.kmer == revcomp(startKmer)){
                     done = true;
                 }
                 else{ // isolated self-loop --> nothing to destroy
@@ -236,7 +237,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
                 contig);
         }
         if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
-
+            assert(false); // just to know if we ever get here
         }
         dist = 2; // if we arrived here, we didn't return above, and can search at distance 2.
         if(isJunction(doubleKmer.kmer)){
@@ -304,7 +305,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
     }
     if(isJunction(doubleKmer.revcompKmer)){ // in case k-mer is 'problematic, pseudo-palindromic' & puts us on reverse strand
-        return BfSearchResult(doubleKmer.revcompKmer, true, index, dist, contig);
+        return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
     } 
 
     // If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the junction
