@@ -54,8 +54,9 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                         }else{ // inverted repeat - looped back to source junction
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);                            
                         }
+                    }else{
+                        contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                     }
-                    contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                 }
             }
         }
