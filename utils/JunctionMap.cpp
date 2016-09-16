@@ -238,7 +238,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
                 contig);
         }
         if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
-            assert(false); // just to know if we ever get here
+            return BfSearchResult(doubleKmer.revcompKmer, 
+                false, // is a sink
+                lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
+                1, // distance 1
+                contig);        
         }
         dist = 2; // if we arrived here, we didn't return above, and can search at distance 2.
         if(isJunction(doubleKmer.kmer)){
@@ -305,22 +309,22 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     if(isJunction(doubleKmer.kmer)){ // if found a junction, return it!
         return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
     }
-    if(isJunction(doubleKmer.revcompKmer)){ // in case k-mer is 'problematic, pseudo-palindromic' & puts us on reverse strand
-        return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
-    } 
+    // if(isJunction(doubleKmer.revcompKmer)){ // in case k-mer is 'problematic, pseudo-palindromic' & puts us on reverse strand
+    //     return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
+    // } 
 
     // If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the junction
-    if(index == 4) { // These tests make sure sink points away from junction, since at this point we know we found a sink.
-        if (dist % 2 != 1) {
-            printDistAndExtension(dist, maxDist, index);
-        }
-        assert(dist % 2 == 1);  
-    } else{
-        if (dist % 2 != 0) {
-            printDistAndExtension(dist, maxDist, index);
-        }
-        assert(dist % 2 == 0);
-    }
+    // if(index == 4) { // These tests make sure sink points away from junction, since at this point we know we found a sink.
+    //     if (dist % 2 != 1) {
+    //         printDistAndExtension(dist, maxDist, index);
+    //     }
+    //     assert(dist % 2 == 1);  
+    // } else{
+    //     if (dist % 2 != 0) {
+    //         printDistAndExtension(dist, maxDist, index);
+    //     }
+    //     assert(dist % 2 == 0);
+    // }
 
     return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // return the sink!
 }
