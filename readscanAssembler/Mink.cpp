@@ -31,7 +31,6 @@ Then, type ./mink, followed by the following arguments:
 -max_read_length <>, upper bound on the size of a read
 -estimated_kmers <>, number of number of distinct kmers.  This will be directly used to size the bloom filter so try to have a good estimate.
 -fp <>, false positive rate, default .01
--j j, j = 0 corresponds to taking direct extensions of the reads, j = 1 is extensions of extensions, etc. Default value 1
 -file_prefix <>, used for junctions file and contigs file and graph file
 --two_hash, if this option is selected a bigger bloom filter with only two hash functions is used
 -bloom_file <>, used to shortcut loading the filter if you already have it on file
@@ -52,7 +51,7 @@ file_prefix.contigs, file_prefix.graph.
 void argumentError(){
     fprintf (stderr,"Usage:\n");
     fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -file_prefix <prefix>");
-    fprintf(stderr, "\nOptional arguments: --fastq -fp rate <rate> -j <j>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
+    fprintf(stderr, "\nOptional arguments: --fastq -fp rate <rate>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
 int handle_arguments(int argc, char *argv[]){
@@ -73,8 +72,8 @@ int handle_arguments(int argc, char *argv[]){
                 estimated_kmers = atoll(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-fp")) //false posiive rate
                 fpRate = atof(argv[i+1]), i++;
-        else if(0 == strcmp(argv[i] , "-j")) //value of j for jchecking
-                j = atoi(argv[i+1]), i++;
+        // else if(0 == strcmp(argv[i] , "-j")) //value of j for jchecking
+        //         j = atoi(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-file_prefix")) //file prefix used for output files
                 file_prefix = string(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "--two_hash")) //use two hash function BF instead of optimal size BF
@@ -147,7 +146,7 @@ int handle_arguments(int argc, char *argv[]){
 
     printf("False positive rate: %f\n", fpRate);
 
-    printf("j: %d \n", j);
+    // printf("j: %d \n", j);
     
     printf("File prefix: %s\n", &file_prefix[0]);
 

@@ -255,7 +255,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     }
     
     //After the scan loop, these will store the needed info about the junction found
-    BfSearchResult sinkResult, juncResult;
+    // BfSearchResult sinkResult, juncResult;
     int nextJuncDist, nextJuncExtIndex;
 
     //if we're at or past the position where the sink would be, record the value for later use
@@ -263,10 +263,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
         if(dist > maxDist){ // dist >= maxDist should really only occur iff dist == maxDist. Otherwise maxDist pointed to a reverse kmer as a sink, which is wrong.
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
-            std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
-            printDistAndExtension(dist, maxDist, index);
+            // std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
+            printDistAndExtension(dist, maxDist, index, startKmer);
         }
-        sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // set up sink result if we are at dist == maxDist -> the sink
+        // sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // set up sink result if we are at dist == maxDist -> the sink
+        assert(dist <= maxDist);
     }
 
     // Scan forward until maxDist
@@ -275,8 +276,12 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
         //move forward if possible
         int validExtension = getValidJExtension(doubleKmer);
-        assert(validExtension != -1 && validExtension != -2); // We cannot find a sink closer than maxDist!!
-    
+        if (validExtension < 0){ // We cannot find a sink closer than maxDist!!
+            printDistAndExtension(dist, maxDist, index, startKmer);
+            assert(validExtension != -1);
+            assert(validExtension != -2); 
+        }
+
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
         doubleKmer.forward(validExtension); 
         contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
@@ -287,8 +292,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break; //if at maxDist, break the loop.
         }
         if (isJunction(doubleKmer.revcompKmer)) {
-            std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
-            printDistAndExtension(dist, maxDist, index);
+            std::cout << "Found a reverse overlap with no indication of a linking read! Assuming no real connection.\n";
+            printDistAndExtension(dist, maxDist, index, startKmer);
         }
 
 
@@ -298,9 +303,10 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break; // break if at maxDist
         }
         if (isJunction(doubleKmer.kmer)) {
-            std::cout << "Found a sequence overlap with no indication of a linking read! Assuming no real connection.\n";
-            printDistAndExtension(dist, maxDist, index);
+            std::cout << "Found a forward overlap with no indication of a linking read! Assuming no real connection.\n";
+            printDistAndExtension(dist, maxDist, index, startKmer);
         }
+        
     }
 
     // If we get here, we must not have found a junction. Make sure it looks like a sink, and return it.
@@ -329,7 +335,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // return the sink!
 }
 
-void JunctionMap::printDistAndExtension(int dist, int maxDist, int index) {
+void JunctionMap::printDistAndExtension(int dist, int maxDist, int index, kmer_type kmer) {
+    // std::cout << "Searching from kmer " << print_kmer(kmer) << "\n";
     std::cout << "Dist: " << dist << ", maxDist: " << maxDist << "\n";
     std::cout << "Ext: " << index << "\n";
 }

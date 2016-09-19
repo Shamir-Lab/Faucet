@@ -32,7 +32,7 @@ private:
 
     
 public:
-    void printDistAndExtension(int dist, int maxDist, int index);
+    void printDistAndExtension(int dist, int maxDist, int index, kmer_type kmer);
  
     void buildLinearRegions(ContigGraph* contigGraph); //Builds node graph for any connected component that has branching
     void buildBranchingPaths(ContigGraph* contigGraph); //For connected components that have no branching at all- builds contig graph

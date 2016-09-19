@@ -50,6 +50,25 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
       }
     }
   }
+
+  // try RC direction
+  readKmer.doubleKmer.reverse();
+  readKmer.direction = !readKmer.direction;
+  real_ext = readKmer.getRealExtension();
+  real = readKmer.getKmer();
+  for(int nt=0; nt<4; nt++) {//for each extension
+    kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
+    if(real_ext != test_ext){//if the alternate and real extensions are different- note that I took out the other two distinction checks
+      if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
+      { 
+        NbJCheckKmer++;
+        if(jchecker->jcheck(test_ext)){//if the branch jchecks
+            return true;
+        }
+      }
+    }
+  }
+
   return false;  
 }
 
@@ -72,12 +91,15 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
         // std::cout << "max spacer distance surpassed\n";
         return true;
       }
+      // ReadKmer* rcReadKmer = new ReadKmer(readKmer);
+      // rcReadKmer->doubleKmer.reverse();
+      // rcReadKmer->direction = !rcReadKmer->direction;
       if(testForJunction(*readKmer)){
         // std::cout << "new BF junction found\n";
         return true;
       }
       NbProcessed++;
-
+      // delete rcReadKmer;
   }
   return false;
 }
@@ -196,8 +218,8 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
       result.push_back(add_fake_junction(read));
       // std::cout << "added fake junction" << std::endl;
   }
-  //If there was at least one junction, point the last junction found to the end of the read
   else {
+    //If there was at least one junction, point the last junction found to the end of the read
     lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
     // std::cout << "some junction exists, connecting with end of read" << std::endl;
   }
