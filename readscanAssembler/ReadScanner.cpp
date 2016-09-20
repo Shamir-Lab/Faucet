@@ -52,22 +52,22 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
   }
 
   // try RC direction
-  readKmer.doubleKmer.reverse();
-  readKmer.direction = !readKmer.direction;
-  real_ext = readKmer.getRealExtension();
-  real = readKmer.getKmer();
-  for(int nt=0; nt<4; nt++) {//for each extension
-    kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
-    if(real_ext != test_ext){//if the alternate and real extensions are different- note that I took out the other two distinction checks
-      if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
-      { 
-        NbJCheckKmer++;
-        if(jchecker->jcheck(test_ext)){//if the branch jchecks
-            return true;
-        }
-      }
-    }
-  }
+  // readKmer.doubleKmer.reverse();
+  // readKmer.direction = !readKmer.direction;
+  // real_ext = readKmer.getRealExtension();
+  // real = readKmer.getKmer();
+  // for(int nt=0; nt<4; nt++) {//for each extension
+  //   kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
+  //   if(real_ext != test_ext){//if the alternate and real extensions are different- note that I took out the other two distinction checks
+  //     if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
+  //     { 
+  //       NbJCheckKmer++;
+  //       if(jchecker->jcheck(test_ext)){//if the branch jchecks
+  //           return true;
+  //       }
+  //     }
+  //   }
+  // }
 
   return false;  
 }
@@ -88,14 +88,13 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
       //check for a new junction, or for the max spacer dist
       if(readKmer->getTotalPos() - lastJuncPos >= maxSpacerDist-1 ){ //|| testForJunction(*readKmer)){
         //printf("Junc dist: %d", readKmer->getTotalPos() - lastJuncPos);
-        // std::cout << "max spacer distance surpassed\n";
+        // std::cout << "max spacer distance surpassed, "<< readKmer->getTotalPos() - lastJuncPos << "\n";
         return true;
       }
-      // ReadKmer* rcReadKmer = new ReadKmer(readKmer);
-      // rcReadKmer->doubleKmer.reverse();
-      // rcReadKmer->direction = !rcReadKmer->direction;
+      
       if(testForJunction(*readKmer)){
-        // std::cout << "new BF junction found\n";
+
+        // std::cout << "added "<< readKmer->directionAsString() <<" junction with index " << readKmer->getTotalPos() << std::endl;
         return true;
       }
       NbProcessed++;
@@ -206,7 +205,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
 
     int index = readKmer->getExtensionIndex(FORWARD);
     int dist = max(1, (int)(junc->dist[index]));
-
+    // std::cout << dist << std::endl;
     readKmer->advanceDist(dist); 
 
     NbProcessed++,  NbSkipped += dist-1;
@@ -221,7 +220,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   else {
     //If there was at least one junction, point the last junction found to the end of the read
     lastJunc->update(lastKmer->getExtensionIndex(FORWARD), lastKmer->getDistToEnd()-2*jchecker->j); //2*j ADDED
-    // std::cout << "some junction exists, connecting with end of read" << std::endl;
+    // std::cout << "some junction exists, connecting with "<< lastKmer->getDistToEnd()-2*jchecker->j << std::endl;
   }
   if (!no_cleaning){
     if(result.size()==2){
@@ -322,7 +321,7 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
   while (getline(solidReads, read))
   {
     getline(solidReads, read);//since it's a fasta we skip the first of every pair of lines
-    
+    // std::cout << "read" << std::endl;
     if(firstEnd){
       backJuncs1 = scanInputRead(read, no_cleaning);
     }

@@ -51,7 +51,7 @@ file_prefix.contigs, file_prefix.graph.
 void argumentError(){
     fprintf (stderr,"Usage:\n");
     fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -file_prefix <prefix>");
-    fprintf(stderr, "\nOptional arguments: --fastq -fp rate <rate>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
+    fprintf(stderr, "\nOptional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
 int handle_arguments(int argc, char *argv[]){
