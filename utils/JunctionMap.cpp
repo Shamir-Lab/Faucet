@@ -272,6 +272,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
     // Scan forward until maxDist
     // Here we know we should not ever find a sink, and we can also not find a junction, until maxDist, without violating our assumptions!
+    int returnIndex;
     while(dist < maxDist){ 
 
         //move forward if possible
@@ -286,51 +287,56 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         doubleKmer.forward(validExtension); 
         contig += getNucChar(validExtension); //include this in the contig regardless of which way the end junction faces
         
-        dist++;
         //handle backward junction case
-        if (dist == maxDist) { 
-            break; //if at maxDist, break the loop.
+        dist++; // increment dist
+        //  reverse doublekmer to accurately reflect that we're considering the backwards case
+        doubleKmer.reverse(); 
+        // For the backwards case the return index should point to the last nucleotide seen; save this
+        returnIndex = lastNuc;
+        if (dist == maxDist) {  //if at maxDist, break the loop.
+            break;         
         }
-        if (isJunction(doubleKmer.revcompKmer)) {
-            std::cout << "Found a reverse overlap with no indication of a linking read! Assuming no real connection.\n";
-            printDistAndExtension(dist, maxDist, index, startKmer);
+        if (isJunction(doubleKmer.kmer)) { // If not at maxDist, but found a junction
+            int nextExt = getValidJExtension(doubleKmer);
+            // assert that the junction is a spacer : must have exactly one valid extension
+            assert(validExtension != -1 && validExtension != -2); 
+            return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }
 
-
-        dist++;
         //handle forward junction case
-        if (dist == maxDist) {
-            break; // break if at maxDist
+        dist++;
+        // point kmer back forward again to accurately reflect what we're checking
+        doubleKmer.reverse();
+        returnIndex = 4; // Now return index is 4, since we follow back extension of this kmer to get back
+        if (dist == maxDist) { //if at maxDist, break the loop.
+            break; 
         }
         if (isJunction(doubleKmer.kmer)) {
-            std::cout << "Found a forward overlap with no indication of a linking read! Assuming no real connection.\n";
-            printDistAndExtension(dist, maxDist, index, startKmer);
+            int nextExt = getValidJExtension(doubleKmer);
+            assert(validExtension != -1 && validExtension != -2);
+            return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }
-        
     }
 
-    // If we get here, we must not have found a junction. Make sure it looks like a sink, and return it.
     assert(dist == maxDist); // This just checks the loop logic
     
-    if(isJunction(doubleKmer.kmer)){ // if found a junction, return it!
-        return BfSearchResult(doubleKmer.kmer, true, 4, dist, contig);
+    // If we are now at a junction, then we found one exactly where expected- return it!
+    if(isJunction(doubleKmer.kmer)){ 
+        return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
     }
-    // if(isJunction(doubleKmer.revcompKmer)){ // in case k-mer is 'problematic, pseudo-palindromic' & puts us on reverse strand
-    //     return BfSearchResult(doubleKmer.revcompKmer, true, lastNuc, dist, contig);
-    // } 
 
-    // If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the junction
-    // if(index == 4) { // These tests make sure sink points away from junction, since at this point we know we found a sink.
-    //     if (dist % 2 != 1) {
-    //         printDistAndExtension(dist, maxDist, index);
-    //     }
-    //     assert(dist % 2 == 1);  
-    // } else{
-    //     if (dist % 2 != 0) {
-    //         printDistAndExtension(dist, maxDist, index);
-    //     }
-    //     assert(dist % 2 == 0);
-    // }
+    //If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the initial junction
+    if(index == 4) { // if we initially went backwards, sinks should be at odd distances
+        if (dist % 2 != 1) {
+            printDistAndExtension(dist, maxDist, index, doubleKmer.kmer);
+        }
+        assert(dist % 2 == 1);  
+    } else{ // if we initially went forward, sinks should be at even distances
+        if (dist % 2 != 0) {
+            printDistAndExtension(dist, maxDist, index, doubleKmer.kmer);
+        }
+        assert(dist % 2 == 0);
+    }
 
     return BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // return the sink!
 }
