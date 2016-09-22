@@ -265,28 +265,41 @@ bool Contig::isDegenerateLoop(){
 bool Contig::checkValidity(){
 	if(node1_p){
 		if(node1_p->contigs[ind1] != this){
-			printf("CONTIG_ERROR: adjacent node at specified index doesn't point back to this contig.\n");
-			std::cout << "At " << getFastGName(true) << "\n";			
-			return false;
+			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
+			std::cout << "Expected at extension "<< ind1 << ", " << getFastGName(true) << "\n";	
+			std::cout << "node1_p is " << node1_p << std::endl;			
+			std::cout << "contig is " << this << ", pointed to is " << node1_p->contigs[ind1] << std::endl;
+			for (int i = 0; i<5; i++){
+				if (node1_p->contigs[i] == this){
+					std::cout << "contig is actually at extension " << i << std::endl;
+				}
+			}		
+			// return false;
 		}
 		if(getSide(node1_p, ind1) != 1 && !isDegenerateLoop()){
 			printf("CONTIG_ERROR: getSide incorrect on node1p, ind1.\n");
 			std::cout << "Node1: " << node1_p << ", Ind1: " << ind1 << ", Side: " << getSide(node1_p, ind1) << "\n";
 			std::cout << "Node2: " << node2_p << ", Ind2: " << ind2 << ", Side: " << getSide(node2_p, ind2) << "\n";
-			return false;
+			// return false;
 		}
 	}
 	if(node2_p){
+		std::cout << "there is a node 2 ptr\n";
 		if(node2_p->contigs[ind2] != this){
-			printf("CONTIG_ERROR: adjacent node at specified index doesn't point back to this contig.\n");
-			std::cout << "At " << getFastGName(true) << "\n";
-			return false;
+			printf("CONTIG_ERROR: adjacent node 2 at specified index doesn't point back to this contig.\n");
+			std::cout << "Expected at extension "<< ind1 << ", " << getFastGName(true) << "\n";	
+			for (int i = 0; i<5; i++){
+				if (node2_p->contigs[i] == this){
+					std::cout << "contig is actually at extension " << i << std::endl;
+				}
+			}		
+			// return false;
 		}
 		if(getSide(node2_p, ind2) != 2 && !isDegenerateLoop()){
 			printf("CONTIG_ERROR: getSide incorrect on node2p, ind2.\n");
 			std::cout << "Node1: " << node1_p << ", Ind1: " << ind1 << ", Side: " << getSide(node1_p, ind1) << "\n";
 			std::cout << "Node2: " << node2_p << ", Ind2: " << ind2 << ", Side: " << getSide(node2_p, ind2) << "\n";
-			return false;
+			// return false;
 		}
 	}
 	return true;

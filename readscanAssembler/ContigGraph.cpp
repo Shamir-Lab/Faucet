@@ -250,9 +250,10 @@ bool ContigGraph::checkGraph(){
             return false;
         }
         for(int i = 0; i < 5; i++){
+            std::cout << "checking contigs out of node " << node << std::endl;         
             if(node->contigs[i]){
                 if(!node->contigs[i]->checkValidity()){
-                    return false;
+                    // return false;
                 }
             }
         }                

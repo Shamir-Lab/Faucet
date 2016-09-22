@@ -49,13 +49,28 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                         if(far_kmer!=kmer){ //complex junction- should create a contig node
                             //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
                             Junction* far_junc = getJunction(far_kmer);
-                            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet
-                            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
-                        }else{ // inverted repeat - looped back to source junction
-                            contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);                            
+                            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig node on the other side if it doesn't exist yet
+                            
+                            if(far_kmer != revcomp(kmer)){
+                                // connect 2 distinct nodes
+                                contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
+                                // std::cout << "connected two nodes\n";                            
+                            }
+                            else {
+                                // inverted repeat - looped back to source junction, in reverse orientation
+                                contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
+                                // std::cout << "connected inverted repeat\n";                            
+                            }
+
+                        }else{ // start and end at same k-mer, coming in at 4 extension in forward orientation                            
+                            contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
+                            // std::cout << "closed a loop\n";                            
+
                         }
                     }else{
                         contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
+                        // std::cout << contig->ind1 << ", "<< contig->ind2 <<" connected node to nullptr\n";                            
+
                     }
                 }
             }
@@ -167,7 +182,8 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
         contig->setIndices(startIndex, result.index);
     }
     else{
-        contig->setIndices(startIndex, 4);
+        // std::cout << "175\n";
+        contig->setIndices(startIndex, -1);
     }
 
     //destroy all kmers found
@@ -219,6 +235,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
         if(isJunction(doubleKmer.kmer)){ // if the initial reverse kmer is already a junction, we found a contig! 
+            //std::cout << "227\n";
             return BfSearchResult(doubleKmer.kmer, 
                 true,  // is a node
                 4, // the junctions point away from each other; thus, the start junction is on the backward extension of the found junction
@@ -236,21 +253,23 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             contig += getNucChar(code2nucleotide(doubleKmer.kmer, i)); // Add the current k characters to the contig
         }
         if(isJunction(doubleKmer.revcompKmer)){
+            //std::cout << "245\n";
             return BfSearchResult(doubleKmer.revcompKmer, 
                 true, // is a node
                 lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
                 1, // distance 1
                 contig);
         }
-        if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
-            return BfSearchResult(doubleKmer.revcompKmer, 
-                false, // is a sink
-                lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
-                1, // distance 1
-                contig);        
-        }
+        // if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
+        //     return BfSearchResult(doubleKmer.revcompKmer, 
+        //         false, // is a sink
+        //         lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
+        //         1, // distance 1
+        //         contig);        
+        // }
         dist = 2; // if we arrived here, we didn't return above, and can search at distance 2.
         if(isJunction(doubleKmer.kmer)){
+            //std::cout << "261\n";
             return BfSearchResult(doubleKmer.kmer, 
                 true,  // is a node
                 4,  // backward extension
@@ -310,6 +329,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         if (isJunction(doubleKmer.kmer)) { // If not at maxDist, but found a junction
             assert(getValidJExtension(doubleKmer) >= 0); // This should be a spacer. Thus there should be exactly one real extension.
+            //std::cout << "321\n";
             return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }
 
@@ -323,6 +343,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         if (isJunction(doubleKmer.kmer)) {
             assert(getValidJExtension(doubleKmer) >= 0); // this should be a spacer- thus there should be exactly one real extension
+            //std::cout << "335\n";
             return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }
     }
@@ -331,21 +352,22 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     
     // If we are now at a junction, then we found one exactly where expected- return it!
     if(isJunction(doubleKmer.kmer)){ 
+        //std::cout << "344\n";
         return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
     }
 
     //If there was no junction, this must be a sink. Check that the parity works out for the sink to point away from the initial junction
-    if(index == 4) { // if we initially went backwards, sinks should be at odd distances
-        if (dist % 2 != 1) {
-            printDistAndExtension(dist, maxDist, index, doubleKmer.kmer);
-        }
-        assert(dist % 2 == 1);  
-    } else{ // if we initially went forward, sinks should be at even distances
-        if (dist % 2 != 0) {
-            printDistAndExtension(dist, maxDist, index, doubleKmer.kmer);
-        }
-        assert(dist % 2 == 0);
-    }
+    // if(index == 4) { // if we initially went backwards, sinks should be at odd distances
+    //     if (dist % 2 != 1) {
+    //         printDistAndExtension(dist, maxDist, index, doubleKmer.kmer);
+    //     }
+    //     assert(dist % 2 == 1);  
+    // } else{ // if we initially went forward, sinks should be at even distances
+    //     if (dist % 2 != 0) {
+    //         printDistAndExtension(dist, maxDist, index, doubleKmer.kmer);
+    //     }
+    //     assert(dist % 2 == 0);
+    // }
 
     // Where we are is probably a sink.  Thus save the  corresponding result.
     BfSearchResult sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // return the sink!
@@ -365,6 +387,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         //move forward if possible
         int validExtension = getValidJExtension(doubleKmer);
         if (validExtension < 0){ // If we find weird BF behavior, we must be off of the real portion of the sequence.
+          //std::cout << "368\n";
           return sinkResult; // return a sink!
         }
 
@@ -381,8 +404,10 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             int backDist = getJunction(juncResult.kmer)->dist[juncResult.index];
             int overlap = backDist + maxDist - juncResult.distance;
             if (overlap >= 0) { // If there is overlap, return the junction.
+                //std::cout << "385\n";
                 return juncResult;
             } else { // If there is no overlap, return the sink.
+                //std::cout << "388\n";
                 return sinkResult;
             }
         }
@@ -396,13 +421,17 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             int backDist = getJunction(juncResult.kmer)->dist[juncResult.index];
             int overlap = backDist + maxDist - juncResult.distance;
             if (overlap >= 0) { // If there is overlap, return the junction
+                //std::cout << "402\n";
                 return juncResult;
             } else { // If there is no overlap, return the sink.
+                //std::cout << "405\n";
                 return sinkResult;
             }
         }
+        //std::cout << "dist is " <<  dist <<"\n";
     }
     // If we pass maxDist by a read length and still see nothing, we must have been at a real sink.
+    //std::cout << "411\n";
     return sinkResult;
 }
 
