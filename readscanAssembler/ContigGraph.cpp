@@ -250,7 +250,7 @@ bool ContigGraph::checkGraph(){
             return false;
         }
         for(int i = 0; i < 5; i++){
-            std::cout << "checking contigs out of node " << node << std::endl;         
+            // std::cout << "checking contigs out of node " << node << std::endl;         
             if(node->contigs[i]){
                 if(!node->contigs[i]->checkValidity()){
                     // return false;
@@ -363,8 +363,7 @@ void ContigGraph::deleteContig(Contig* contig){
 
 
 void ContigGraph::cutPath(ContigNode* node, int index){
-    //std::cout << "Node: " << node << "\n";
-    //std::cout << "Cov: \n" << node->getCoverage(0) << "\n";
+    std::cout << "called cutPath\n";
     if(!node->contigs[index]){
         printf("ERROR: tried to cut nonexistant path.");
     }
@@ -374,8 +373,9 @@ void ContigGraph::cutPath(ContigNode* node, int index){
     int side = contig->getSide(node, index);
     int otherSide = 3 - side;
     //printf("A\n");
-    if(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2){ //to handle hairpins
+    if(contig->node1_p == contig->node2_p){ //to handle inverted repeats and loops
        // printf("A1\n");
+        std::cout << "cut path for loop/repeat\n";
         int otherIndex = contig->getIndex(otherSide);
         contig->setSide(side, nullptr); //set to point to null instead of the node
         contig->setSide(otherSide, nullptr);
@@ -383,6 +383,7 @@ void ContigGraph::cutPath(ContigNode* node, int index){
         node->breakPath(otherIndex);
     }
     else{
+        std::cout << "cut path for single extension\n";
         //printf("A2\n");
         contig->setSide(side, nullptr);
         node->breakPath(index);
@@ -582,16 +583,21 @@ int ContigGraph::deleteTips(){
     int numDeleted = 0;
     it = nodeMap.begin();
     while(it != nodeMap.end()){  
+        // std::cout << "585\n";
         bool collapsed = false;      
         ContigNode* node = &it->second;
+        std::cout << "node originally has outdegree " << node->numPathsOut() << std::endl;
         kmer_type kmer = it->first;
         for(int i = 0; i < 5; i++){ 
+            // std::cout << "590\n";
             Contig* contig = node->contigs[i];
             if(contig){
+                std::cout << "593\n";
                 if(isTip(node, i) && i != 4){ // just means it's short and has no node at other end
                     double cov = contig->getAvgCoverage();
                     std::pair <Contig*, Contig*> Pair = getMinMaxForwardExtensions(node, "coverage");
                     Contig * Q = Pair.second; 
+                    std::cout << "598\n";
                     // if (i != node->indexOf(Q)){
                     //     ContigJuncList origJuncs = Q->contigJuncs;
                     //     std::cout << "before transferring tip coverage of "<< cov << " over length "<< contig->getSeq().length() 
@@ -605,18 +611,24 @@ int ContigGraph::deleteTips(){
                     //     Q->contigJuncs.printJuncValues();
                     // }
                     // add cov to its contigJuncList using getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length())
-                    cutPath(node,i);              
-                    deleteContig(contig);
-                    numDeleted++;
+                    if (node->numPathsOut() > 1){ // only remove tip if some alternative remains
+                        std::cout << "going to remove "<< contig <<" 614\n";
+                        cutPath(node,i);              
+                        deleteContig(contig);
+                        numDeleted++;
+                    }
                 }else if(isTip(node,i)){ // i = 4
+                    std::cout << "616\n";
                     deleteContig(contig);
                     testAndCutIfDegenerate(node);
+                    // std::cout << "619\n";
                     collapsed = true; 
-                    break;   
+                    // break;   
                 }
 
             }
-            if (node->numPathsOut()==1){
+            if (node->numPathsOut()==1 && node->contigs[4]){
+                std::cout << "626\n";
                 collapseNode(node, kmer);
                 collapsed = true; 
                 break;        
@@ -624,6 +636,7 @@ int ContigGraph::deleteTips(){
 
         }
         if (collapsed){
+            // std::cout << "634\n";
             it = nodeMap.erase(it);     
         }
         else{
@@ -1239,6 +1252,7 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
         int backSide = backContig->getSide(node, 4);
         int frontSide = frontContig->getSide(node, fronti);
 
+        std::cout << "going to concatenate " << backContig << " and " << frontContig << std::endl; 
         Contig* newContig = backContig->concatenate(frontContig, backSide, frontSide);
         if(backNode){
                backNode->contigs[newContig->ind1] = newContig;

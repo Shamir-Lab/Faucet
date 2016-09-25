@@ -42,6 +42,7 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                 if(junction.getCoverage(i) > 0 && !startNode->contigs[i]){ //for every valid path out which doesn't already have a contig
                     //printf("Building contig from index %d\n", i);
                     Contig* contig = getContig(junction, kmer, i);
+                    assert(contig->getSeq().length()>=sizeKmer);
                     ContigNode* otherNode = nullptr;
                     kmer_type far_kmer = contig->getSideKmer(2);
                     if (isJunction(far_kmer)){
@@ -179,7 +180,16 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
 
     contig->setContigJuncs(ContigJuncList(contigString, distances, coverages));
     if(result.isNode){
-        contig->setIndices(startIndex, result.index);
+        if (result.kmer == revcomp(startKmer) && index != 4 && result.index != 4){ //inverted repeat - come back to junction on RC
+            // change to complement index because come in on RC direction
+            contig->setIndices(startIndex, (result.index+2)%4 );
+        }
+        // else if (result.kmer == startKmer){ // loop - re-enter junction on 4 extension
+        //     contig->setIndices(startIndex, result.index);
+        // } 
+        else { // connecting two different junctions
+            contig->setIndices(startIndex, result.index);
+        }
     }
     else{
         // std::cout << "175\n";
@@ -370,7 +380,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     // }
 
     // Where we are is probably a sink.  Thus save the  corresponding result.
-    BfSearchResult sinkResult = BfSearchResult(doubleKmer.kmer, false, 5, dist, contig); // return the sink!
+    BfSearchResult sinkResult = BfSearchResult(doubleKmer.kmer, false, 4, dist, contig); // return the sink!
 
     /**
     * This section handles the strange and relatively rare case where two adjacent junctions both point to sinks before

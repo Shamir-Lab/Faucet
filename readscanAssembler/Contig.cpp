@@ -263,17 +263,20 @@ bool Contig::isDegenerateLoop(){
 }
 
 bool Contig::checkValidity(){
+	std::cout << "ind1 " << ind1 << ", ind2 " << ind2 << std::endl;
 	if(node1_p){
+		std::cout << "there is a node 1 ptr\n";
 		if(node1_p->contigs[ind1] != this){
 			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
-			std::cout << "Expected at extension "<< ind1 << ", " << getFastGName(true) << "\n";	
+			std::cout << "Expected at extension "<< ind1 << "\n";	
 			std::cout << "node1_p is " << node1_p << std::endl;			
 			std::cout << "contig is " << this << ", pointed to is " << node1_p->contigs[ind1] << std::endl;
 			for (int i = 0; i<5; i++){
 				if (node1_p->contigs[i] == this){
 					std::cout << "contig is actually at extension " << i << std::endl;
+					std::cout << "other ind is " << ind2 << std::endl;
 				}
-			}		
+			}	
 			// return false;
 		}
 		if(getSide(node1_p, ind1) != 1 && !isDegenerateLoop()){
@@ -287,10 +290,13 @@ bool Contig::checkValidity(){
 		std::cout << "there is a node 2 ptr\n";
 		if(node2_p->contigs[ind2] != this){
 			printf("CONTIG_ERROR: adjacent node 2 at specified index doesn't point back to this contig.\n");
-			std::cout << "Expected at extension "<< ind1 << ", " << getFastGName(true) << "\n";	
+			std::cout << "Expected at extension "<< ind2 << "\n";	
+			std::cout << "node2_p is " << node2_p << std::endl;			
+			std::cout << "contig is " << this << ", pointed to is " << node2_p->contigs[ind2] << std::endl;
 			for (int i = 0; i<5; i++){
 				if (node2_p->contigs[i] == this){
 					std::cout << "contig is actually at extension " << i << std::endl;
+					std::cout << "other ind is " << ind1 << std::endl;
 				}
 			}		
 			// return false;
@@ -302,7 +308,44 @@ bool Contig::checkValidity(){
 			// return false;
 		}
 	}
+	if (node1_p && node2_p){
+		if (node1_p->contigs[ind1]->getSeq() != node2_p->contigs[ind2]->getSeq()){
+			std::cout << "different contig sequences\n";
+			std::cout << "node 1 contig length " << node1_p->contigs[ind1]->getSeq().length() << ", " <<
+			"node 2 contig length " << node2_p->contigs[ind2]->getSeq().length() <<std::endl;		
+		}
+		if (node1_p->contigs[ind1]->getSeq() == revcomp_string(node2_p->contigs[ind2]->getSeq())){
+			std::cout << "contig sequences are RCs\n";
+		}
+		if (node1_p->contigs[ind1]->getSeq() == revcomp_string(node1_p->contigs[ind1]->getSeq())){
+			std::cout << "node1 contig is palindrome\n";
+		}
+		if (node2_p->contigs[ind2]->getSeq() == revcomp_string(node2_p->contigs[ind2]->getSeq())){
+			std::cout << "node2 contig is palindrome\n";
+		}
+		
+		if (node1_p == node2_p){
+			std::cout << "nodes are equal\n";
+		}else{
+			std::cout << "nodes are not equal\n";
+		}
+
+		if(node1_p->contigs[ind1] != this){
+			std::cout << "node 1 doesn't match\n";
+		}else{
+			std::cout << "node 1 does match\n";
+		}
+		if(node2_p->contigs[ind2] != this){
+			std::cout << "node 2 doesn't match\n";
+		}else{
+			std::cout << "node 2 does match\n";
+		}
+
+
+	}
+	std::cout << std::endl;
 	return true;
+	
 }
 
 string Contig::getFastGName(bool RC){

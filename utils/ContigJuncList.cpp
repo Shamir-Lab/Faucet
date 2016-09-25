@@ -98,6 +98,7 @@ std::list<JuncResult> ContigJuncList::getJuncResults(bool startForward, int star
 void ContigJuncList::reverse(){
     std::reverse(coverages.begin(), coverages.end());
     std::reverse(distances.begin(), distances.end());
+    // std::cout << seq << ", " << revcomp_string(seq) << std::endl;
     seq = revcomp_string(seq);
 }
 
