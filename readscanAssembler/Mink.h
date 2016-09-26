@@ -12,7 +12,7 @@
 #include "ContigGraph.h"
 
 float fpRate = .01;
-int j = 1;
+int j = 0;
 
 string read_load_file;
 string read_scan_file;

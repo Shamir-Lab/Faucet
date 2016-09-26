@@ -629,8 +629,16 @@ int ContigGraph::deleteTips(){
             }
             if (node->numPathsOut()==1 && node->contigs[4]){
                 std::cout << "626\n";
-                collapseNode(node, kmer);
-                collapsed = true; 
+                for (int i = 0; i < 4; i++){ // find the lone remaining contig
+                    contig = node->contigs[i]; 
+                    if (contig) break;
+                }
+                if (!(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2)){
+                    // both nodes and indices will only be equal together if we have a palindrome -
+                    // in which case we cannot collapse; otherwise, do collapse
+                    collapseNode(node, kmer);
+                    collapsed = true; 
+                }
                 break;        
             }
 
