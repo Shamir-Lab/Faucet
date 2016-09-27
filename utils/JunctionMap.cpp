@@ -46,33 +46,61 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                     ContigNode* otherNode = nullptr;
                     kmer_type far_kmer = contig->getSideKmer(2);
                     if (isJunction(far_kmer)){
-
-                        if(far_kmer!=kmer){ //complex junction- should create a contig node
-                            //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
-                            Junction* far_junc = getJunction(far_kmer);
-                            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig node on the other side if it doesn't exist yet
-                            
-                            if(far_kmer != revcomp(kmer)){
-                                // connect 2 distinct nodes
-                                contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
-                                // std::cout << "connected two nodes\n";                            
-                            }
-                            else {
-                                // inverted repeat - looped back to source junction, in reverse orientation
-                                contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
-                                // std::cout << "connected inverted repeat\n";                            
-                            }
-
-                        }else{ // start and end at same k-mer, coming in at 4 extension in forward orientation                            
+                        if (far_kmer == kmer){ 
+                            std::cout << "50\n";
+                            std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
-                            // std::cout << "closed a loop\n";                            
-
+                        }else if (far_kmer == revcomp(kmer)){
+                            std::cout << "54\n";
+                            std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
+                        }else{
+                            std::cout << "58\n";
+                            std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            Junction* far_junc = getJunction(far_kmer);
+                            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);
+                            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                         }
-                    }else{
-                        contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
-                        // std::cout << contig->ind1 << ", "<< contig->ind2 <<" connected node to nullptr\n";                            
-
+                    }else{ // far node not junction - either loop/IR or tip
+                        if (far_kmer == revcomp(kmer)){ // loop or IR - depends on indices
+                            std::cout << "66\n";
+                            std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
+                        }else{ // tip - otherNode left as nullptr
+                            std::cout << "70\n";
+                            std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
+                        }
                     }
+
+
+                        // if(far_kmer!=kmer){ //complex junction- should create a contig node
+
+                        //     Junction* far_junc = getJunction(far_kmer);
+                        //     otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig node on the other side if it doesn't exist yet
+                            
+                        //     if(far_kmer != revcomp(kmer)){
+                        //         // connect 2 distinct nodes
+                        //         contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
+
+                        //         // std::cout << "connected two nodes\n";                            
+                        //     }
+                        //     else {
+                        //         // inverted repeat - looped back to source junction, in reverse orientation
+                        //         contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
+                        //         // std::cout << "connected inverted repeat\n";                            
+                        //     }
+
+                        // }else{ // start and end at same k-mer, coming in at 4 extension in forward orientation                            
+                        //     contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
+                        //     std::cout << "closed a loop\n";                            
+
+                        // }
+                    // }else{
+                    //     contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
+                    //     // std::cout << contig->ind1 << ", "<< contig->ind2 <<" connected node to nullptr\n";                            
+
+                    // }
                 }
             }
         }
@@ -179,21 +207,43 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     }
 
     contig->setContigJuncs(ContigJuncList(contigString, distances, coverages));
+    
     if(result.isNode){
-        if (result.kmer == revcomp(startKmer) && index != 4 && result.index != 4){ //inverted repeat - come back to junction on RC
+        if (result.kmer == revcomp(startKmer) ){ //inverted repeat - come back to junction on RC
             // change to complement index because come in on RC direction
-            contig->setIndices(startIndex, (result.index+2)%4 );
+            if (index != 4 && result.index != 4){
+                std::cout << "187\n";
+                std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+                contig->setIndices(startIndex, (result.index+2)%4 );
+            }else{ // inverted repeat on back
+                std::cout << "190\n";
+                std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+                contig->setIndices(startIndex, result.index );
+            }
         }
-        // else if (result.kmer == startKmer){ // loop - re-enter junction on 4 extension
-        //     contig->setIndices(startIndex, result.index);
-        // } 
+        else if (result.kmer == startKmer){ // loop - going from front to back
+            std::cout << "192\n";
+            std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+            contig->setIndices(startIndex, 4);
+        } 
         else { // connecting two different junctions
+            std::cout << "197\n";
+            std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
             contig->setIndices(startIndex, result.index);
         }
     }
     else{
+        if (result.kmer == revcomp(startKmer)){ // loop - going from back to front
+            std::cout << "204\n";
+            std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+            contig->setIndices(startIndex, (result.index+2)%4);
+        }
+        else{ // a tip - not a junction and not an RC of one
+            std::cout << "209\n";
+            std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+            contig->setIndices(startIndex, -1);
+        }
         // std::cout << "175\n";
-        contig->setIndices(startIndex, -1);
     }
 
     //destroy all kmers found
@@ -206,7 +256,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
 
     kmers_to_destroy.clear();
 
-     return contig;
+    return contig;
 }
 
 

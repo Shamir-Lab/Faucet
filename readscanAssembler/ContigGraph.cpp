@@ -301,8 +301,12 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
     std::vector<double> covs;
     std::vector<int> lengths;
     int min_index, max_index;
-    for(int i = 0; i != inds.size(); i++) {
+    for(int i = 0; i < inds.size(); i++) {
+        std::cout << "i is " << i << ", inds[i] is " << inds[i] << ", node->contigs[inds[i]] is " << node->contigs[inds[i]] << std::endl;
         Contig * tig = node->contigs[inds[i]];
+        if (tig == node->contigs[(inds[i]+2)%4]){
+            std::cout << "is an inverted repeat at " << inds[i] << std::endl;
+        }
         covs.push_back(tig->getAvgCoverage());
         lengths.push_back(tig->getSeq().length());
     }
@@ -593,30 +597,12 @@ int ContigGraph::deleteTips(){
             Contig* contig = node->contigs[i];
             if(contig){
                 std::cout << "593\n";
-                if(isTip(node, i) && i != 4){ // just means it's short and has no node at other end
-                    double cov = contig->getAvgCoverage();
-                    std::pair <Contig*, Contig*> Pair = getMinMaxForwardExtensions(node, "coverage");
-                    Contig * Q = Pair.second; 
-                    std::cout << "598\n";
-                    // if (i != node->indexOf(Q)){
-                    //     ContigJuncList origJuncs = Q->contigJuncs;
-                    //     std::cout << "before transferring tip coverage of "<< cov << " over length "<< contig->getSeq().length() 
-                    //         << " on side " << contig->getSide(node) << " to contig of length " << Q->getSeq().length() << "\n";
-                    //     Q->contigJuncs.printJuncValues();
-
-                    //     ContigJuncList newJuncs = origJuncs.getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length(), Q->getSide(node));
-                    //     Q->setContigJuncs(newJuncs);
-                    //     std::cout << "after transferring tip coverage\n";
-
-                    //     Q->contigJuncs.printJuncValues();
+                if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
+                    std::cout << "going to remove "<< contig <<" 614\n";
+                    cutPath(node,i);              
+                    deleteContig(contig);
+                    numDeleted++;
                     // }
-                    // add cov to its contigJuncList using getShiftedCoverageContigJuncsRange(cov, contig->getSeq().length())
-                    if (node->numPathsOut() > 1){ // only remove tip if some alternative remains
-                        std::cout << "going to remove "<< contig <<" 614\n";
-                        cutPath(node,i);              
-                        deleteContig(contig);
-                        numDeleted++;
-                    }
                 }else if(isTip(node,i)){ // i = 4
                     std::cout << "616\n";
                     deleteContig(contig);
@@ -636,6 +622,7 @@ int ContigGraph::deleteTips(){
                 if (!(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2)){
                     // both nodes and indices will only be equal together if we have a palindrome -
                     // in which case we cannot collapse; otherwise, do collapse
+                    std::cout << "640\n";
                     collapseNode(node, kmer);
                     collapsed = true; 
                 }
