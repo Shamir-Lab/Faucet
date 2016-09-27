@@ -224,7 +224,7 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
         else if (result.kmer == startKmer){ // loop - going from front to back
             std::cout << "192\n";
             std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
-            contig->setIndices(startIndex, 4);
+            contig->setIndices(startIndex, result.index);
         } 
         else { // connecting two different junctions
             std::cout << "197\n";
