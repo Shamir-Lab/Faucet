@@ -233,10 +233,10 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
         }
     }
     else{
-        if (result.kmer == revcomp(startKmer)){ // loop - going from back to front
+        if (result.kmer == revcomp(startKmer)){ // inverted repeat on back
             std::cout << "204\n";
             std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
-            contig->setIndices(startIndex, (result.index+2)%4);
+            contig->setIndices(startIndex, result.index);//(result.index+2)%4);
         }
         else{ // a tip - not a junction and not an RC of one
             std::cout << "209\n";
