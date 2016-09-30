@@ -320,13 +320,13 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
                 1, // distance 1
                 contig);
         }
-        // if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
-        //     return BfSearchResult(doubleKmer.revcompKmer, 
-        //         false, // is a sink
-        //         lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
-        //         1, // distance 1
-        //         contig);        
-        // }
+        if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
+            return BfSearchResult(doubleKmer.revcompKmer, 
+                false, // is a sink
+                lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
+                1, // distance 1
+                contig);        
+        }
         dist = 2; // if we arrived here, we didn't return above, and can search at distance 2.
         if(isJunction(doubleKmer.kmer)){
             //std::cout << "261\n";
@@ -344,6 +344,14 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
 
     //if we're at or past the position where the sink would be, record the value for later use
     if(dist >= maxDist){ //REMOVED THE - 2 * jchecker->j
+        // must first deal with edge case of palindrome on 4 extension
+        // if (dist==2 &&  index!=4){ // doubleKmer.revcompKmer==startKmer &&
+        //     return BfSearchResult(doubleKmer.kmer, 
+        //         false,  // is a node
+        //         index, // the junctions point away from each other; thus, the start junction is on the backward extension of the found junction
+        //         1, // Distance 1
+        //         contig); 
+        // }
 
         if(dist > maxDist){ // dist >= maxDist should really only occur iff dist == maxDist. Otherwise maxDist pointed to a reverse kmer as a sink, which is wrong.
             printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);

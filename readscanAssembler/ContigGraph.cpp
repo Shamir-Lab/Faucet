@@ -592,9 +592,10 @@ int ContigGraph::deleteTips(){
         ContigNode* node = &it->second;
         std::cout << "node originally has outdegree " << node->numPathsOut() << std::endl;
         kmer_type kmer = it->first;
-        for(int i = 0; i < 5; i++){ 
+        Contig * contig;
+        for(int i = 0; i < 4; i++){ 
             // std::cout << "590\n";
-            Contig* contig = node->contigs[i];
+            contig = node->contigs[i];
             if(contig){
                 std::cout << "593\n";
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
@@ -603,32 +604,32 @@ int ContigGraph::deleteTips(){
                     deleteContig(contig);
                     numDeleted++;
                     // }
-                }else if(isTip(node,i)){ // i = 4
-                    std::cout << "616\n";
-                    deleteContig(contig);
-                    testAndCutIfDegenerate(node);
-                    // std::cout << "619\n";
-                    collapsed = true; 
-                    // break;   
                 }
-
             }
-            if (node->numPathsOut()==1 && node->contigs[4]){
-                std::cout << "626\n";
-                for (int i = 0; i < 4; i++){ // find the lone remaining contig
-                    contig = node->contigs[i]; 
-                    if (contig) break;
-                }
-                if (!(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2)){
-                    // both nodes and indices will only be equal together if we have a palindrome -
-                    // in which case we cannot collapse; otherwise, do collapse
-                    std::cout << "640\n";
-                    collapseNode(node, kmer);
-                    collapsed = true; 
-                }
-                break;        
+        }
+        if(isTip(node,4)){ // i = 4
+            std::cout << "616\n";
+            contig = node->contigs[4];
+            deleteContig(contig);
+            testAndCutIfDegenerate(node);
+            // std::cout << "619\n";
+            collapsed = true; 
+            // break;   
+        }
+        if (node->numPathsOut()==1 && node->contigs[4]){
+            std::cout << "626\n";
+            for (int i = 0; i < 4; i++){ // find the lone remaining contig
+                contig = node->contigs[i]; 
+                if (contig) break;
             }
-
+            if (!(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2)){
+                // both nodes and indices will only be equal together if we have a palindrome -
+                // in which case we cannot collapse; otherwise, do collapse
+                std::cout << "640\n";
+                collapseNode(node, kmer);
+                collapsed = true; 
+            }
+            break;        
         }
         if (collapsed){
             // std::cout << "634\n";
@@ -660,47 +661,24 @@ int ContigGraph::removeChimericExtensions(int insertSize){
 
             ContigNode * far_node = P->otherEndNode(node);
             
-            if ( ((Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && 
-                contig->getSeq().length() >= insertSize) ||
-                Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && far_node){ //&&          
+            if ( ( (Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize) || Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && far_node){ //&&          
                 // far_node && far_node!= node ) {
                 if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
                     std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
                     printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
                     
-                    kmer_type far_kmer = far_node->getKmer();
-                    int P_len = P->getSeq().length();
-                    int Q_len = Q->getSeq().length();
-                    // coverage updates - if lengths similar add P's average to Q
-                    // if (std::abs(P_len - Q_len) <= 4 || std::max(P_len,Q_len)-std::min(P_len, Q_len) <= 0.05*(std::max(P_len,Q_len))){
-                    //     double P_cov = P->getAvgCoverage(); 
-                    //     ContigJuncList  origJuncs, newJuncs;
-                       
-                    //     origJuncs = Q->contigJuncs;
-                    //     std::cout << "P cov " << P_cov << ", original juncs on Q\n";
-                    //     origJuncs.printJuncValues();
-
-                    //     newJuncs = origJuncs.getShiftedCoverageContigJuncs(P_cov);   
-                    //     Q->setContigJuncs(newJuncs);
-                    //     std::cout <<  "updated juncs\n";
-                    //     Q->contigJuncs.printJuncValues();
-                    // }
-                    // TODO(? - not sure if justified if length difference large):
-                    // if P much shorter than Q add average coverage only up to P's length
-
+                    kmer_type far_kmer = far_node->getKmer();                    
                     cutPath(node, node->indexOf(P));
                     if (node != far_node){
                         cutPath(far_node, far_node->indexOf(P)); 
-                        if(far_node->numPathsOut() == 1){
+                        if(far_node->numPathsOut() == 1 && far_node->contigs[4] && seenKmers.find(far_kmer) == seenKmers.end()){
                             collapseNode(far_node, far_kmer);         
                             seenKmers.insert(far_kmer);
                         } 
                     }                  
                     deleteContig(P);
                     
-                    
-
-                    if(node->numPathsOut() == 1){
+                    if(node->numPathsOut() == 1 && node->contigs[4] && node!=far_node){
                         collapseNode(node, kmer);                                                
                         it = nodeMap.erase(it);       
                     }else{
@@ -1232,12 +1210,18 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
     }
     if(!frontContig){
         printf("WTF no front\n");
+        return;
     }
     if(frontContig == backContig){ //circular sequence with a redundant node
         frontContig->node1_p=nullptr;
         frontContig->node2_p=nullptr;
         addIsolatedContig(*frontContig);
         delete backContig;
+    }
+
+    if (frontContig->node1_p == frontContig->node2_p && frontContig->ind1 == frontContig->ind2){
+        std::cout << "encountered palindrome extension - can't collapse\n";
+        return;
     }
     else { //normal case of collapsing a node between two other nodes
         ContigNode* backNode = backContig->otherEndNode(node);
