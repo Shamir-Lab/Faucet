@@ -302,7 +302,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
     std::vector<int> lengths;
     int min_index, max_index;
     for(int i = 0; i < inds.size(); i++) {
-        std::cout << "i is " << i << ", inds[i] is " << inds[i] << ", node->contigs[inds[i]] is " << node->contigs[inds[i]] << std::endl;
+        // std::cout << "i is " << i << ", inds[i] is " << inds[i] << ", node->contigs[inds[i]] is " << node->contigs[inds[i]] << std::endl;
         Contig * tig = node->contigs[inds[i]];
         if (tig == node->contigs[(inds[i]+2)%4]){
             std::cout << "is an inverted repeat at " << inds[i] << std::endl;
@@ -629,7 +629,7 @@ int ContigGraph::deleteTips(){
                 collapseNode(node, kmer);
                 collapsed = true; 
             }
-            break;        
+            // break;        
         }
         if (collapsed){
             // std::cout << "634\n";
@@ -653,7 +653,7 @@ int ContigGraph::removeChimericExtensions(int insertSize){
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
 
-        // always try to collapse highest coverage extension Q with lowest coverage ext. P
+        // try to collapse highest coverage extension Q onto lowest coverage ext. P
         if (node->numPathsOut() > 1 && seenKmers.find(kmer) == seenKmers.end()){ // 
             std::pair <Contig *, Contig *> Pair = getMinMaxForwardExtensions(node,"coverage");
             Contig * P = Pair.first;

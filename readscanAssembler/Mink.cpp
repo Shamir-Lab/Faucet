@@ -51,7 +51,7 @@ file_prefix.contigs, file_prefix.graph.
 void argumentError(){
     fprintf (stderr,"Usage:\n");
     fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -file_prefix <prefix>");
-    fprintf(stderr, "\nOptional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate>  --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
+    fprintf(stderr, "\nOptional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
 int handle_arguments(int argc, char *argv[]){
@@ -72,8 +72,8 @@ int handle_arguments(int argc, char *argv[]){
                 estimated_kmers = atoll(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-fp")) //false posiive rate
                 fpRate = atof(argv[i+1]), i++;
-        // else if(0 == strcmp(argv[i] , "-j")) //value of j for jchecking
-        //         j = atoi(argv[i+1]), i++;
+        else if(0 == strcmp(argv[i] , "-j")) //value of j for jchecking
+                j = atoi(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-file_prefix")) //file prefix used for output files
                 file_prefix = string(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "--two_hash")) //use two hash function BF instead of optimal size BF
