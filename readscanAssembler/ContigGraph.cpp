@@ -681,17 +681,15 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                     kmer_type far_kmer = far_node->getKmer();                    
                     cutPath(node, node->indexOf(P));
                     if (node != far_node){
-                        cutPath(far_node, far_node->indexOf(P)); 
-                        if(far_node->numPathsOut() == 1 && far_node->contigs[4] && seenKmers.find(far_kmer) == seenKmers.end()){
-                            collapseNode(far_node, far_kmer);         
-                            seenKmers.insert(far_kmer);
-                        } 
+                        cutPath(far_node, far_node->indexOf(P));  
                     }                  
                     deleteContig(P);
-                    
                     if(node->numPathsOut() == 1 && node->contigs[4] && node!=far_node){
-                        collapseNode(node, kmer);                                                
-                        it = nodeMap.erase(it);       
+                        if ((Q == contig) ||
+                            !(contig->node1_p == contig->node2_p) && !(Q->node1_p == Q->node2_p)){
+                            collapseNode(node, kmer);                                                
+                            it = nodeMap.erase(it);       
+                        }
                     }else{
                         ++it;
                     }                                                       
@@ -703,6 +701,28 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             }else{
                 ++it;
             }      
+        }
+        else if (node->numPathsOut() == 1 && seenKmers.find(kmer) == seenKmers.end()){
+            kmer_type kmer = it->first;
+            Contig * frontContig;
+            for (int i = 0; i < 4; i++){ // find the lone remaining contig
+                frontContig = node->contigs[i]; 
+                if (frontContig) break;
+            }
+            Contig * backContig = node->contigs[4];
+            if (backContig == frontContig)
+            {   // loop
+                collapseNode(node, kmer);
+                seenKmers.insert(kmer);
+            }
+            else if(!(frontContig->node1_p == frontContig->node2_p) && !(backContig->node1_p == backContig->node2_p)) 
+            {   // not a loop, but no palindromes
+                collapseNode(node, kmer);
+                seenKmers.insert(kmer);
+            }
+            else{
+                ++it; // do nothing, possibly a palindrome at one end
+            }
         }
         else{
             ++it;
