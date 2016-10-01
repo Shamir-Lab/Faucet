@@ -600,8 +600,8 @@ int ContigGraph::deleteTips(){
                 std::cout << "593\n";
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
                     std::cout << "going to remove "<< contig <<" 614\n";
-                    cutPath(node,i);              
-                    deleteContig(contig);
+                    cutPath(node,i);   // sets node cov/ptr to 0/null, sets contig's node ptr to null on that side          
+                    deleteContig(contig); // sets both node's cov/ptr to 0/null on (when not already set to null on contig), deletes contig object, sets ptr to null
                     numDeleted++;
                     // }
                 }
@@ -610,8 +610,9 @@ int ContigGraph::deleteTips(){
         if(isTip(node,4)){ // i = 4
             std::cout << "616\n";
             contig = node->contigs[4];
+            cutPath(node,4);
             deleteContig(contig);
-            testAndCutIfDegenerate(node);
+            testAndCutIfDegenerate(node); // calls cutpath on opposite end -- 4 when no front, all fronts when no back
             // std::cout << "619\n";
             collapsed = true; 
             // break;   
@@ -626,6 +627,9 @@ int ContigGraph::deleteTips(){
                 // both nodes and indices will only be equal together if we have a palindrome -
                 // in which case we cannot collapse; otherwise, do collapse
                 std::cout << "640\n";
+                if (contig->node1_p == contig->node2_p){
+                    std::cout << "some kind of repeat next to 640, "<< contig->ind1 << ", " << contig->ind2 << "\n";
+                }
                 collapseNode(node, kmer);
                 collapsed = true; 
             }
@@ -1212,16 +1216,16 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
         printf("WTF no front\n");
         return;
     }
+    if (frontContig->node1_p == frontContig->node2_p && frontContig->ind1 == frontContig->ind2){
+        std::cout << "encountered palindrome extension - can't collapse\n";
+        return;
+    }
+
     if(frontContig == backContig){ //circular sequence with a redundant node
         frontContig->node1_p=nullptr;
         frontContig->node2_p=nullptr;
         addIsolatedContig(*frontContig);
         delete backContig;
-    }
-
-    if (frontContig->node1_p == frontContig->node2_p && frontContig->ind1 == frontContig->ind2){
-        std::cout << "encountered palindrome extension - can't collapse\n";
-        return;
     }
     else { //normal case of collapsing a node between two other nodes
         ContigNode* backNode = backContig->otherEndNode(node);
