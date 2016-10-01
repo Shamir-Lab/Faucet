@@ -623,17 +623,24 @@ int ContigGraph::deleteTips(){
                 contig = node->contigs[i]; 
                 if (contig) break;
             }
-            if (!(contig->node1_p == contig->node2_p && contig->ind1 == contig->ind2)){
-                // both nodes and indices will only be equal together if we have a palindrome -
-                // in which case we cannot collapse; otherwise, do collapse
-                std::cout << "640\n";
-                if (contig->node1_p == contig->node2_p){
-                    std::cout << "some kind of repeat next to 640, "<< contig->ind1 << ", " << contig->ind2 << "\n";
-                }
+            Contig * backContig = node->contigs[4];
+           
+            std::cout << "640\n";
+                
+            if (backContig == contig)
+            {   // loop
+                collapseNode(node, kmer);
+                collapsed = true;  
+            }
+            else if(!(contig->node1_p == contig->node2_p) && !(backContig->node1_p == backContig->node2_p)) 
+            {   // not a loop, but no palindromes
                 collapseNode(node, kmer);
                 collapsed = true; 
             }
-            // break;        
+            else{
+                // do nothing, possibly a palindrome at one end
+            }
+            
         }
         if (collapsed){
             // std::cout << "634\n";
