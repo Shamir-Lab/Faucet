@@ -367,7 +367,7 @@ void ContigGraph::deleteContig(Contig* contig){
 
 
 void ContigGraph::cutPath(ContigNode* node, int index){
-    std::cout << "called cutPath\n";
+    // std::cout << "called cutPath\n";
     if(!node->contigs[index]){
         printf("ERROR: tried to cut nonexistant path.");
     }
@@ -379,7 +379,7 @@ void ContigGraph::cutPath(ContigNode* node, int index){
     //printf("A\n");
     if(contig->node1_p == contig->node2_p){ //to handle inverted repeats and loops
        // printf("A1\n");
-        std::cout << "cut path for loop/repeat\n";
+        // std::cout << "cut path for loop/repeat\n";
         int otherIndex = contig->getIndex(otherSide);
         contig->setSide(side, nullptr); //set to point to null instead of the node
         contig->setSide(otherSide, nullptr);
@@ -387,7 +387,7 @@ void ContigGraph::cutPath(ContigNode* node, int index){
         node->breakPath(otherIndex);
     }
     else{
-        std::cout << "cut path for single extension\n";
+        // std::cout << "cut path for single extension\n";
         //printf("A2\n");
         contig->setSide(side, nullptr);
         node->breakPath(index);
@@ -590,16 +590,16 @@ int ContigGraph::deleteTips(){
         // std::cout << "585\n";
         bool collapsed = false;      
         ContigNode* node = &it->second;
-        std::cout << "node originally has outdegree " << node->numPathsOut() << std::endl;
+        // std::cout << "node originally has outdegree " << node->numPathsOut() << std::endl;
         kmer_type kmer = it->first;
         Contig * contig;
         for(int i = 0; i < 4; i++){ 
             // std::cout << "590\n";
             contig = node->contigs[i];
             if(contig){
-                std::cout << "593\n";
+                // std::cout << "593\n";
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
-                    std::cout << "going to remove "<< contig <<" 614\n";
+                    // std::cout << "going to remove "<< contig <<" 614\n";
                     cutPath(node,i);   // sets node cov/ptr to 0/null, sets contig's node ptr to null on that side          
                     deleteContig(contig); // sets both node's cov/ptr to 0/null on (when not already set to null on contig), deletes contig object, sets ptr to null
                     numDeleted++;
@@ -608,7 +608,7 @@ int ContigGraph::deleteTips(){
             }
         }
         if(isTip(node,4)){ // i = 4
-            std::cout << "616\n";
+            // std::cout << "616\n";
             contig = node->contigs[4];
             cutPath(node,4);
             deleteContig(contig);
@@ -618,14 +618,14 @@ int ContigGraph::deleteTips(){
             // break;   
         }
         if (node->numPathsOut()==1 && node->contigs[4]){
-            std::cout << "626\n";
+            // std::cout << "626\n";
             for (int i = 0; i < 4; i++){ // find the lone remaining contig
                 contig = node->contigs[i]; 
                 if (contig) break;
             }
             Contig * backContig = node->contigs[4];
            
-            std::cout << "640\n";
+            // std::cout << "640\n";
                 
             if (backContig == contig)
             {   // loop
@@ -798,9 +798,13 @@ int ContigGraph::collapseBulges(int max_dist){
             deleteContig(P);
 
             if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
-            if(node->numPathsOut() == 1){
-                collapseNode(node, kmer);         
-                seenKmers.insert(kmer);     
+            if(node->numPathsOut() == 1 && node->contigs[4]){
+                Contig * backContig = node->contigs[4];
+                if(Q==node->contigs[4] || 
+                    !(Q->node1_p == Q->node2_p) && !(backContig->node1_p == backContig->node2_p)){
+                    collapseNode(node, kmer);         
+                    seenKmers.insert(kmer);     
+                }
             }
             
             if (far_node){
@@ -812,6 +816,27 @@ int ContigGraph::collapseBulges(int max_dist){
             }
             numDeleted++;
              ++it;
+        }
+        else if (node->numPathsOut() == 1 && seenKmers.find(kmer) == seenKmers.end()){
+            Contig * frontContig;
+            for (int i = 0; i < 4; i++){ // find the lone remaining contig
+                frontContig = node->contigs[i]; 
+                if (frontContig) break;
+            }
+            Contig * backContig = node->contigs[4];
+            if (backContig == frontContig)
+            {   // loop
+                collapseNode(node, kmer);
+                seenKmers.insert(kmer);
+            }
+            else if(!(frontContig->node1_p == frontContig->node2_p) && !(backContig->node1_p == backContig->node2_p)) 
+            {   // not a loop, but no palindromes
+                collapseNode(node, kmer);
+                seenKmers.insert(kmer);
+            }
+            else{
+                ++it; // do nothing, possibly a palindrome at one end
+            }
         }
         else{
             ++it;
@@ -842,11 +867,20 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
         if(node->numPathsOut() == 2){
             Contig* contig = node->contigs[4];
             ContigNode* backNode = contig->otherEndNode(node);
-            
+            int a,b,c,d;
+
             // test for adjacent outwards facing nodes
             if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
-                int a,b,c,d;
-                
+                a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
+                c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
+                Contig* contig_a = backNode->contigs[a]; 
+                Contig* contig_b = backNode->contigs[b];
+                Contig* contig_c = node->contigs[c];
+                Contig* contig_d = node->contigs[d];
+                if (contig_a == contig_b || contig_c == contig_d){
+                    ++it;
+                    continue;
+                } 
                 for (int orientation = 1; orientation < 5; orientation++){ // change orienation instead of calling disentangle with different order 
                     if (operationDone) {
                         operationDone = false;
@@ -858,10 +892,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     if (orientation > 2){d = node->getIndicesOut()[0], c = node->getIndicesOut()[1];}
                     else {c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];}
                     
-                    Contig* contig_a = backNode->contigs[a]; 
-                    Contig* contig_b = backNode->contigs[b];
-                    Contig* contig_c = node->contigs[c];
-                    Contig* contig_d = node->contigs[d];
                     std::list<JuncResult> A,B,C,D;
 
                     ContigNode* nodeA = contig_a->otherEndNode(backNode);
@@ -1053,7 +1083,7 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 bool ContigGraph::areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac){
     // two one sided T-tests: frac is portion of a's mean allowed to vary
     // 0.05 significance level 
-        double ma = A.getAvgCoverage();
+    double ma = A.getAvgCoverage();
     double mb = B.getAvgCoverage();
     double sa = A.getCoverageSampleVariance();
     double sb = B.getCoverageSampleVariance();
@@ -1262,7 +1292,7 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
         int backSide = backContig->getSide(node, 4);
         int frontSide = frontContig->getSide(node, fronti);
 
-        std::cout << "going to concatenate " << backContig << " and " << frontContig << std::endl; 
+        // std::cout << "going to concatenate " << backContig << " and " << frontContig << std::endl; 
         Contig* newContig = backContig->concatenate(frontContig, backSide, frontSide);
         if(backNode){
                backNode->contigs[newContig->ind1] = newContig;
