@@ -96,10 +96,6 @@ protected:
     }
 };
 
-
-// Two example test cases
-// These aren't engineered to test anything in particular yet, but they give an idea of how to write tests.
-
 // This test adds one read, and adds the reads kmers to the bloom filter, scans and prints the junction map 
 TEST_F(readScan, singleReadNoJunctions) {
     reads = {"ACGGGCGAACTTTCATAGGA"};

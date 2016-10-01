@@ -86,7 +86,7 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
         return true;
       }
       //check for a new junction, or for the max spacer dist
-      if(readKmer->getTotalPos() - lastJuncPos >= maxSpacerDist-1 ){ //|| testForJunction(*readKmer)){
+      if(readKmer->getTotalPos() - lastJuncPos >= 2*maxSpacerDist-1 ){ //|| testForJunction(*readKmer)){
         //printf("Junc dist: %d", readKmer->getTotalPos() - lastJuncPos);
         // std::cout << "max spacer distance surpassed, "<< readKmer->getTotalPos() - lastJuncPos << "\n";
         return true;
