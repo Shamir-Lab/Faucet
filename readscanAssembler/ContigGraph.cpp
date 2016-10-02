@@ -396,8 +396,6 @@ void ContigGraph::cutPath(ContigNode* node, int index){
 }
 
 
-
-
 int ContigGraph::deleteIsolatedContigs(){
     int numDeleted = 0;
     printf("Deleting isolated low mass contigs. Starting with %d.\n", isolated_contigs.size());
@@ -535,6 +533,8 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
         std::vector<int> inds = node->getIndicesOut();
         // target is far end of longer extension
         ContigNode* target = node->contigs[inds[1]]->otherEndNode(node);
+        if (!target || !node->contigs[inds[0]]->otherEndNode(node)){ return path; }
+
         int dist = node->contigs[inds[1]]->getSeq().length();
         int max_ind = 1;
         int min_ind = 0;
@@ -545,6 +545,7 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
             min_ind = 1;
         }
         if (dist > max_dist ){ return path; }
+        if (node->contigs[inds[1]]==node->contigs[inds[0]]){ return path; } // inverted repeat
 
         // try to reach target starting from other contig
         Contig * start = node->contigs[inds[min_ind]];
@@ -612,45 +613,42 @@ int ContigGraph::deleteTips(){
             contig = node->contigs[4];
             cutPath(node,4);
             deleteContig(contig);
-            testAndCutIfDegenerate(node); // calls cutpath on opposite end -- 4 when no front, all fronts when no back
-            // std::cout << "619\n";
             collapsed = true; 
-            // break;   
         }
-        if (node->numPathsOut()==1 && node->contigs[4]){
-            // std::cout << "626\n";
-            for (int i = 0; i < 4; i++){ // find the lone remaining contig
-                contig = node->contigs[i]; 
-                if (contig) break;
-            }
-            Contig * backContig = node->contigs[4];
-           
-            // std::cout << "640\n";
-                
-            if (backContig == contig)
-            {   // loop
-                collapseNode(node, kmer);
-                collapsed = true;  
-            }
-            else if(!(contig->node1_p == contig->node2_p) && !(backContig->node1_p == backContig->node2_p)) 
-            {   // not a loop, but no palindromes
-                collapseNode(node, kmer);
-                collapsed = true; 
-            }
-            else{
-                // do nothing, possibly a palindrome at one end
-            }
-            
+       
+        if (isCollapsible(node)){ // left with one extension on each end - redundant node
+            collapseNode(node, kmer);
+            it = nodeMap.erase(it); 
         }
-        if (collapsed){
-            // std::cout << "634\n";
-            it = nodeMap.erase(it);     
+        else if(testAndCutIfDegenerate(node)){  // one end has no extension - expired 'degenerate' node
+            // calls cutpath on opposite end -- 4 when no front, all fronts when no back
+            it = nodeMap.erase(it); 
         }
         else{
             ++it;
         }
     }
     printf("Deleted %d tips. %d nodes remain\n", numDeleted, nodeMap.size());
+}
+
+bool ContigGraph::isCollapsible(ContigNode * node){
+    // collapsible means there are contigs at both ends, 
+    // and either they are the same or neither of them is palindromic
+    if(node->numPathsOut() != 1) return false;
+    if(!node->contigs[4]) return false;
+
+    Contig * frontContig;
+    for (int i = 0; i < 4; i++){ // find the lone remaining contig
+        frontContig = node->contigs[i]; 
+        if (frontContig) break;
+    }
+    Contig * backContig = node->contigs[4];
+    if( frontContig == backContig ||
+        !(frontContig->node1_p == frontContig->node2_p) && !(backContig->node1_p == backContig->node2_p)){
+        return true;
+    }else{
+        return false;
+    }
 }
 
 int ContigGraph::removeChimericExtensions(int insertSize){
@@ -665,71 +663,47 @@ int ContigGraph::removeChimericExtensions(int insertSize){
         Contig* contig = node->contigs[4];
 
         // try to collapse highest coverage extension Q onto lowest coverage ext. P
-        if (node->numPathsOut() > 1 && seenKmers.find(kmer) == seenKmers.end()){ // 
+        if (node->numPathsOut() > 1 ){ 
             std::pair <Contig *, Contig *> Pair = getMinMaxForwardExtensions(node,"coverage");
             Contig * P = Pair.first;
             Contig * Q = Pair.second;            
-
             ContigNode * far_node = P->otherEndNode(node);
-            
-            if ( ( (Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize) || Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && far_node){ //&&          
-                // far_node && far_node!= node ) {
-                if (P->getSeq().length() < read_length && far_node->indexOf(P)!=4){
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
-                    printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
-                    
-                    kmer_type far_kmer = far_node->getKmer();                    
-                    cutPath(node, node->indexOf(P));
-                    if (node != far_node){
-                        cutPath(far_node, far_node->indexOf(P));  
-                    }                  
-                    deleteContig(P);
-                    if(node->numPathsOut() == 1 && node->contigs[4] && node!=far_node){
-                        if ((Q == contig) ||
-                            !(contig->node1_p == contig->node2_p) && !(Q->node1_p == Q->node2_p)){
-                            collapseNode(node, kmer);                                                
-                            it = nodeMap.erase(it);       
-                        }
-                    }else{
-                        ++it;
-                    }                                                       
-                    numDeleted++;
+
+            if (!far_node || far_node == node){
+                ++it;
+            }else if ( ( 
+                        (Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize) || 
+                        Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && 
+                        (P->getSeq().length() < read_length && far_node->indexOf(P)!=4 && far_node->numPathsOut()>1) 
+                    ){         
+                
+                std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+                
+                kmer_type far_kmer = far_node->getKmer();                    
+                cutPath(node, node->indexOf(P));    
+                cutPath(far_node, far_node->indexOf(P));                                  
+                deleteContig(P);
+
+                if(isCollapsible(node)){
+                    collapseNode(node, kmer);                                                
+                    it = nodeMap.erase(it);                           
                 }else{
                     ++it;
-                }
-
+                }                                                       
+                numDeleted++;
+            
             }else{
                 ++it;
             }      
         }
-        else if (node->numPathsOut() == 1 && seenKmers.find(kmer) == seenKmers.end()){
-            kmer_type kmer = it->first;
-            Contig * frontContig;
-            for (int i = 0; i < 4; i++){ // find the lone remaining contig
-                frontContig = node->contigs[i]; 
-                if (frontContig) break;
-            }
-            Contig * backContig = node->contigs[4];
-            if (backContig == frontContig)
-            {   // loop
-                collapseNode(node, kmer);
-                seenKmers.insert(kmer);
-            }
-            else if(!(frontContig->node1_p == frontContig->node2_p) && !(backContig->node1_p == backContig->node2_p)) 
-            {   // not a loop, but no palindromes
-                collapseNode(node, kmer);
-                seenKmers.insert(kmer);
-            }
-            else{
-                ++it; // do nothing, possibly a palindrome at one end
-            }
+        else if (isCollapsible(node)){ 
+            collapseNode(node, kmer);
+            it = nodeMap.erase(it); 
         }
         else{
             ++it;
         }
-    }
-    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); ++k_it){
-        nodeMap.erase(*k_it);
     }
     printf("removed %d chimeric contigs.\n", numDeleted);
     printf("%d nodes left in node map \n", nodeMap.size());
@@ -741,7 +715,6 @@ int ContigGraph::collapseBulges(int max_dist){
     int numDeleted = 0;
     std::set<kmer_type> seenKmers = {};
 
-    // for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
     it = nodeMap.begin();
     while(it!=nodeMap.end()){
         ContigNode* node = &it->second;
@@ -778,9 +751,8 @@ int ContigGraph::collapseBulges(int max_dist){
             printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
             far_node = P->otherEndNode(node);
             kmer_type far_kmer;
-            if (far_node){
-                far_kmer = far_node->getKmer();
-            }
+            far_kmer = far_node->getKmer(); // always have two ends for both extensions - guaranteed by getPath method
+            
             double P_cov = P->getAvgCoverage(); 
             ContigJuncList  origJuncs, newJuncs;
            
@@ -797,54 +769,22 @@ int ContigGraph::collapseBulges(int max_dist){
             }
             deleteContig(P);
 
-            if (testAndCutIfDegenerate(node)) seenKmers.insert(kmer);
-            if(node->numPathsOut() == 1 && node->contigs[4]){
-                Contig * backContig = node->contigs[4];
-                if(Q==node->contigs[4] || 
-                    !(Q->node1_p == Q->node2_p) && !(backContig->node1_p == backContig->node2_p)){
-                    collapseNode(node, kmer);         
-                    seenKmers.insert(kmer);     
-                }
-            }
-            
-            if (far_node){
-                if (testAndCutIfDegenerate(far_node)) seenKmers.insert(far_kmer);
-                if(far_node->numPathsOut() == 1){
-                    collapseNode(far_node, far_kmer);         
-                    seenKmers.insert(far_kmer);
-                }             
-            }
-            numDeleted++;
-             ++it;
+            if(isCollapsible(node)){
+                collapseNode(node, kmer);                                                
+                it = nodeMap.erase(it);                           
+            }else{
+                ++it;
+            }        
+
         }
-        else if (node->numPathsOut() == 1 && seenKmers.find(kmer) == seenKmers.end()){
-            Contig * frontContig;
-            for (int i = 0; i < 4; i++){ // find the lone remaining contig
-                frontContig = node->contigs[i]; 
-                if (frontContig) break;
-            }
-            Contig * backContig = node->contigs[4];
-            if (backContig == frontContig)
-            {   // loop
-                collapseNode(node, kmer);
-                seenKmers.insert(kmer);
-            }
-            else if(!(frontContig->node1_p == frontContig->node2_p) && !(backContig->node1_p == backContig->node2_p)) 
-            {   // not a loop, but no palindromes
-                collapseNode(node, kmer);
-                seenKmers.insert(kmer);
-            }
-            else{
-                ++it; // do nothing, possibly a palindrome at one end
-            }
+        else if (isCollapsible(node) ){ 
+            collapseNode(node, kmer);
+            it = nodeMap.erase(it); 
+            
         }
         else{
             ++it;
         }
-    }
-
-    for (auto k_it = seenKmers.begin(); k_it != seenKmers.end(); ++k_it){
-        nodeMap.erase(*k_it);
     }
 
     printf("Collapsed %d bulge contigs.\n", numDeleted);
@@ -927,13 +867,13 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                         std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
                         std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
                         std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';
-                        if (orientation == 1){
-                        std::cout << ">" << contig << "_" << insertSize << "\t" << contig->getSeq().length() << "\t" <<
-                            len_a << "\t" << len_b << "\t"<< len_c << "\t" << len_d << "\t" <<  
-                            contig->getAvgCoverage() << "\t" << contig_a->getAvgCoverage() << "\t" << contig_b->getAvgCoverage() << "\t" << contig_c->getAvgCoverage() << "\t" << contig_d->getAvgCoverage() << "\t" <<
-                            scoreAC << "\t" << scoreAD << "\t" << scoreBC << "\t" << scoreBD << "\t" <<
-                            A.size() << "\t" << B.size() << "\t" << C.size() << "\t" << D.size() << "\n";
-                        }
+                        // if (orientation == 1){
+                        //     std::cout << ">" << contig << "_" << insertSize << "\t" << contig->getSeq().length() << "\t" <<
+                        //     len_a << "\t" << len_b << "\t"<< len_c << "\t" << len_d << "\t" <<  
+                        //     contig->getAvgCoverage() << "\t" << contig_a->getAvgCoverage() << "\t" << contig_b->getAvgCoverage() << "\t" << contig_c->getAvgCoverage() << "\t" << contig_d->getAvgCoverage() << "\t" <<
+                        //     scoreAC << "\t" << scoreAD << "\t" << scoreBC << "\t" << scoreBD << "\t" <<
+                        //     A.size() << "\t" << B.size() << "\t" << C.size() << "\t" << D.size() << "\n";
+                        // }
 
                     // }
                     

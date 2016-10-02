@@ -42,6 +42,7 @@ public:
     //Gets tail bound for binomia ldistribution with number of trials, probability,
     //and for result specified
     double getTailBound(int numTrials, double p, int result);
+    bool isCollapsible(ContigNode * node);
 
     //Gets number of supporting pairs given candidate list
     //TODO: normalize by expected FP rate of filter
