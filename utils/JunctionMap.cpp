@@ -367,11 +367,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         if (validExtension < 0){ // We cannot find a sink closer than maxDist!!
             printDistAndExtension(dist, maxDist, index, startKmer);
         }
-        // assert(validExtension != -1);
-        if (validExtension == -1){ // need to search in opposite direction
-            doubleKmer.reverse(); 
-            validExtension = getValidJExtension(doubleKmer);
-        } 
+        assert(validExtension != -1);
         assert(validExtension != -2);
 
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
@@ -388,7 +384,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break;         
         }
         if (isJunction(doubleKmer.kmer)) { // If not at maxDist, but found a junction
-            // assert(getValidJExtension(doubleKmer) >= 0); // This should be a spacer. Thus there should be exactly one real extension.
+            assert(getValidJExtension(doubleKmer) >= 0); // This should be a spacer. Thus there should be exactly one real extension.
             std::cout << "321\n";
             return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }
@@ -402,7 +398,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break; 
         }
         if (isJunction(doubleKmer.kmer)) {
-            // assert(getValidJExtension(doubleKmer) >= 0); // this should be a spacer- thus there should be exactly one real extension
+            assert(getValidJExtension(doubleKmer) >= 0); // this should be a spacer- thus there should be exactly one real extension
             std::cout << "335\n";
             return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }

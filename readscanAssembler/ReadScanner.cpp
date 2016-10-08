@@ -63,7 +63,7 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
   for (; readKmer->getDistToEnd() > 2*jchecker->j; readKmer->forward()) //CHANGED TO 2*j from 0
   {
       //check for an already found junciton
-      if(junctionMap->isJunction(readKmer->getKmer())|| junctionMap->isJunction(readKmer->getRevCompKmer())){
+      if(junctionMap->isJunction(readKmer->getKmer())){
         // std::cout << "known junction found\n";
         return true;
       }
