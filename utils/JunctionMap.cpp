@@ -563,18 +563,11 @@ int JunctionMap::getSkipDist(ReadKmer* readKmer, bool direction){
 //returns the junction if it exists or a null pointer otherwise
 Junction* JunctionMap::getJunction(kmer_type kmer){
   auto juncIt = junctionMap.find(kmer);
-  auto juncRcIt = junctionMap.find(revcomp(kmer));
-
-  if(juncIt == junctionMap.end() && juncRcIt == junctionMap.end()){
+  if(juncIt == junctionMap.end()){
     return nullptr;
   }
-  else if(juncIt != junctionMap.end()){
-    assert(juncRcIt == junctionMap.end());
-    return &(juncIt->second);
-  }
   else{
-    assert(juncIt == junctionMap.end());
-    return &(juncRcIt->second);
+    return &(juncIt->second);
   }
 }
 
