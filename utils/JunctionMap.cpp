@@ -47,60 +47,32 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                     kmer_type far_kmer = contig->getSideKmer(2);
                     if (isJunction(far_kmer)){
                         if (far_kmer == kmer){ 
-                            // std::cout << "50\n";
-                            // std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            std::cout << "50\n";
+                            std::cout << "returned ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
                         }else if (far_kmer == revcomp(kmer)){
-                            // std::cout << "54\n";
-                            // std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            std::cout << "54\n";
+                            std::cout << "returned ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
                         }else{
-                            // std::cout << "58\n";
-                            // std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            std::cout << "58\n";
+                            std::cout << "returned ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
                             Junction* far_junc = getJunction(far_kmer);
                             otherNode = contigGraph->createContigNode(far_kmer, *far_junc);
                             contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                         }
                     }else{ // far node not junction - either loop/IR or tip
                         if (far_kmer == revcomp(kmer)){ // loop or IR - depends on indices
-                            // std::cout << "66\n";
-                            // std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
-                            contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
+                            std::cout << "66\n";
+                            std::cout << "returned ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                         }else{ // tip - otherNode left as nullptr
-                            // std::cout << "70\n";
-                            // std::cout << "ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
+                            std::cout << "70\n";
+                            std::cout << "returned ind 1 is " << contig->ind1 << ", ind2 is " << contig->ind2 << std::endl;
                             contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                         }
                     }
 
-
-                        // if(far_kmer!=kmer){ //complex junction- should create a contig node
-
-                        //     Junction* far_junc = getJunction(far_kmer);
-                        //     otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig node on the other side if it doesn't exist yet
-                            
-                        //     if(far_kmer != revcomp(kmer)){
-                        //         // connect 2 distinct nodes
-                        //         contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
-
-                        //         // std::cout << "connected two nodes\n";                            
-                        //     }
-                        //     else {
-                        //         // inverted repeat - looped back to source junction, in reverse orientation
-                        //         contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
-                        //         // std::cout << "connected inverted repeat\n";                            
-                        //     }
-
-                        // }else{ // start and end at same k-mer, coming in at 4 extension in forward orientation                            
-                        //     contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);
-                        //     std::cout << "closed a loop\n";                            
-
-                        // }
-                    // }else{
-                    //     contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
-                    //     // std::cout << contig->ind1 << ", "<< contig->ind2 <<" connected node to nullptr\n";                            
-
-                    // }
                 }
             }
         }
@@ -130,9 +102,11 @@ void JunctionMap::buildLinearRegions(ContigGraph* contigGraph){
             Contig* backwardContig;
             for ( int i = 0 ; i < 4 ; i++ ){ 
                 if ( junction.getCoverage(i) > 0 ) { //for every valid path out- should only be 1
+                    std::cout << "133\n";
                     forwardContig = getContig(junction, kmer, i);
                 }
             }
+            std::cout << "137\n";
             backwardContig = getContig(junction, kmer, 4);
 
             contigGraph->addIsolatedContig(*backwardContig->concatenate(forwardContig, 1, 1));
@@ -190,7 +164,12 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
                 index = junc.getOppositeIndex(result.index);
                 // kmers_to_destroy.push_back(kmer); 
 
-                if (result.kmer == startKmer || result.kmer == revcomp(startKmer)){
+                if (result.kmer == startKmer){
+                    std::cout << "194\n";
+                    done = true;
+                }
+                else if (result.kmer == revcomp(startKmer)){
+                    std::cout << "198\n";
                     done = true;
                 }
                 else{ // isolated self-loop --> nothing to destroy
@@ -198,10 +177,12 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
                 }
             }
             else{
+                std::cout << "206\n";
                 done = true;
             }
         }
         else{
+            std::cout << "211\n";
             done = true;
         }
     }
@@ -211,39 +192,52 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     if(result.isNode){
         if (result.kmer == revcomp(startKmer) ){ //inverted repeat - come back to junction on RC
             // change to complement index because come in on RC direction
-            if (index != 4 && result.index != 4){
-                // std::cout << "187\n";
-                // std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+            if (startIndex != 4 && result.index != 4){
+                std::cout << "222\n";
+                std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<< std::endl;  
                 contig->setIndices(startIndex, (result.index+2)%4 );
-            }else{ // inverted repeat on back
-                // std::cout << "190\n";
-                // std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+            }else{ // both F and R kmers are junctions (?), point away from each other - each at 4 ext of other
+                std::cout << "226\n";
+                std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<< " string is "<< contigString << std::endl;  
                 contig->setIndices(startIndex, result.index );
+                assert(startIndex==4 && result.index==4);
             }
         }
-        else if (result.kmer == startKmer){ // loop - going from front to back
-            // std::cout << "192\n";
-            // std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
-            contig->setIndices(startIndex, result.index);
+        else if (result.kmer == startKmer){ 
+            if ((startIndex==4 && result.index!=4) || (result.index==4 && startIndex!=4)){ // loop - going from front to back
+                std::cout << "234\n";
+                std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<< std::endl;  
+                contig->setIndices(startIndex, result.index);
+            }
+            else {
+                std::cout << "239\n";
+                std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<<  std::endl;                  
+                contig->setIndices(startIndex, (result.index+2)%4);
+                // assert(false);
+            }            
         } 
         else { // connecting two different junctions
-            // std::cout << "197\n";
-            // std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+            std::cout << "246\n";
+            std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<< std::endl;  
             contig->setIndices(startIndex, result.index);
         }
     }
     else{
-        if (result.kmer == revcomp(startKmer)){ // inverted repeat on back
-            // std::cout << "204\n";
-            // std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+        if (result.kmer == startKmer){ // inverted repeat on back
+            std::cout << "250\n";
+            std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<< std::endl;  
+            contig->setIndices(startIndex, result.index);//(result.index+2)%4);
+        }
+        else if (result.kmer == revcomp(startKmer)){ // inverted repeat on back
+            std::cout << "253\n";
+            std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<< " string is "<< contigString << std::endl;  
             contig->setIndices(startIndex, result.index);//(result.index+2)%4);
         }
         else{ // a tip - not a junction and not an RC of one
-            // std::cout << "209\n";
-            // std::cout << "start index is " << startIndex << ", end index is " << result.index << std::endl;  
+            std::cout << "258\n";
+            std::cout << "found start index is " << startIndex << ", end index is " << result.index << " len is "<< contigString.length()<< std::endl;  
             contig->setIndices(startIndex, -1);
         }
-        // std::cout << "175\n";
     }
 
     //destroy all kmers found
@@ -295,7 +289,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         //If we're searching backwards, we only need to specially process the reverse kmer, and then scan from there
         if(isJunction(doubleKmer.kmer)){ // if the initial reverse kmer is already a junction, we found a contig! 
-            //std::cout << "227\n";
+            std::cout << "227\n";
             return BfSearchResult(doubleKmer.kmer, 
                 true,  // is a node
                 4, // the junctions point away from each other; thus, the start junction is on the backward extension of the found junction
@@ -306,14 +300,14 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     else{ // forward extension case
         // here the scan startpoint is the next forward kmer- but since we're at a junction we must get there manually using the 
         // given index, no bloom scan possible till after that first extension.
-        lastNuc = first_nucleotide(doubleKmer.revcompKmer);  // save the original last nucleotide, since it will be lost by advancing forward
+        lastNuc = first_nucleotide(doubleKmer.revcompKmer);  // save the original last nucleotide of RC, since it will be lost by advancing forward
         contig += getNucChar(code2nucleotide(doubleKmer.kmer, 0)); // add nucleotide to contig
         doubleKmer.forward(index); // advance the kmer! Now it's at the extension of the junction instead of the junction itself
         for(int i = 0; i < sizeKmer; i++){
             contig += getNucChar(code2nucleotide(doubleKmer.kmer, i)); // Add the current k characters to the contig
         }
         if(isJunction(doubleKmer.revcompKmer)){
-            //std::cout << "245\n";
+            std::cout << "245\n";
             return BfSearchResult(doubleKmer.revcompKmer, 
                 true, // is a node
                 lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
@@ -321,6 +315,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
                 contig);
         }
         if (maxDist == 1) { // if maxDist is 1 but no junction found, make a sink instead
+            std::cout << "255\n";
             return BfSearchResult(doubleKmer.revcompKmer, 
                 false, // is a sink
                 lastNuc, // this nucleotide is the extension which we would follow from the found junction to get back to the start
@@ -329,7 +324,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         }
         dist = 2; // if we arrived here, we didn't return above, and can search at distance 2.
         if(isJunction(doubleKmer.kmer)){
-            //std::cout << "261\n";
+            std::cout << "261\n";
             return BfSearchResult(doubleKmer.kmer, 
                 true,  // is a node
                 4,  // backward extension
@@ -347,7 +342,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         // must first deal with edge case of palindrome on 4 extension
 
         if(dist > maxDist){ // dist >= maxDist should really only occur iff dist == maxDist. Otherwise maxDist pointed to a reverse kmer as a sink, which is wrong.
-            printf("Error: dist %d is greater than maxDist %d.\n", dist, maxDist);
+            printf("ERROR: dist %d is greater than maxDist %d.\n", dist, maxDist);
             // std::cout << "Searching from kmer " << print_kmer(startKmer) << "\n";
             printDistAndExtension(dist, maxDist, index, startKmer);
         }
@@ -372,7 +367,11 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
         if (validExtension < 0){ // We cannot find a sink closer than maxDist!!
             printDistAndExtension(dist, maxDist, index, startKmer);
         }
-        assert(validExtension != -1);
+        // assert(validExtension != -1);
+        if (validExtension == -1){ // need to search in opposite direction
+            doubleKmer.reverse(); 
+            validExtension = getValidJExtension(doubleKmer);
+        } 
         assert(validExtension != -2);
 
         lastNuc = first_nucleotide(doubleKmer.revcompKmer); //must update this before advancing
@@ -389,8 +388,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break;         
         }
         if (isJunction(doubleKmer.kmer)) { // If not at maxDist, but found a junction
-            assert(getValidJExtension(doubleKmer) >= 0); // This should be a spacer. Thus there should be exactly one real extension.
-            //std::cout << "321\n";
+            // assert(getValidJExtension(doubleKmer) >= 0); // This should be a spacer. Thus there should be exactly one real extension.
+            std::cout << "321\n";
             return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }
 
@@ -403,8 +402,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break; 
         }
         if (isJunction(doubleKmer.kmer)) {
-            assert(getValidJExtension(doubleKmer) >= 0); // this should be a spacer- thus there should be exactly one real extension
-            //std::cout << "335\n";
+            // assert(getValidJExtension(doubleKmer) >= 0); // this should be a spacer- thus there should be exactly one real extension
+            std::cout << "335\n";
             return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
         }
     }
@@ -413,7 +412,8 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     
     // If we are now at a junction, then we found one exactly where expected- return it!
     if(isJunction(doubleKmer.kmer)){ 
-        //std::cout << "344\n";
+        std::cout << "344\n";
+        printDistAndExtension(dist, maxDist, index, startKmer);
         return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
     }
 
@@ -465,10 +465,10 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             int backDist = getJunction(juncResult.kmer)->dist[juncResult.index];
             int overlap = backDist + maxDist - juncResult.distance;
             if (overlap >= 0) { // If there is overlap, return the junction.
-                //std::cout << "385\n";
+                std::cout << "385\n";
                 return juncResult;
             } else { // If there is no overlap, return the sink.
-                //std::cout << "388\n";
+                std::cout << "388\n";
                 return sinkResult;
             }
         }
@@ -482,17 +482,17 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             int backDist = getJunction(juncResult.kmer)->dist[juncResult.index];
             int overlap = backDist + maxDist - juncResult.distance;
             if (overlap >= 0) { // If there is overlap, return the junction
-                //std::cout << "402\n";
+                std::cout << "402\n";
                 return juncResult;
             } else { // If there is no overlap, return the sink.
-                //std::cout << "405\n";
+                std::cout << "405\n";
                 return sinkResult;
             }
         }
         //std::cout << "dist is " <<  dist <<"\n";
     }
     // If we pass maxDist by a read length and still see nothing, we must have been at a real sink.
-    //std::cout << "411\n";
+    std::cout << "411\n";
     return sinkResult;
 }
 
@@ -567,11 +567,18 @@ int JunctionMap::getSkipDist(ReadKmer* readKmer, bool direction){
 //returns the junction if it exists or a null pointer otherwise
 Junction* JunctionMap::getJunction(kmer_type kmer){
   auto juncIt = junctionMap.find(kmer);
-  if(juncIt == junctionMap.end()){
+  auto juncRcIt = junctionMap.find(revcomp(kmer));
+
+  if(juncIt == junctionMap.end() && juncRcIt == junctionMap.end()){
     return nullptr;
   }
-  else{
+  else if(juncIt != junctionMap.end()){
+    assert(juncRcIt == junctionMap.end());
     return &(juncIt->second);
+  }
+  else{
+    assert(juncIt == junctionMap.end());
+    return &(juncRcIt->second);
   }
 }
 

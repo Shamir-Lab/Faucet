@@ -51,24 +51,6 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
     }
   }
 
-  // try RC direction
-  // readKmer.doubleKmer.reverse();
-  // readKmer.direction = !readKmer.direction;
-  // real_ext = readKmer.getRealExtension();
-  // real = readKmer.getKmer();
-  // for(int nt=0; nt<4; nt++) {//for each extension
-  //   kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
-  //   if(real_ext != test_ext){//if the alternate and real extensions are different- note that I took out the other two distinction checks
-  //     if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
-  //     { 
-  //       NbJCheckKmer++;
-  //       if(jchecker->jcheck(test_ext)){//if the branch jchecks
-  //           return true;
-  //       }
-  //     }
-  //   }
-  // }
-
   return false;  
 }
 
@@ -81,19 +63,18 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
   for (; readKmer->getDistToEnd() > 2*jchecker->j; readKmer->forward()) //CHANGED TO 2*j from 0
   {
       //check for an already found junciton
-      if(junctionMap->isJunction(readKmer->getKmer())){
+      if(junctionMap->isJunction(readKmer->getKmer())|| junctionMap->isJunction(readKmer->getRevCompKmer())){
         // std::cout << "known junction found\n";
         return true;
       }
-      //check for a new junction, or for the max spacer dist
+      //check for the max spacer dist
       if(readKmer->getTotalPos() - lastJuncPos >= 2*maxSpacerDist-1 ){ //|| testForJunction(*readKmer)){
-        //printf("Junc dist: %d", readKmer->getTotalPos() - lastJuncPos);
-        // std::cout << "max spacer distance surpassed, "<< readKmer->getTotalPos() - lastJuncPos << "\n";
+        
+        // if (junctionMap->isJunction(readKmer->getRevCompKmer())){ continue; } // avoid creating junction if RC already is one
         return true;
       }
-      
+      // check if new junction should be created
       if(testForJunction(*readKmer)){
-
         // std::cout << "added "<< readKmer->directionAsString() <<" junction with index " << readKmer->getTotalPos() << std::endl;
         return true;
       }
@@ -108,6 +89,7 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
 //sinks at the end of such regions.
 //Returns the real extension of the fake junction, for junction pairing
 kmer_type ReadScanner::add_fake_junction(string read){
+  std::cout << "added fake junction\n";
   ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
   kmer_type extension = middleKmer->getRealExtension();
   junctionMap->createJunction(middleKmer);

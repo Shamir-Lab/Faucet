@@ -3,6 +3,8 @@
 #include <sstream>
 #include <algorithm>    // std::reverse
 #include <vector>       // std::vector
+#include <assert.h>
+
 
 using std::stringstream;
 using std::ofstream;
@@ -275,6 +277,15 @@ bool Contig::checkValidity(){
 				if (node1_p->contigs[i] == this){
 					std::cout << "contig is actually at extension " << i << std::endl;
 					std::cout << "other ind is " << ind2 << std::endl;
+					if (node1_p == node2_p){
+						std::cout << "end nodes are equal" << std::endl;
+					}
+					else{
+						assert(node1_p && node2_p);
+						if (node1_p->getKmer() == node2_p->getKmer()){
+							std::cout << "nodes not equal, but node kmers are\n";
+						}
+					}
 				}
 			}	
 			// return false;
@@ -297,6 +308,15 @@ bool Contig::checkValidity(){
 				if (node2_p->contigs[i] == this){
 					std::cout << "contig is actually at extension " << i << std::endl;
 					std::cout << "other ind is " << ind1 << std::endl;
+					if (node1_p == node2_p){
+						std::cout << "end nodes are equal" << std::endl;
+					}
+					else{
+						assert(node1_p && node2_p);
+						if (node1_p->getKmer() == node2_p->getKmer()){
+							std::cout << "nodes not equal, but node kmers are\n";
+						}
+					}
 				}
 			}		
 			// return false;
