@@ -48,6 +48,7 @@ public:
     int getCoverage(int nucExt);
     int getTotalCoverage();//returns getCoverage(4)
     void setCoverage(Junction junc);
+    void setCoverage(int nucExt, int coverage);
     void update(int nucExt, Contig * contig);
     kmer_type getUniqueKmer(int index);//returns base kmer for backward, or extension for forward index
 

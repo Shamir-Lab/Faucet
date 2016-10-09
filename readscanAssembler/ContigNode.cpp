@@ -211,6 +211,10 @@ void ContigNode::setCoverage(Junction junc){
     }
 }
 
+void ContigNode::setCoverage(int nucExt, int coverage){
+    cov[nucExt] = coverage;
+}
+
 void ContigNode::replaceContig(Contig* oldContig, Contig* newContig){
      for(int i = 0; i < 5; i++){
         if(contigs[i] == oldContig){

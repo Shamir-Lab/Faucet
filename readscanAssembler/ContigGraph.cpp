@@ -303,19 +303,24 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
     std::vector<int> lengths;
     int min_index, max_index;
     for(int i = 0; i < inds.size(); i++) {
-        // std::cout << "i is " << i << ", inds[i] is " << inds[i] << ", node->contigs[inds[i]] is " << node->contigs[inds[i]] << std::endl;
+        std::cout << "306\n";
         Contig * tig = node->contigs[inds[i]];
-        if (tig == node->contigs[(inds[i]+2)%4]){
+        if (node == node->contigs[inds[i]]->otherEndNode(node)){
+            std::cout << "309\n";
             std::cout << "is an inverted repeat at " << inds[i] << std::endl;
         }
+        std::cout << "312\n";
         covs.push_back(tig->getAvgCoverage());
+        std::cout << "314\n";
         lengths.push_back(tig->getSeq().length());
     }
     if (trait == "coverage"){
+        std::cout << "315\n";
         auto result = std::minmax_element(covs.begin(), covs.end());
         min_index = inds[(result.first - covs.begin())]; // lowest coverage 
         max_index = inds[(result.second - covs.begin())]; // highest coverage 
     }else if(trait == "length"){
+        std::cout << "321\n";
         auto result = std::minmax_element(lengths.begin(), lengths.end());
         min_index = inds[(result.first - lengths.begin())]; // shortest 
         max_index = inds[(result.second - lengths.begin())]; // longest 
@@ -657,12 +662,12 @@ bool ContigGraph::isCollapsible(ContigNode * node){
     if (backContig->node1_p && backContig->node2_p){
         if (backContig->node1_p == backContig->node2_p) {return false;}
     }
-
-    if( frontContig == backContig ){ // making it here means no IRs, palindromes
-        return true;
-    }else{
-        return false;
-    }
+    return true;
+    // if( frontContig == backContig ){ // making it here means no IRs, palindromes
+    //     return true;
+    // }else{
+    //     return false;
+    // }
 }
 
 int ContigGraph::removeChimericExtensions(int insertSize){
@@ -678,9 +683,11 @@ int ContigGraph::removeChimericExtensions(int insertSize){
 
         // try to collapse highest coverage extension Q onto lowest coverage ext. P
         if (node->numPathsOut() > 1 ){ 
+            std::cout << "681\n"; 
             std::pair <Contig *, Contig *> Pair = getMinMaxForwardExtensions(node,"coverage");
             Contig * P = Pair.first;
-            Contig * Q = Pair.second;            
+            Contig * Q = Pair.second;   
+            std::cout << "684\n";         
             ContigNode * far_node = P->otherEndNode(node);
 
             if (!far_node || far_node == node){
@@ -694,13 +701,22 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                 std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
                 printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
                 
-                kmer_type far_kmer = far_node->getKmer();                    
+                kmer_type far_kmer = far_node->getKmer();     
+                std::cout << "698\n";               
                 cutPath(node, node->indexOf(P));    
-                cutPath(far_node, far_node->indexOf(P));                                  
+                std::cout << "700\n";               
+                cutPath(far_node, far_node->indexOf(P));     
+                std::cout << "702\n";               
+                             
                 deleteContig(P);
+                std::cout << "705\n";               
 
                 if(isCollapsible(node)){
-                    collapseNode(node, kmer);                                                
+                    std::cout << "708\n";               
+
+                    collapseNode(node, kmer);    
+                    std::cout << "711\n";               
+                                            
                     it = nodeMap.erase(it);                           
                 }else{
                     ++it;
@@ -712,8 +728,11 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             }      
         }
         else if (isCollapsible(node)){ 
+            std::cout << "724\n";               
             collapseNode(node, kmer);
+            std::cout << "727\n";
             it = nodeMap.erase(it); 
+            std::cout << "729\n";
         }
         else{
             ++it;
@@ -1227,37 +1246,46 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
         printf("WTF no front\n");
         return;
     }
-    if (frontContig->node1_p == frontContig->node2_p && frontContig->ind1 == frontContig->ind2){
-        std::cout << "encountered palindrome extension - can't collapse\n";
-        return;
-    }
+    // if (frontContig->node1_p == frontContig->node2_p && frontContig->ind1 == frontContig->ind2){
+    //     std::cout << "encountered palindrome extension - can't collapse\n";
+    //     return;
+    // }
 
     if(frontContig == backContig){ //circular sequence with a redundant node
+        std::cout << "1247\n";
         frontContig->node1_p=nullptr;
         frontContig->node2_p=nullptr;
         addIsolatedContig(*frontContig);
+        std::cout << "1251\n";
         delete backContig;
     }
     else { //normal case of collapsing a node between two other nodes
+        std::cout << "1255\n";
         ContigNode* backNode = backContig->otherEndNode(node);
         ContigNode* frontNode = frontContig->otherEndNode(node);
 
-
+        std::cout << "1259\n";
         int backSide = backContig->getSide(node, 4);
         int frontSide = frontContig->getSide(node, fronti);
-
+        
+        std::cout << "1263\n";
         // std::cout << "going to concatenate " << backContig << " and " << frontContig << std::endl; 
         Contig* newContig = backContig->concatenate(frontContig, backSide, frontSide);
+        std::cout << "1266\n";
         if(backNode){
+            std::cout << "1268\n";
                backNode->contigs[newContig->ind1] = newContig;
         }
         if(frontNode){
+            std::cout << "1272\n";
             frontNode->contigs[newContig->ind2] = newContig;
         }
         if(!backNode && !frontNode){
             addIsolatedContig(*newContig);
+            std::cout << "1277\n";
             delete newContig;
         } 
+        std::cout << "1280\n";
         delete backContig;
         delete frontContig;
     }

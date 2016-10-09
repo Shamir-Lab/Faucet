@@ -23,7 +23,7 @@ ContigGraph* JunctionMap::buildContigGraph(){
 
     printf("Checking graph.\n");
     contigGraph->checkGraph();
-    assert(false);
+
     printf("Done building contig graph.\n");
     return contigGraph;
 }
@@ -38,6 +38,7 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
             if (isHomoPolymer(print_kmer(kmer))){
                 int firstBase = NT2int(print_kmer(kmer)[0]);
                 junction.setCoverage(firstBase, 0); // avoid homopolymer contigs
+                startNode->setCoverage(firstBase, 0);
             }
 
             for(int i = 0; i < 5; i++){ 
@@ -48,20 +49,20 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                     kmer_type far_kmer = contig->getSideKmer(2);
                     if (isJunction(far_kmer)){
                         if(far_kmer==kmer || far_kmer==revcomp(kmer)){ // inverted repeat - looped back to source junction
-                            std::cout<< "53\n";
+                            std::cout<< "50\n";
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);                            
                         }
                         else{ //complex junction- should create a contig node
                             //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
-                            std::cout<< "48\n";
+                            std::cout<< "56\n";
                             Junction* far_junc = getJunction(far_kmer);
                             otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet
                             contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                         }
-                        // palindrome --> if contig is RC of node, set nodes same, index same 
+                        // TODO: palindrome --> if contig is RC of node, set nodes same, index same 
                         
                     }else{
-                        std::cout<< "57\n";
+                        std::cout<< "64\n";
                         contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
                     }
 
