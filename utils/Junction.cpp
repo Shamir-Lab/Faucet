@@ -52,6 +52,10 @@ int Junction::getCoverage(int nucExt){
   return (int)cov[0] + (int)cov[1] + (int)cov[2] + (int)cov[3];
 }
 
+void Junction::setCoverage(int nucExt, int coverage){
+  cov[nucExt] = coverage;
+}
+
 void Junction::addCoverage(int nucExt){
   cov[nucExt] = cov[nucExt] + 1;
 

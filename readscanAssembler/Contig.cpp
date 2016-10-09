@@ -272,7 +272,7 @@ bool Contig::checkValidity(){
 			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
 			std::cout << "Expected at extension "<< ind1 << "\n";	
 			std::cout << "node1_p is " << node1_p << std::endl;			
-			std::cout << "contig is " << this << ", pointed to is " << node1_p->contigs[ind1] << std::endl;
+			std::cout << "contig is " << this->getSeq() << ", length is " << this->getSeq().length() << std::endl;
 			for (int i = 0; i<5; i++){
 				if (node1_p->contigs[i] == this){
 					std::cout << "contig is actually at extension " << i << std::endl;
@@ -303,7 +303,7 @@ bool Contig::checkValidity(){
 			printf("CONTIG_ERROR: adjacent node 2 at specified index doesn't point back to this contig.\n");
 			std::cout << "Expected at extension "<< ind2 << "\n";	
 			std::cout << "node2_p is " << node2_p << std::endl;			
-			std::cout << "contig is " << this << ", pointed to is " << node2_p->contigs[ind2] << std::endl;
+			std::cout << "contig is " << this->getSeq() << ", length is " << this->getSeq().length() << std::endl;
 			for (int i = 0; i<5; i++){
 				if (node2_p->contigs[i] == this){
 					std::cout << "contig is actually at extension " << i << std::endl;

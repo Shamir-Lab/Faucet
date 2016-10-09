@@ -2,6 +2,7 @@
 #include <math.h>
 #include <time.h>
 #include <stdlib.h>
+#include <assert.h>
 
 unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
@@ -588,20 +589,22 @@ int ContigGraph::deleteTips(){
     int numDeleted = 0;
     it = nodeMap.begin();
     while(it != nodeMap.end()){  
-        // std::cout << "585\n";
+        std::cout << "585\n";
         bool collapsed = false;      
         ContigNode* node = &it->second;
         // std::cout << "node originally has outdegree " << node->numPathsOut() << std::endl;
         kmer_type kmer = it->first;
         Contig * contig;
         for(int i = 0; i < 4; i++){ 
-            // std::cout << "590\n";
+            std::cout << "590\n";
             contig = node->contigs[i];
             if(contig){
-                // std::cout << "593\n";
+                std::cout << "593\n";
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
-                    // std::cout << "going to remove "<< contig <<" 614\n";
+                    std::cout << "going to remove "<< contig <<" 603\n";
                     cutPath(node,i);   // sets node cov/ptr to 0/null, sets contig's node ptr to null on that side          
+                    std::cout << "605\n";
+
                     deleteContig(contig); // sets both node's cov/ptr to 0/null on (when not already set to null on contig), deletes contig object, sets ptr to null
                     numDeleted++;
                     // }
@@ -609,7 +612,7 @@ int ContigGraph::deleteTips(){
             }
         }
         if(isTip(node,4)){ // i = 4
-            // std::cout << "616\n";
+            std::cout << "616\n";
             contig = node->contigs[4];
             cutPath(node,4);
             deleteContig(contig);
@@ -617,11 +620,13 @@ int ContigGraph::deleteTips(){
         }
        
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
+            std::cout << "620\n";
             collapseNode(node, kmer);
             it = nodeMap.erase(it); 
         }
         else if(testAndCutIfDegenerate(node)){  // one end has no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
+            std::cout << "626\n";
             it = nodeMap.erase(it); 
         }
         else{
@@ -634,17 +639,26 @@ int ContigGraph::deleteTips(){
 bool ContigGraph::isCollapsible(ContigNode * node){
     // collapsible means there are contigs at both ends, 
     // and either they are the same or neither of them is palindromic
-    if(node->numPathsOut() != 1) return false;
-    if(!node->contigs[4]) return false;
+    if(node->numPathsOut() != 1) {return false;}
+    if(!node->contigs[4]) {return false;}
+    std::cout << "641\n";
 
     Contig * frontContig;
     for (int i = 0; i < 4; i++){ // find the lone remaining contig
         frontContig = node->contigs[i]; 
-        if (frontContig) break;
+        if (frontContig){ break;}
     }
+    if (!frontContig){ return false; }
+
     Contig * backContig = node->contigs[4];
-    if( frontContig == backContig ||
-        !(frontContig->node1_p == frontContig->node2_p) && !(backContig->node1_p == backContig->node2_p)){
+    if (frontContig->node1_p && frontContig->node2_p){
+        if (frontContig->node1_p == frontContig->node2_p) {return false;}    
+    }
+    if (backContig->node1_p && backContig->node2_p){
+        if (backContig->node1_p == backContig->node2_p) {return false;}
+    }
+
+    if( frontContig == backContig ){ // making it here means no IRs, palindromes
         return true;
     }else{
         return false;

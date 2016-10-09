@@ -35,9 +35,10 @@ JunctionMap* ReadScanner::getJunctionMap(){
 //Should only be called on a kmer at least j away from the end of the read
 bool ReadScanner::testForJunction(ReadKmer readKmer){
   kmer_type real_ext = readKmer.getRealExtension();
-  
   //Check alternate extensions, and if the total valid extension count is greater than 1, return true. 
   kmer_type real = readKmer.getKmer();
+  // if (real_ext == revcomp(real)){ return true; }
+
   for(int nt=0; nt<4; nt++) {//for each extension
     kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
     if(real_ext != test_ext){//if the alternate and real extensions are different- note that I took out the other two distinction checks
@@ -89,7 +90,7 @@ bool ReadScanner::find_next_junction(ReadKmer * readKmer, int lastJuncPos){
 //sinks at the end of such regions.
 //Returns the real extension of the fake junction, for junction pairing
 kmer_type ReadScanner::add_fake_junction(string read){
-  std::cout << "added fake junction\n";
+  // std::cout << "added fake junction\n";
   ReadKmer* middleKmer = new ReadKmer(&read, read.length()/2- sizeKmer/2, FORWARD);
   kmer_type extension = middleKmer->getRealExtension();
   junctionMap->createJunction(middleKmer);

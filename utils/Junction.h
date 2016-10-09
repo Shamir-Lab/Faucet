@@ -36,6 +36,9 @@ public:
     //If nucExt == 4, returns the sum of the four coverage fields
     int getCoverage(int nucExt);
 
+    void setCoverage(int nucExt, int coverage);
+
+
     //Increments the coverage along the given extension by 1.
     void addCoverage(int nucExt);
 

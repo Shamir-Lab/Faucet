@@ -26,7 +26,7 @@ extern const bool FORWARD;
 extern const bool BACKWARD;
 extern uint64_t nsolids;
 
-
+bool isHomoPolymer(std::string str);
 std::list<std::string> getUnambiguousReads(std::string read);//returns every string of valid nuc characters in the read- throws out all other characters 
 void setSizeKmer(int k);
 char getNucChar(int nucIndex);

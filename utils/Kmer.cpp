@@ -20,6 +20,16 @@ const bool FORWARD = true;
 const bool BACKWARD = false;
 char bin2NT[4] = {'A','C','T','G'};
 
+bool isHomoPolymer(std::string str){ // tests if all nucleotides are the same
+    if (str.length() < 1){ return false; }
+    if (str.length() == 1){ return true; }
+    char firstBase = str[0];
+    for (int i = 0; i < str.length(); i++){
+        if (str[i]!=firstBase){ return false; }
+    }
+    return true;
+}
+
 char getNucChar(int nucIndex){
     return bin2NT[nucIndex];
 }
