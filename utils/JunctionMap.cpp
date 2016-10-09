@@ -48,7 +48,7 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                     ContigNode* otherNode = nullptr;
                     kmer_type far_kmer = contig->getSideKmer(2);
                     if (isJunction(far_kmer)){
-                        if(far_kmer==kmer || far_kmer==revcomp(kmer)){ // inverted repeat - looped back to source junction
+                        if(far_kmer==kmer ){ //|| far_kmer==revcomp(kmer)){ // inverted repeat - looped back to source junction
                             std::cout<< "50\n";
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);                            
                         }

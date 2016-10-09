@@ -303,24 +303,18 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
     std::vector<int> lengths;
     int min_index, max_index;
     for(int i = 0; i < inds.size(); i++) {
-        std::cout << "306\n";
         Contig * tig = node->contigs[inds[i]];
         if (node == node->contigs[inds[i]]->otherEndNode(node)){
-            std::cout << "309\n";
             std::cout << "is an inverted repeat at " << inds[i] << std::endl;
         }
-        std::cout << "312\n";
         covs.push_back(tig->getAvgCoverage());
-        std::cout << "314\n";
         lengths.push_back(tig->getSeq().length());
     }
     if (trait == "coverage"){
-        std::cout << "315\n";
         auto result = std::minmax_element(covs.begin(), covs.end());
         min_index = inds[(result.first - covs.begin())]; // lowest coverage 
         max_index = inds[(result.second - covs.begin())]; // highest coverage 
     }else if(trait == "length"){
-        std::cout << "321\n";
         auto result = std::minmax_element(lengths.begin(), lengths.end());
         min_index = inds[(result.first - lengths.begin())]; // shortest 
         max_index = inds[(result.second - lengths.begin())]; // longest 
@@ -594,21 +588,18 @@ int ContigGraph::deleteTips(){
     int numDeleted = 0;
     it = nodeMap.begin();
     while(it != nodeMap.end()){  
-        std::cout << "585\n";
         bool collapsed = false;      
         ContigNode* node = &it->second;
         // std::cout << "node originally has outdegree " << node->numPathsOut() << std::endl;
         kmer_type kmer = it->first;
         Contig * contig;
         for(int i = 0; i < 4; i++){ 
-            std::cout << "590\n";
             contig = node->contigs[i];
             if(contig){
-                std::cout << "593\n";
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
-                    std::cout << "going to remove "<< contig <<" 603\n";
+                    // std::cout << "going to remove "<< contig <<" 603\n";
                     cutPath(node,i);   // sets node cov/ptr to 0/null, sets contig's node ptr to null on that side          
-                    std::cout << "605\n";
+                    // std::cout << "605\n";
 
                     deleteContig(contig); // sets both node's cov/ptr to 0/null on (when not already set to null on contig), deletes contig object, sets ptr to null
                     numDeleted++;
@@ -617,7 +608,7 @@ int ContigGraph::deleteTips(){
             }
         }
         if(isTip(node,4)){ // i = 4
-            std::cout << "616\n";
+            // std::cout << "616\n";
             contig = node->contigs[4];
             cutPath(node,4);
             deleteContig(contig);
@@ -625,13 +616,13 @@ int ContigGraph::deleteTips(){
         }
        
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
-            std::cout << "620\n";
+            // std::cout << "620\n";
             collapseNode(node, kmer);
             it = nodeMap.erase(it); 
         }
         else if(testAndCutIfDegenerate(node)){  // one end has no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
-            std::cout << "626\n";
+            // std::cout << "626\n";
             it = nodeMap.erase(it); 
         }
         else{
@@ -646,7 +637,7 @@ bool ContigGraph::isCollapsible(ContigNode * node){
     // and either they are the same or neither of them is palindromic
     if(node->numPathsOut() != 1) {return false;}
     if(!node->contigs[4]) {return false;}
-    std::cout << "641\n";
+    // std::cout << "641\n";
 
     Contig * frontContig;
     for (int i = 0; i < 4; i++){ // find the lone remaining contig
@@ -683,11 +674,11 @@ int ContigGraph::removeChimericExtensions(int insertSize){
 
         // try to collapse highest coverage extension Q onto lowest coverage ext. P
         if (node->numPathsOut() > 1 ){ 
-            std::cout << "681\n"; 
+            // std::cout << "681\n"; 
             std::pair <Contig *, Contig *> Pair = getMinMaxForwardExtensions(node,"coverage");
             Contig * P = Pair.first;
             Contig * Q = Pair.second;   
-            std::cout << "684\n";         
+            // std::cout << "684\n";         
             ContigNode * far_node = P->otherEndNode(node);
 
             if (!far_node || far_node == node){
@@ -702,20 +693,20 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                 printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
                 
                 kmer_type far_kmer = far_node->getKmer();     
-                std::cout << "698\n";               
+                // std::cout << "698\n";               
                 cutPath(node, node->indexOf(P));    
-                std::cout << "700\n";               
+                // std::cout << "700\n";               
                 cutPath(far_node, far_node->indexOf(P));     
-                std::cout << "702\n";               
+                // std::cout << "702\n";               
                              
                 deleteContig(P);
-                std::cout << "705\n";               
+                // std::cout << "705\n";               
 
                 if(isCollapsible(node)){
-                    std::cout << "708\n";               
+                    // std::cout << "708\n";               
 
                     collapseNode(node, kmer);    
-                    std::cout << "711\n";               
+                    // std::cout << "711\n";               
                                             
                     it = nodeMap.erase(it);                           
                 }else{
@@ -728,11 +719,11 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             }      
         }
         else if (isCollapsible(node)){ 
-            std::cout << "724\n";               
+            // std::cout << "724\n";               
             collapseNode(node, kmer);
-            std::cout << "727\n";
+            // std::cout << "727\n";
             it = nodeMap.erase(it); 
-            std::cout << "729\n";
+            // std::cout << "729\n";
         }
         else{
             ++it;
