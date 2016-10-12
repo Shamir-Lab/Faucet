@@ -80,14 +80,12 @@ protected:
 
     // set up blooms, junction map, jchecker, readscanner for testing
     juncMapData() {
-        j = 0;
         read_length = 30;
         estimated_kmers = 35;
         maxSpacerDist = 8;
         fpRate = .1;
         kmers = {};
         reads = {};
-        setSizeKmer(5);
 
         bloom = createBloom(); 
         jchecker = new JChecker(j, bloom);
@@ -117,26 +115,62 @@ protected:
 
 
 // build junction map of three reads
-TEST_F(juncMapData, buildBranchingPaths) {
-    reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
-    kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
-        "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
-        "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
-        "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+// TEST_F(juncMapData, buildBranchingPaths) {
+//     setSizeKmer(5);
+        // j = 0;
+//     reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
+//     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
+//         "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
+//         "GAACT", "AACTA","ACTAG", "CTAGT", "TAGTC", "AGTCC","GTCCA", "TCCAT","AACTT", 
+//         "ACTTT", "CTTTC", "TTTCA", "TTCAT", "TCATA", "CATAC", "ATACG", "TACGA", "ACGAT","CGATT"};
+//     addKmers(bloom, kmers);
+
+//     scanner->scanInputRead(reads[0], true);
+//     scanner->scanInputRead(reads[1], true);
+//     scanner->scanInputRead(reads[2], true);
+//     std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+
+//     // Expected junctions & distances before changes
+//     // CTAGT 
+//     // 0 8 3 0 3 
+//     // TCATA 
+//     // 0 10 0 6 12 
+//     // GAACT 
+//     // 3 0 12 0 13 
+//     std::cout << "map before changes\n";
+//     printJunctionMap(*scanner);
+//     junctionMap->buildBranchingPaths(contigGraph);
+//     std::cout << "built branching paths\n";
+//     printContigGraph(contigGraph);
+
+//     printf("Destroying complex junctions.\n");
+//     junctionMap->destroyComplexJunctions();
+//     std::cout << "map before changes\n";
+//     printJunctionMap(*scanner);
+    
+//     printf("Building linear regions.\n");
+//     junctionMap->buildLinearRegions(contigGraph);
+//     printContigGraph(contigGraph);
+
+//     printf("Checking graph.\n");
+//     contigGraph->checkGraph();
+// }
+
+TEST_F(juncMapData, buildSmallMap) {
+    setSizeKmer(3);
+    j = 1;
+
+    reads = {"CATTG", "GATTC"};
+    kmers = {"CAT", "GAT", "ATT", "TTG" ,"TTC"};
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
-    scanner->scanInputRead(reads[2], true);
     std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
-    // Expected junctions & distances before changes
-    // CTAGT 
-    // 0 8 3 0 3 
-    // TCATA 
-    // 0 10 0 6 12 
-    // GAACT 
-    // 3 0 12 0 13 
+    
+    printJunctionMap(*scanner);
+
     std::cout << "map before changes\n";
     printJunctionMap(*scanner);
     junctionMap->buildBranchingPaths(contigGraph);
@@ -155,9 +189,7 @@ TEST_F(juncMapData, buildBranchingPaths) {
     printf("Checking graph.\n");
     contigGraph->checkGraph();
 
-
 }
-
 
 
 

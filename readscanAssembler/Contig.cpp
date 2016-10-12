@@ -328,42 +328,7 @@ bool Contig::checkValidity(){
 			// return false;
 		}
 	}
-	// if (node1_p && node2_p){
-	// 	if (node1_p->contigs[ind1]->getSeq() != node2_p->contigs[ind2]->getSeq()){
-	// 		std::cout << "different contig sequences\n";
-	// 		std::cout << "node 1 contig length " << node1_p->contigs[ind1]->getSeq().length() << ", " <<
-	// 		"node 2 contig length " << node2_p->contigs[ind2]->getSeq().length() <<std::endl;		
-	// 	}
-	// 	if (node1_p->contigs[ind1]->getSeq() == revcomp_string(node2_p->contigs[ind2]->getSeq())){
-	// 		std::cout << "contig sequences are RCs\n";
-	// 	}
-	// 	if (node1_p->contigs[ind1]->getSeq() == revcomp_string(node1_p->contigs[ind1]->getSeq())){
-	// 		std::cout << "node1 contig is palindrome\n";
-	// 	}
-	// 	if (node2_p->contigs[ind2]->getSeq() == revcomp_string(node2_p->contigs[ind2]->getSeq())){
-	// 		std::cout << "node2 contig is palindrome\n";
-	// 	}
-		
-	// 	if (node1_p == node2_p){
-	// 		std::cout << "nodes are equal\n";
-	// 	}else{
-	// 		std::cout << "nodes are not equal\n";
-	// 	}
-
-	// 	if(node1_p->contigs[ind1] != this){
-	// 		std::cout << "node 1 doesn't match\n";
-	// 	}else{
-	// 		std::cout << "node 1 does match\n";
-	// 	}
-	// 	if(node2_p->contigs[ind2] != this){
-	// 		std::cout << "node 2 doesn't match\n";
-	// 	}else{
-	// 		std::cout << "node 2 does match\n";
-	// 	}
-
-
-	// }
-	// std::cout << std::endl;
+	
 	return true;
 	
 }

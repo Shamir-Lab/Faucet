@@ -70,7 +70,6 @@ protected:
         fpRate = .1;
         kmers = {};
         reads = {};
-        setSizeKmer(5);
 
         bloom = createBloom(); 
         jchecker = new JChecker(j, bloom);
@@ -98,6 +97,8 @@ protected:
 
 // This test adds one read, and adds the reads kmers to the bloom filter, scans and prints the junction map 
 TEST_F(readScan, singleReadNoJunctions) {
+    setSizeKmer(5);
+
     reads = {"ACGGGCGAACTTTCATAGGA"};
     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA"};
@@ -131,6 +132,8 @@ TEST_F(readScan, singleReadNoJunctions) {
 }
 
 TEST_F(readScan, singleReadOneFakeJunction) {
+    setSizeKmer(5);
+
     // added k-mers in BF "AACTC", "ACTCC" create fake junction and branch of length 2
     reads = {"ACGGGCGAACTTTCATAGGA"};
     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","AACTC","ACTCC",
@@ -165,6 +168,7 @@ TEST_F(readScan, singleReadOneFakeJunction) {
 
 // Long read, no junctions
 TEST_F(readScan, LongReadNoJunctions) {
+    setSizeKmer(5);
     reads = {"ACGGGCGAACTTTCATAGGATCGCACTCAC"};
     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT",
         "ACTTT","CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA",
@@ -217,6 +221,7 @@ TEST_F(readScan, LongReadNoJunctions) {
 
 // Same thing but with three reads
 TEST_F(readScan, buildFullMap) {
+    setSizeKmer(5);
     reads = {"ACGGGCGAACTTTCATAGGA", "GGCGAACTAGTCCAT", "AACTTTCATACGATT"};
     kmers = {"ACGGG","CGGGC","GGGCG","GGCGA","GCGAA","CGAAC","GAACT","AACTT","ACTTT",
         "CTTTC","TTTCA","TTCAT","TCATA","CATAG","ATAGG","TAGGA","GGCGA", "GCGAA", "CGAAC", 
@@ -253,6 +258,20 @@ TEST_F(readScan, buildFullMap) {
         }
     }
     // printJunctionMap(*scanner);
+}
+
+TEST_F(readScan, buildFSmallMap) {
+    setSizeKmer(3);
+    reads = {"CATTG", "GATTC"};
+    kmers = {"CAT", "GAT", "ATT", "TTG" ,"TTC"};
+    addKmers(bloom, kmers);
+
+    scanner->scanInputRead(reads[0], true);
+    scanner->scanInputRead(reads[1], true);
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+
+    
+    printJunctionMap(*scanner);
 }
 
 // add separate to JunctionMapTest

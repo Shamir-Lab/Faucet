@@ -597,9 +597,9 @@ int ContigGraph::deleteTips(){
             contig = node->contigs[i];
             if(contig){
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
-                    // std::cout << "going to remove "<< contig <<" 603\n";
+                    std::cout << "going to remove "<< contig <<" 603\n";
                     cutPath(node,i);   // sets node cov/ptr to 0/null, sets contig's node ptr to null on that side          
-                    // std::cout << "605\n";
+                    std::cout << "605\n";
 
                     deleteContig(contig); // sets both node's cov/ptr to 0/null on (when not already set to null on contig), deletes contig object, sets ptr to null
                     numDeleted++;
@@ -608,7 +608,7 @@ int ContigGraph::deleteTips(){
             }
         }
         if(isTip(node,4)){ // i = 4
-            // std::cout << "616\n";
+            std::cout << "616\n";
             contig = node->contigs[4];
             cutPath(node,4);
             deleteContig(contig);
@@ -616,13 +616,13 @@ int ContigGraph::deleteTips(){
         }
        
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
-            // std::cout << "620\n";
+            std::cout << "620\n";
             collapseNode(node, kmer);
             it = nodeMap.erase(it); 
         }
         else if(testAndCutIfDegenerate(node)){  // one end has no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
-            // std::cout << "626\n";
+            std::cout << "626\n";
             it = nodeMap.erase(it); 
         }
         else{
