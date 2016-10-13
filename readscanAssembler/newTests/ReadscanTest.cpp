@@ -260,17 +260,20 @@ TEST_F(readScan, buildFullMap) {
     // printJunctionMap(*scanner);
 }
 
-TEST_F(readScan, buildFSmallMap) {
-    setSizeKmer(3);
-    reads = {"CATTG", "GATTC"};
-    kmers = {"CAT", "GAT", "ATT", "TTG" ,"TTC"};
+TEST_F(readScan, smallDblJuncMap) {
+    setSizeKmer(7);
+    // j = 1;
+
+    reads = {"AAAAACAGCGATTC", "AAAAAGAGCGATTTA"};
+    kmers = {"AAAAACA", "AAAAAGA", "AAAACAG", "AAAAGAG", "AAACAGC", "AAAGAGC",
+        "AACAGCG", "AAGAGCG", "ACAGCGA","AGAGCGA","CAGCGAT", "GAGCGAT", "AGCGATT", 
+        "GCGATTT" ,"GCGATTC", "CGATTTA"};
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
     std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
-    
     printJunctionMap(*scanner);
 }
 

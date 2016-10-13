@@ -156,19 +156,20 @@ protected:
 //     contigGraph->checkGraph();
 // }
 
-TEST_F(juncMapData, buildSmallMap) {
-    setSizeKmer(3);
-    j = 1;
+TEST_F(juncMapData, smallDoubleJuncMap) {
+    setSizeKmer(7);
+    j = 0;
 
-    reads = {"CATTG", "GATTC"};
-    kmers = {"CAT", "GAT", "ATT", "TTG" ,"TTC"};
+    reads = {"AAAAACAGCGATTC", "AAAAAGAGCGATTTA"};
+    kmers = {"AAAAACA", "AAAAAGA", "AAAACAG", "AAAAGAG", "AAACAGC", "AAAGAGC",
+        "AACAGCG", "AAGAGCG", "ACAGCGA","AGAGCGA","CAGCGAT", "GAGCGAT", "AGCGATT", 
+        "GCGATTT" ,"GCGATTC", "CGATTTA"};
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
     std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
-    
     printJunctionMap(*scanner);
 
     std::cout << "map before changes\n";
@@ -191,11 +192,39 @@ TEST_F(juncMapData, buildSmallMap) {
 
 }
 
+TEST_F(juncMapData, endJuncMap) {
+    setSizeKmer(7);
+    j = 0;
 
+    reads = {"AAAAAACAGCGATTC", "AAAAAACTAAAAAA"}; // single read, first kmer is junction, should poinnt back one
+    kmers = {"AAAAAAC", "AAAAACA", "AAAAACT", "AAAACAG", "AAACAGC", "AACAGCG", "ACAGCGA","CAGCGAT", "AGCGATT", "GCGATTC",
+        "AAAACTA", "AAACTAA", "AACTAAA", "ACTAAAA", "CTAAAAA", "CTAAAAAA"};
+    addKmers(bloom, kmers);
 
+    scanner->scanInputRead(reads[0], true);
+    scanner->scanInputRead(reads[1], true);
 
-// int main(int ac, char* av[])
-// {
-//   testing::InitGoogleTest(&ac, av);
-//   return RUN_ALL_TESTS();
-// }
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+
+    printJunctionMap(*scanner);
+
+    std::cout << "map before changes\n";
+    printJunctionMap(*scanner);
+    junctionMap->buildBranchingPaths(contigGraph);
+    std::cout << "built branching paths\n";
+    printContigGraph(contigGraph);
+
+    printf("Destroying complex junctions.\n");
+    junctionMap->destroyComplexJunctions();
+    std::cout << "map before changes\n";
+    printJunctionMap(*scanner);
+    
+    printf("Building linear regions.\n");
+    junctionMap->buildLinearRegions(contigGraph);
+    printContigGraph(contigGraph);
+
+    printf("Checking graph.\n");
+    contigGraph->checkGraph();
+
+}
+

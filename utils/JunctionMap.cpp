@@ -56,16 +56,8 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                             //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
                             std::cout<< "56\n";
                             Junction* far_junc = getJunction(far_kmer);
-                            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet
-                            // if (far_kmer == revcomp(kmer)){ // && contig->getSeq()==print_kmer(far_kmer)){
-                            //     // std::cout << "hit rc node, " << contig->ind1 << ", " << contig->ind2 << std::endl;
-                            //     // contig->setEnds(otherNode, contig->ind1, otherNode, contig->ind2);
-                            //     junction.setCoverage(i, 0); // avoid homopolymer contigs
-                            //     startNode->setCoverage(i, 0);
-                            //     continue;
-                            // }else{
-                            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);
-                            // }
+                            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet                            
+                            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2);                            
                         }
                         // TODO: palindrome --> if contig is RC of node, set nodes same, index same 
                         

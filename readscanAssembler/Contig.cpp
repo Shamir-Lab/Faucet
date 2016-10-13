@@ -271,21 +271,25 @@ bool Contig::checkValidity(){
 		if(node1_p->contigs[ind1] != this){
 			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
 			std::cout << "Expected at extension "<< ind1 << "\n";	
-			std::cout << "node1_p is " << node1_p << std::endl;			
+			std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) << std::endl;			
 			std::cout << "contig is " << this->getSeq() << ", length is " << this->getSeq().length() << std::endl;
 			for (int i = 0; i<5; i++){
-				if (node1_p->contigs[i] == this){
-					std::cout << "contig is actually at extension " << i << std::endl;
-					std::cout << "other ind is " << ind2 << std::endl;
-					if (node1_p == node2_p){
-						std::cout << "end nodes are equal" << std::endl;
-					}
-					else{
-						assert(node1_p && node2_p);
-						if (node1_p->getKmer() == node2_p->getKmer()){
-							std::cout << "nodes not equal, but node kmers are\n";
-						}
-					}
+				// if (node1_p->contigs[i] == this){
+				// 	std::cout << "contig is actually at extension " << i << std::endl;
+				// 	std::cout << "other ind is " << ind2 << std::endl;
+				// 	if (node1_p == node2_p){
+				// 		std::cout << "end nodes are equal" << std::endl;
+				// 	}
+				// 	else{
+				// 		assert(node1_p && node2_p);
+				// 		if (node1_p->getKmer() == node2_p->getKmer()){
+				// 			std::cout << "nodes not equal, but node kmers are\n";
+				// 		}
+				// 	}
+				// }
+				std::cout << "in contig::checkValidity\n";
+				if (node1_p->contigs[i]){
+					std::cout << "node1_p at " << i << " is " << node1_p->contigs[i]->getSeq() << std::endl;			
 				}
 			}	
 			// return false;
