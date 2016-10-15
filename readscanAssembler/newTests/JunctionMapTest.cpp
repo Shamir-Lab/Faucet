@@ -194,7 +194,7 @@ TEST_F(juncMapData, smallDoubleJuncMap) {
 
 TEST_F(juncMapData, endJuncMap) {
     setSizeKmer(7);
-    j = 0;
+    j = 1;
 
     reads = {"AAAAAACAGCGATTC", "AAAAAACTAAAAAA"}; // single read, first kmer is junction, should poinnt back one
     kmers = {"AAAAAAC", "AAAAACA", "AAAAACT", "AAAACAG", "AAACAGC", "AACAGCG", "ACAGCGA","CAGCGAT", "AGCGATT", "GCGATTC",

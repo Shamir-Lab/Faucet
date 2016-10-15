@@ -167,7 +167,9 @@ kmer_type Contig::getNodeKmer(ContigNode * contigNode){
 	if(node2_p == contigNode){
 		return getSideKmer(2);
 	}
-	printf("ERROR: tried to get the kmer corresponding to a node not adjacent to this contig from this contig.\n");
+    throw std::logic_error("Tried to get the kmer corresponding to a node not adjacent to this contig from this contig.");
+
+	// printf("ERROR: tried to get the kmer corresponding to a node not adjacent to this contig from this contig.\n");
 }
 
 ContigNode* Contig::getNode(int side){
@@ -177,7 +179,7 @@ ContigNode* Contig::getNode(int side){
 	if(side == 2){
 		return node2_p;
 	}
-	printf("ERROR: called getNode on contignode with side other than 1,2\n");
+	throw std::logic_error("Called getNode on contignode with side other than 1,2");
 }
 
 int Contig::getIndex(int side){
@@ -187,7 +189,7 @@ int Contig::getIndex(int side){
 	if(side == 2){
 		return ind2;
 	}
-	printf("ERROR: called getSide on contignode with side other than 1,2\n");
+	throw std::logic_error("Called getSide on contignode with side other than 1,2");
 }
 
 //Gets kmer for node1_p if side == 1, node2_p if side == 2
@@ -202,7 +204,7 @@ kmer_type Contig::getSideKmer(int side){
 		if(ind2 == 4) return kmer;
 		return revcomp(kmer);
 	}
-	printf("ERROR: tried to get a kmer corresponding to a side other than one or two from a contig.\n");
+	throw std::logic_error("Tried to get a kmer corresponding to a side other than one or two from a contig.");
 }
 
 int Contig::getSide(ContigNode* node){
@@ -268,30 +270,33 @@ bool Contig::checkValidity(){
 	// std::cout << "ind1 " << ind1 << ", ind2 " << ind2 << std::endl;
 	if(node1_p){
 		// std::cout << "there is a node 1 ptr\n";
-		if(node1_p->contigs[ind1] != this){
+		if(node1_p->contigs[ind1] != this && 
+			(getSeq() != print_kmer(revcomp(getKmerFromRead(node1_p->contigs[ind1]->getSeq(), node1_p->contigs[ind1]->getSeq().length()-sizeKmer) ) ) ) 
+			&& ind1==4 && ind2==4 ){
 			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
 			std::cout << "Expected at extension "<< ind1 << "\n";	
 			std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) << std::endl;			
-			std::cout << "contig is " << this->getSeq() << ", length is " << this->getSeq().length() << std::endl;
-			for (int i = 0; i<5; i++){
-				// if (node1_p->contigs[i] == this){
-				// 	std::cout << "contig is actually at extension " << i << std::endl;
-				// 	std::cout << "other ind is " << ind2 << std::endl;
-				// 	if (node1_p == node2_p){
-				// 		std::cout << "end nodes are equal" << std::endl;
-				// 	}
-				// 	else{
-				// 		assert(node1_p && node2_p);
-				// 		if (node1_p->getKmer() == node2_p->getKmer()){
-				// 			std::cout << "nodes not equal, but node kmers are\n";
-				// 		}
-				// 	}
-				// }
-				std::cout << "in contig::checkValidity\n";
-				if (node1_p->contigs[i]){
-					std::cout << "node1_p at " << i << " is " << node1_p->contigs[i]->getSeq() << std::endl;			
-				}
-			}	
+			std::cout << "contig is\n"; 
+			std::cout << this->getSeq()  << std::endl; // << ", length is\n" << this->getSeq().length()
+			// for (int i = 0; i<5; i++){
+			// 	if (node1_p->contigs[i] == this){
+			// 		std::cout << "contig is actually at extension " << i << std::endl;
+			// 		std::cout << "other ind is " << ind2 << std::endl;
+			// 		if (node1_p == node2_p){
+			// 			std::cout << "end nodes are equal" << std::endl;
+			// 		}
+			// 		else{
+			// 			assert(node1_p && node2_p);
+			// 			if (node1_p->getKmer() == node2_p->getKmer()){
+			// 				std::cout << "nodes not equal, but node kmers are\n";
+			// 			}
+			// 		}
+			// 	}
+			if (node1_p->contigs[4]){
+				std::cout << "node1_p at " << 4 << " is\n";
+				std::cout << node1_p->contigs[4]->getSeq() << std::endl;			
+			}
+			// }	
 			// return false;
 		}
 		if(getSide(node1_p, ind1) != 1 && !isDegenerateLoop()){

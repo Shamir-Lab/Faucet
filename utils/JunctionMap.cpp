@@ -23,7 +23,7 @@ ContigGraph* JunctionMap::buildContigGraph(){
 
     printf("Checking graph.\n");
     contigGraph->checkGraph();
-
+    // assert(false);
     printf("Done building contig graph.\n");
     return contigGraph;
 }
@@ -46,14 +46,16 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
                      //printf("Building contig from index %d\n", i);
                     Contig* contig = getContig(junction, kmer, i);
                     ContigNode* otherNode = nullptr;
-                    kmer_type far_kmer = contig->getSideKmer(2);
+                    kmer_type far_kmer = contig->getSideKmer(2); // for side 2 returns rc of last kmer, or last kmer if ind == 4 (already rc'd)
+
                     if (isJunction(far_kmer)){
+                        
                         if(far_kmer == kmer){ //|| far_kmer==revcomp(kmer)){ // inverted repeat - looped back to source junction
                             std::cout<< "50\n";
                             contig->setEnds(startNode, contig->ind1, startNode, contig->ind2);                            
                         }
                         else{ //complex junction- should create a contig node
-                            //printf("Path builder found a node: %s\n", print_kmer(far_kmer));
+                            printf("Path builder found a node: %s\n", print_kmer(far_kmer));
                             std::cout<< "56\n";
                             Junction* far_junc = getJunction(far_kmer);
                             otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet                            
