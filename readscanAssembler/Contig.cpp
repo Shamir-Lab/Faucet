@@ -270,33 +270,26 @@ bool Contig::checkValidity(){
 	// std::cout << "ind1 " << ind1 << ", ind2 " << ind2 << std::endl;
 	if(node1_p){
 		// std::cout << "there is a node 1 ptr\n";
-		if(node1_p->contigs[ind1] != this && 
-			(getSeq() != print_kmer(revcomp(getKmerFromRead(node1_p->contigs[ind1]->getSeq(), node1_p->contigs[ind1]->getSeq().length()-sizeKmer) ) ) ) 
-			&& ind1==4 && ind2==4 ){
+		if(node1_p->contigs[ind1] != this ){ //&& 
+			// (getSeq() != print_kmer(revcomp(getKmerFromRead(node1_p->contigs[ind1]->getSeq(), node1_p->contigs[ind1]->getSeq().length()-sizeKmer) ) ) ) 
+			// ){
 			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
 			std::cout << "Expected at extension "<< ind1 << "\n";	
-			std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) << std::endl;			
+			std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) <<" , ind 1 is " << ind2 <<  std::endl;
+			std::cout << "node2_p seq is " << print_kmer(node2_p->getKmer()) <<" , ind 2 is " << ind2 <<  std::endl;			
+			
 			std::cout << "contig is\n"; 
 			std::cout << this->getSeq()  << std::endl; // << ", length is\n" << this->getSeq().length()
-			// for (int i = 0; i<5; i++){
-			// 	if (node1_p->contigs[i] == this){
-			// 		std::cout << "contig is actually at extension " << i << std::endl;
-			// 		std::cout << "other ind is " << ind2 << std::endl;
-			// 		if (node1_p == node2_p){
-			// 			std::cout << "end nodes are equal" << std::endl;
-			// 		}
-			// 		else{
-			// 			assert(node1_p && node2_p);
-			// 			if (node1_p->getKmer() == node2_p->getKmer()){
-			// 				std::cout << "nodes not equal, but node kmers are\n";
-			// 			}
-			// 		}
-			// 	}
 			if (node1_p->contigs[4]){
 				std::cout << "node1_p at " << 4 << " is\n";
 				std::cout << node1_p->contigs[4]->getSeq() << std::endl;			
+			
 			}
-			// }	
+			if (node2_p->contigs[4]){
+				std::cout << "node2_p at " << 4 << " is\n";
+				std::cout << node2_p->contigs[4]->getSeq() << std::endl;			
+			
+			}	
 			// return false;
 		}
 		if(getSide(node1_p, ind1) != 1 && !isDegenerateLoop()){
@@ -308,26 +301,24 @@ bool Contig::checkValidity(){
 	}
 	if(node2_p){
 		// std::cout << "there is a node 2 ptr\n";
-		if(node2_p->contigs[ind2] != this){
+		if(node2_p->contigs[ind2] != this ){//&& 
+			// (getSeq() != print_kmer(getKmerFromRead(node2_p->contigs[ind2]->getSeq(), node2_p->contigs[ind2]->getSeq().length()-sizeKmer) ) ) 
+			// ){
 			printf("CONTIG_ERROR: adjacent node 2 at specified index doesn't point back to this contig.\n");
 			std::cout << "Expected at extension "<< ind2 << "\n";	
-			std::cout << "node2_p is " << node2_p << std::endl;			
-			std::cout << "contig is " << this->getSeq() << ", length is " << this->getSeq().length() << std::endl;
-			for (int i = 0; i<5; i++){
-				if (node2_p->contigs[i] == this){
-					std::cout << "contig is actually at extension " << i << std::endl;
-					std::cout << "other ind is " << ind1 << std::endl;
-					if (node1_p == node2_p){
-						std::cout << "end nodes are equal" << std::endl;
-					}
-					else{
-						assert(node1_p && node2_p);
-						if (node1_p->getKmer() == node2_p->getKmer()){
-							std::cout << "nodes not equal, but node kmers are\n";
-						}
-					}
-				}
-			}		
+			std::cout << "node2_p seq is " << print_kmer(node2_p->getKmer()) <<" , ind 2 is " << ind1 <<  std::endl;			
+			std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) <<" , ind 1 is " << ind1 <<  std::endl;			
+			std::cout << "contig is\n"; 
+			std::cout << this->getSeq()  << std::endl; // << ", length is\n" << this->getSeq().length()
+			if (node2_p->contigs[4]){
+				std::cout << "node2_p at " << 4 << " is\n";
+				std::cout << node2_p->contigs[4]->getSeq() << std::endl;			
+			}
+			if (node1_p->contigs[4]){
+				std::cout << "node1_p at " << 4 << " is\n";
+				std::cout << node1_p->contigs[4]->getSeq() << std::endl;			
+			
+			}
 			// return false;
 		}
 		if(getSide(node2_p, ind2) != 2 && !isDegenerateLoop()){

@@ -251,7 +251,7 @@ bool ContigGraph::checkGraph(){
             return false;
         }
         for(int i = 0; i < 5; i++){
-            std::cout << "node is " << print_kmer(node->getKmer()) << std::endl;         
+            // std::cout << "node is " << print_kmer(node->getKmer()) << std::endl;         
             if(node->contigs[i]){
                 if(!node->contigs[i]->checkValidity()){
                     // return false;
