@@ -13,7 +13,6 @@ ContigGraph* JunctionMap::buildContigGraph(){
     printf("Building contig graph.\n");
     
     printf("Building branching regions.\n");  
-    // buildBackToBackPaths(contigGraph);  
     buildBranchingPaths(contigGraph);
 
     printf("Destroying complex junctions.\n");
@@ -29,30 +28,6 @@ ContigGraph* JunctionMap::buildContigGraph(){
     return contigGraph;
 }
 
-void JunctionMap::buildBackToBackPaths(ContigGraph* contigGraph){
-    for(auto it = junctionMap.begin(); it != junctionMap.end(); it++){ //for each junction
-        kmer_type kmer = it->first;
-        Junction junction = it->second;
-        if (isJunction(revcomp(kmer))){
-
-            ContigNode* startNode = contigGraph->createContigNode(kmer, junction);
-            // Contig* contig = getContig(junction, kmer, 4);
-            Contig * contig = new Contig();
-            std::deque<unsigned char> coverages;
-            std::deque<unsigned char> distances;
-            contig->setContigJuncs(ContigJuncList(print_kmer(revcomp(kmer)), distances, coverages));
-            contig->setIndices(4,4);
-            assert(contig->getSeq().length() == sizeKmer);
-            ContigNode* otherNode = nullptr;
-            kmer_type far_kmer = contig->getSideKmer(2);
-            assert(far_kmer == revcomp(kmer));
-            Junction* far_junc = getJunction(far_kmer);
-            otherNode = contigGraph->createContigNode(far_kmer, *far_junc);//create a contig on the other side if it doesn't exist yet                            
-            contig->setEnds(startNode, contig->ind1, otherNode, contig->ind2); 
-        }
-    }
-        
-}
 
 
 void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
@@ -192,10 +167,6 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
                     std::cout << "194\n";
                     done = true;
                 }
-                // else if (result.kmer == revcomp(startKmer)){
-                //     std::cout << "198\n";
-                //     done = true;
-                // }
                 else{
                     kmers_to_destroy.push_back(kmer);
                 }

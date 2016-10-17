@@ -274,29 +274,29 @@ bool Contig::checkValidity(){
 			// (getSeq() != print_kmer(revcomp(getKmerFromRead(node1_p->contigs[ind1]->getSeq(), node1_p->contigs[ind1]->getSeq().length()-sizeKmer) ) ) ) 
 			// ){
 			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
-			std::cout << "Expected at extension "<< ind1 << "\n";	
-			std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) <<" , ind 1 is " << ind2 <<  std::endl;
-			std::cout << "node2_p seq is " << print_kmer(node2_p->getKmer()) <<" , ind 2 is " << ind2 <<  std::endl;			
+			// std::cout << "Expected at extension "<< ind1 << "\n";	
+			// std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) <<" , ind 1 is " << ind2 <<  std::endl;
+			// std::cout << "node2_p seq is " << print_kmer(node2_p->getKmer()) <<" , ind 2 is " << ind2 <<  std::endl;			
 			
-			std::cout << "contig is\n"; 
-			std::cout << this->getSeq()  << std::endl; // << ", length is\n" << this->getSeq().length()
-			if (node1_p->contigs[4]){
-				std::cout << "node1_p at " << 4 << " is\n";
-				std::cout << node1_p->contigs[4]->getSeq() << std::endl;			
+			// std::cout << "contig is\n"; 
+			// std::cout << this->getSeq()  << std::endl; // << ", length is\n" << this->getSeq().length()
+			// if (node1_p->contigs[4]){
+			// 	std::cout << "node1_p at " << 4 << " is\n";
+			// 	std::cout << node1_p->contigs[4]->getSeq() << std::endl;			
 			
-			}
-			if (node2_p->contigs[4]){
-				std::cout << "node2_p at " << 4 << " is\n";
-				std::cout << node2_p->contigs[4]->getSeq() << std::endl;			
+			// }
+			// if (node2_p->contigs[4]){
+			// 	std::cout << "node2_p at " << 4 << " is\n";
+			// 	std::cout << node2_p->contigs[4]->getSeq() << std::endl;			
 			
-			}	
-			// return false;
+			// }	
+			return false;
 		}
 		if(getSide(node1_p, ind1) != 1 && !isDegenerateLoop()){
 			printf("CONTIG_ERROR: getSide incorrect on node1p, ind1.\n");
 			std::cout << "Node1: " << node1_p << ", Ind1: " << ind1 << ", Side: " << getSide(node1_p, ind1) << "\n";
 			std::cout << "Node2: " << node2_p << ", Ind2: " << ind2 << ", Side: " << getSide(node2_p, ind2) << "\n";
-			// return false;
+			return false;
 		}
 	}
 	if(node2_p){
@@ -305,27 +305,27 @@ bool Contig::checkValidity(){
 			// (getSeq() != print_kmer(getKmerFromRead(node2_p->contigs[ind2]->getSeq(), node2_p->contigs[ind2]->getSeq().length()-sizeKmer) ) ) 
 			// ){
 			printf("CONTIG_ERROR: adjacent node 2 at specified index doesn't point back to this contig.\n");
-			std::cout << "Expected at extension "<< ind2 << "\n";	
-			std::cout << "node2_p seq is " << print_kmer(node2_p->getKmer()) <<" , ind 2 is " << ind1 <<  std::endl;			
-			std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) <<" , ind 1 is " << ind1 <<  std::endl;			
-			std::cout << "contig is\n"; 
-			std::cout << this->getSeq()  << std::endl; // << ", length is\n" << this->getSeq().length()
-			if (node2_p->contigs[4]){
-				std::cout << "node2_p at " << 4 << " is\n";
-				std::cout << node2_p->contigs[4]->getSeq() << std::endl;			
-			}
-			if (node1_p->contigs[4]){
-				std::cout << "node1_p at " << 4 << " is\n";
-				std::cout << node1_p->contigs[4]->getSeq() << std::endl;			
+			// std::cout << "Expected at extension "<< ind2 << "\n";	
+			// std::cout << "node2_p seq is " << print_kmer(node2_p->getKmer()) <<" , ind 2 is " << ind1 <<  std::endl;			
+			// std::cout << "node1_p seq is " << print_kmer(node1_p->getKmer()) <<" , ind 1 is " << ind1 <<  std::endl;			
+			// std::cout << "contig is\n"; 
+			// std::cout << this->getSeq()  << std::endl; // << ", length is\n" << this->getSeq().length()
+			// if (node2_p->contigs[4]){
+			// 	std::cout << "node2_p at " << 4 << " is\n";
+			// 	std::cout << node2_p->contigs[4]->getSeq() << std::endl;			
+			// }
+			// if (node1_p->contigs[4]){
+			// 	std::cout << "node1_p at " << 4 << " is\n";
+			// 	std::cout << node1_p->contigs[4]->getSeq() << std::endl;			
 			
-			}
-			// return false;
+			// }
+			return false;
 		}
 		if(getSide(node2_p, ind2) != 2 && !isDegenerateLoop()){
 			printf("CONTIG_ERROR: getSide incorrect on node2p, ind2.\n");
 			std::cout << "Node1: " << node1_p << ", Ind1: " << ind1 << ", Side: " << getSide(node1_p, ind1) << "\n";
 			std::cout << "Node2: " << node2_p << ", Ind2: " << ind2 << ", Side: " << getSide(node2_p, ind2) << "\n";
-			// return false;
+			return false;
 		}
 	}
 	
