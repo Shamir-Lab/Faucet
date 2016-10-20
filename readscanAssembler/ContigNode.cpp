@@ -23,6 +23,20 @@ ContigNode::ContigNode(){
     }   
 }
     
+bool ContigNode::isInvertedRepeatNode(){
+    std::vector<int> inds = this->getIndicesOut();
+    std::set<Contig *> seenContigs = {};
+    for (auto i : inds){
+        if(seenContigs.find(contigs[i]) == seenContigs.end()){
+            seenContigs.insert(contigs[i]);
+        }
+        else{
+            return true;
+        }
+    }
+    return false;
+}
+
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     //std::cout << "Getting candidate pairs.\n";
     // clock_t t = clock();

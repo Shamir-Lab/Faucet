@@ -25,6 +25,7 @@ public:
 
     ContigNode(Junction junction);
     ContigNode();
+    bool isInvertedRepeatNode();
 
 
     bool checkValidity();

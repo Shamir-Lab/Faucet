@@ -328,7 +328,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
 
 bool ContigGraph::isTip(ContigNode* node, int index){
     Contig* contig = node->contigs[index];
-    if(contig->getSeq().length() < 100 && contig->otherEndNode(node) == nullptr){
+    if(contig->getSeq().length() < read_length && !contig->otherEndNode(node)){
         return true;
     }
     return false;
@@ -594,7 +594,9 @@ int ContigGraph::deleteTips(){
         kmer_type kmer = it->first;
         Contig * contig;
         for(int i = 0; i < 4; i++){ 
+            std::cout << "i is " << i << " 597\n";
             contig = node->contigs[i];
+            std::cout << "599\n";
             if(contig){
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
                     std::cout << "going to remove "<< contig <<" 603\n";
@@ -826,25 +828,20 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         ContigNode* node = &it->second;
-        //printf("Testing %s\n", print_kmer(node->getKmer()));
         kmer_type kmer = it->first;
-        if(node->numPathsOut() == 2){
-            Contig* contig = node->contigs[4];
+        Contig* contig = node->contigs[4];
+        if (!contig){
+            ++it;
+            continue;
+        }
+        if(node->numPathsOut() == 2 && contig->node2_p && contig->node1_p){
             ContigNode* backNode = contig->otherEndNode(node);
             int a,b,c,d;
 
             // test for adjacent outwards facing nodes
-            if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4){
-                a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
-                c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
-                Contig* contig_a = backNode->contigs[a]; 
-                Contig* contig_b = backNode->contigs[b];
-                Contig* contig_c = node->contigs[c];
-                Contig* contig_d = node->contigs[d];
-                if (contig_a == contig_b || contig_c == contig_d){
-                    ++it;
-                    continue;
-                } 
+            if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
+                !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
+                
                 for (int orientation = 1; orientation < 5; orientation++){ // change orienation instead of calling disentangle with different order 
                     if (operationDone) {
                         operationDone = false;
@@ -856,6 +853,11 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     if (orientation > 2){d = node->getIndicesOut()[0], c = node->getIndicesOut()[1];}
                     else {c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];}
                     
+                    Contig* contig_a = backNode->contigs[a]; 
+                    Contig* contig_b = backNode->contigs[b];
+                    Contig* contig_c = node->contigs[c];
+                    Contig* contig_d = node->contigs[d];
+
                     std::list<JuncResult> A,B,C,D;
 
                     ContigNode* nodeA = contig_a->otherEndNode(backNode);
@@ -953,11 +955,6 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                             if( areEquivalentContigCoverages(contig_a->contigJuncs, contig_c->contigJuncs, 0.10) &&
                                 areDifferentialContigCoverages(contig_a->contigJuncs, contig_d->contigJuncs) && 
                                 areDifferentialContigCoverages(contig_b->contigJuncs, contig_c->contigJuncs) ){
-                                // areEquivalentContigCoverages(contig_b->contigJuncs, contig_d->contigJuncs, 0.10) ) &&
-                                // areDifferentialContigCoverages(ARC_juncs, BRD_juncs)){
-                                //     (areEquivalentContigCoverages(contig_a, contig_c, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_a, contig_d)) ||
-                                // (areEquivalentContigCoverages(contig_b, contig_d, backNode, node, 0.10, insertSize) && areDifferentialContigCoverages(contig_b, contig_c) ) ) {
-                                // std::abs(contig_a->getAvgCoverage() - contig_b->getAvgCoverage())>=5){
                                 std::cout << "split found by coverage\n";
                                 operationDone = true;
                             }

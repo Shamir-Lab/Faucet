@@ -167,6 +167,9 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
                     std::cout << "194\n";
                     done = true;
                 }
+                // else if (result.kmer == revcomp(startKmer)){
+                //     done = true;
+                // }
                 else{
                     kmers_to_destroy.push_back(kmer);
                 }
