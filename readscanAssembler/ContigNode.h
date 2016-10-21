@@ -56,6 +56,7 @@ public:
     //removes the given path out of this node.
     //Removes contig pointer, set coverage to 0
     void breakPath(int nucExt);
+    void clearNode();
 
     //for traversal
     bool hasNeighbor(int index);

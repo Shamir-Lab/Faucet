@@ -87,7 +87,6 @@ public:
     bool areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac);
     bool areDifferentialContigCoverages(ContigJuncList A, ContigJuncList B);
 
-
 private:
     int deleteTips();
     int deleteIsolatedContigs();
@@ -100,5 +99,18 @@ private:
     void collapseNode(ContigNode * node, kmer_type kmer);
     void cutPath(ContigNode* node, int index); //used on nodes with no backward contig
 };
+
+// class NodeContigData{ //contains all info for an entry in the queue for a node BFS
+// public:
+//     Contig * contig;
+//     ContigNode * far_node;
+//     int len;
+//     double cov;
+//     // std::list<JuncResult> juncs;
+
+//     NodeContigData(ContigNode * node, int index, int insertSize);
+//     NodeContigData();
+
+// };
 
 #endif

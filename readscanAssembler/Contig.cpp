@@ -271,7 +271,7 @@ bool Contig::checkValidity(){
 	if(node1_p){
 		// std::cout << "there is a node 1 ptr\n";
 		if(node1_p->contigs[ind1] != this ){ //&& 
-			// (getSeq() != print_kmer(revcomp(getKmerFromRead(node1_p->contigs[ind1]->getSeq(), node1_p->contigs[ind1]->getSeq().length()-sizeKmer) ) ) ) 
+			// (other != print_kmer(revcomp(getKmerFromRead(node1_p->contigs[ind1]->getSeq(), node1_p->contigs[ind1]->getSeq().length()-sizeKmer) ) ) ) 
 			// ){
 			printf("CONTIG_ERROR: adjacent node 1 at specified index doesn't point back to this contig.\n");
 			// std::cout << "Expected at extension "<< ind1 << "\n";	

@@ -256,6 +256,12 @@ void ContigNode::breakPath(int nucExt){
     contigs[nucExt] = nullptr;
 }
 
+void ContigNode::clearNode(){
+    for (int i=0; i<5; i++){
+        this->breakPath(i);
+    }
+}
+
 kmer_type ContigNode::getKmer(){
     for(int i = 4; i >= 0; i--){
         if(contigs[i]){

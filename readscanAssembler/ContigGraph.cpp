@@ -819,39 +819,80 @@ int ContigGraph::collapseBulges(int max_dist){
     return numDeleted; 
 }
 
+// NodeContigData::NodeContigData(){
+//     Contig * contig = nullptr;
+//     ContigNode * far_node = nullptr;
+//     int len = 0;
+//     double cov = 0;
+//     // std::list<JuncResult> juncs = {};
+// }
+
+// NodeContigData::NodeContigData(ContigNode * node, int index, int insertSize){
+//     Contig * contig = node->contigs[index];
+//     ContigNode * far_node = contig->otherEndNode(node);
+//     int len = contig->getSeq().length();
+//     double cov = contig->getAvgCoverage();
+//     // std::list<JuncResult> juncs = node->getPairCandidates(index, std::min(len, insertSize));
+// }
+
+// disentangleParallelPaths
+// for each node
+    // if numPathsOut > 2 
+        // ++it 
+    // else if numPaths == 2
+        // if invertedRepeatNode
+            // ++it
+        // for each orientation (only need to consider 2 - parallel and cross-wise)
+            // if can disentangle (either by BF XOR or by coverage)
+                // disentanglePair(node, orientation)
+                // remove a,b,r contigs from back
+                // remove c,d,r contigs from front
+                // make sure to only delete r once
+    // else
+        // if collapsible, collapseNode
+        // testAndCutIfDegenerate
+
 
 int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
     int disentangled = 0;
-    double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
     bool operationDone = false;
-    std::cout << "About to disentangle.  Starting with " << nodeMap.size() << " nodes.\n";
+    double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
+
+    std::cout << "About to disentangle parallel paths.  Starting with " << nodeMap.size() << " nodes.\n";
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
-        if (!contig){
+        
+        if (isCollapsible(node)){ // left with one extension on each end - redundant node
+            collapseNode(node, kmer);
+            std::cout << "870\n";
+            it = nodeMap.erase(it); 
+            std::cout << "872\n";
+        }
+        else if(testAndCutIfDegenerate(node)){  // either one has or both ends have no extension - expired 'degenerate' node
+            // calls cutpath on opposite end -- 4 when no front, all fronts when no back
+            it = nodeMap.erase(it); 
+        }
+        else if (node->numPathsOut() > 2){
             ++it;
             continue;
         }
-        if(node->numPathsOut() == 2 && contig->node2_p && contig->node1_p){
+        else if (!contig){
+            ++it;
+            continue;   
+        }
+        else if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
             ContigNode* backNode = contig->otherEndNode(node);
             int a,b,c,d;
-
-            // test for adjacent outwards facing nodes
-            if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
+            if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
-                
-                for (int orientation = 1; orientation < 5; orientation++){ // change orienation instead of calling disentangle with different order 
-                    if (operationDone) {
-                        operationDone = false;
-                        break;
-                    } // to avoid trying to disentangle something we already have
-
+                kmer_type back_kmer = backNode->getKmer();
+                for (int orientation = 1; orientation < 3; orientation++){
                     if (orientation % 2 == 1) {a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];}
                     else {b = backNode->getIndicesOut()[0], a = backNode->getIndicesOut()[1];}
-                    if (orientation > 2){d = node->getIndicesOut()[0], c = node->getIndicesOut()[1];}
-                    else {c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];}
+                    c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
                     
                     Contig* contig_a = backNode->contigs[a]; 
                     Contig* contig_b = backNode->contigs[b];
@@ -860,10 +901,10 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
 
                     std::list<JuncResult> A,B,C,D;
 
-                    ContigNode* nodeA = contig_a->otherEndNode(backNode);
-                    ContigNode* nodeB = contig_b->otherEndNode(backNode);
-                    ContigNode* nodeC = contig_c->otherEndNode(node);
-                    ContigNode* nodeD = contig_d->otherEndNode(node);             
+                    ContigNode* Nodea = contig_a->otherEndNode(backNode);
+                    ContigNode* Nodeb = contig_b->otherEndNode(backNode);
+                    ContigNode* Nodec = contig_c->otherEndNode(node);
+                    ContigNode* Noded = contig_d->otherEndNode(node);             
                     double scoreAC, scoreAD, scoreBC, scoreBD;
 
                     int len_a = contig_a->getSeq().length();
@@ -887,159 +928,207 @@ int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
                     scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                     scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
 
-                    // if (std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0){
-                        std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                        std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
-                        std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
-                        std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                        std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';
-                        // if (orientation == 1){
-                        //     std::cout << ">" << contig << "_" << insertSize << "\t" << contig->getSeq().length() << "\t" <<
-                        //     len_a << "\t" << len_b << "\t"<< len_c << "\t" << len_d << "\t" <<  
-                        //     contig->getAvgCoverage() << "\t" << contig_a->getAvgCoverage() << "\t" << contig_b->getAvgCoverage() << "\t" << contig_c->getAvgCoverage() << "\t" << contig_d->getAvgCoverage() << "\t" <<
-                        //     scoreAC << "\t" << scoreAD << "\t" << scoreBC << "\t" << scoreBD << "\t" <<
-                        //     A.size() << "\t" << B.size() << "\t" << C.size() << "\t" << D.size() << "\n";
-                        // }
-
-                    // }
-                    
-                    // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
-                    if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){// &&
+                    std::cout << "contig " << contig << " A " << contig_a << " B " << contig_b << " C " << contig_c << " D " << contig_d << std::endl; 
+                    if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
                         std::cout << "all contigs distinct, " << contig << "\n";
+                        // std::cout << "A len: " << A_juncs.size() << " B len: " << B_juncs.size() <<" C len: " << C_juncs.size() <<" D len: " << D_juncs.size()<<'\n';
+                        // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+
                         if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
                             (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 1000 && len_c >= 1000)){
 
                             std::cout << "desired split found\n";
-                            if(allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeB,nodeC,nodeD}) ||
-                            (nodeA==nodeC && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeB,nodeD})) ||
-                            (nodeB==nodeD && nodeA!=nodeB && nodeC!=nodeD && allDistinct(std::vector<ContigNode*>{node,backNode,nodeA,nodeC})) ){
+                            if(allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodeb,Nodec,Noded}) ||
+                            (Nodea==Nodec && Nodea!=Nodeb && Nodec!=Noded && allDistinct(std::vector<ContigNode*>{node,backNode,Nodeb,Noded})) ||
+                            (Nodeb==Noded && Nodea!=Nodeb && Nodec!=Noded && allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodec})) ){
                                 operationDone = true;  // everything distinct
                             }
-                            else if (nodeA!=nodeD && nodeA!=nodeC && nodeB!=nodeD && nodeB!=nodeC ){//&& nodeA && nodeB && nodeC && nodeD){
-                                if (nodeA && nodeC){
-                                    if (nodeA==nodeB && nodeC==nodeD && 
-                                        nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4 &&
-                                        nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                            else if (Nodea!=Noded && Nodea!=Nodec && Nodeb!=Noded && Nodeb!=Nodec ){
+                                if (Nodea && Nodec){
+                                    if (Nodea==Nodeb && Nodec==Noded && 
+                                        Nodea->indexOf(contig_a) != 4 && Nodea->indexOf(contig_b) != 4 &&
+                                        Nodec->indexOf(contig_c) != 4 && Nodec->indexOf(contig_d) != 4){
                                         operationDone = true; // double bubble
                                     }
                                 }
-                                if (nodeA){
-                                    if(nodeA==nodeB && 
-                                        nodeA->indexOf(contig_a) != 4 && nodeA->indexOf(contig_b) != 4){
+                                if (Nodea){
+                                    if(Nodea==Nodeb && 
+                                        Nodea->indexOf(contig_a) != 4 && Nodea->indexOf(contig_b) != 4){
                                         operationDone = true; // single bubble on back side
                                     }
                                 }
-                                if (nodeC){
-                                    if(nodeC==nodeD && 
-                                        nodeC->indexOf(contig_c) != 4 && nodeC->indexOf(contig_d) != 4){
+                                if (Nodec){
+                                    if(Nodec==Noded && 
+                                        Nodec->indexOf(contig_c) != 4 && Nodec->indexOf(contig_d) != 4){
                                         operationDone = true; // single bubble on front side
                                     }
                                 }                                   
                             }
                         }
-                        else{
-                            ContigJuncList origJuncs = contig->contigJuncs;
-                            ContigJuncList newJuncs, ARC_juncs, BRD_juncs;
-                            
-                            //new ContigJuncList(contig->contigJuncs->seq, contig->contigJuncs->distances, contig->contigJuncs->coverages);
-                            double AC_weight = (cov_a*len_a + cov_c*len_c) / (len_a + len_c);
-                            double BD_weight = (cov_b*len_b + cov_d*len_d) / (len_b + len_d);
-                            double scale_factor_AC = AC_weight  / (AC_weight + BD_weight);
-                            double scale_factor_BD = 1 - scale_factor_AC; 
-                            newJuncs = origJuncs.getScaledContigJuncs(scale_factor_AC);   
-                            ARC_juncs = contig_a->contigJuncs.concatenate(newJuncs).concatenate(contig_c->contigJuncs); 
-                            newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BD);   
-                            BRD_juncs = contig_b->contigJuncs.concatenate(newJuncs).concatenate(contig_d->contigJuncs); 
-
-
-                            if( areEquivalentContigCoverages(contig_a->contigJuncs, contig_c->contigJuncs, 0.10) &&
-                                areDifferentialContigCoverages(contig_a->contigJuncs, contig_d->contigJuncs) && 
-                                areDifferentialContigCoverages(contig_b->contigJuncs, contig_c->contigJuncs) ){
-                                std::cout << "split found by coverage\n";
-                                operationDone = true;
-                            }
-                        }                 
-                        if (operationDone){
-                            disentanglePair(contig, backNode, node, a, b, c, d);
-                            it = nodeMap.erase(it);
-                            if(it != nodeMap.end()){
-                                if(backNode->getKmer() == it->first){
-                                    ++it;
-                                }
-                            }
-                            nodeMap.erase(backNode->getKmer());
-                            disentangled++;
-                            std::cout << "made decision\n";    
-                            continue;
-                        }
-
                     }
-                   
 
-                    else{ // not all distinct --> usually some looping or bubble on either side
-                        std::cout << "not all contigs distinct or desired split not found, " << contig << "\n";
-
-                        if (nodeA==node && nodeC==backNode && 
-                            nodeB != node && nodeB != backNode &&
-                            nodeD != node && nodeD != backNode
-                            ){
-                           
-                            if(( (scoreAD>0 || scoreBC>0) )){
-                                // loop - genomic repeat                            
-
-                                ContigJuncList origJuncs = contig->contigJuncs;   
-                                ContigJuncList newJuncs;                             
-                                double BC_weight = (cov_b*len_b + cov_c*len_c) / (len_b + len_c);
-                                double CD_weight = (cov_c*len_c + cov_d*len_d) / (len_c + len_d);
-                                double scale_factor_BC = BC_weight  / (BC_weight + CD_weight);
-                                double scale_factor_CD = 1 - scale_factor_BC; 
-                                newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BC);   
-                                contig->setContigJuncs(newJuncs);
-                                Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
-                                contigBRCRD = contigBRCRD->concatenate(contig_c, contigBRCRD->getSide(node), contig_c->getSide(node));
-                                newJuncs = origJuncs.getScaledContigJuncs(scale_factor_CD);   
-                                contig->setContigJuncs(newJuncs);
-                                contigBRCRD = contigBRCRD->concatenate(contig, contigBRCRD->getSide(backNode), contig->getSide(backNode));
-                                contigBRCRD = contigBRCRD->concatenate(contig_d, contigBRCRD->getSide(node), contig_d->getSide(node));
-                                if(nodeB){
-                                    nodeB->replaceContig(contig_b, contigBRCRD);
-                                }
-                                if(nodeD){
-                                    nodeD->replaceContig(contig_d, contigBRCRD);
-                                }
-                                if(!nodeB && !nodeD){
-                                    isolated_contigs.push_back(*contigBRCRD);
-                                }
-                                std::cout << "split found for loop\n";
-                                operationDone = true;
-                            }                        
-                        }
-                        if (operationDone){
-                            it = nodeMap.erase(it);
-                            if(it != nodeMap.end()){
-                                if(backNode->getKmer() == it->first){
-                                    ++it;
-                                }
-                            }
-                            nodeMap.erase(backNode->getKmer());
-                            disentangled++;
-                            std::cout << "made decision\n";    
-                            continue;
-                        }
-
+                    if (operationDone){
+                        std::cout << "970\n";
+                        disentanglePair(contig, backNode, node, a, b, c, d);
+                        disentangled++;
+                        backNode->clearNode();
+                        node->clearNode();
+                        std::cout << "976\n";
+                        nodeMap.erase(back_kmer);
+                        std::cout << "978\n";
+                        it = nodeMap.erase(it);
+                        std::cout << "980\n";
+                        operationDone = false;
+                        break;
                     }
-                    if (orientation==4 && !operationDone) {std::cout << "no decision\n";}
-
-                }          
-
+                    else{
+                        std::cout << "985\n";
+                        if (orientation==2){ // made it through inner for without disentanglement
+                            ++it;
+                        }
+                    }
+                }
             }
-       }
-       ++it;
+            else{
+                ++it;
+            }
+        }
+        else{            
+            ++it;            
+        }
     }
-
-    printf("Done disentangling %d pairs of nodes.\n", disentangled);
+    printf("Done disentangling %d parallel paths.\n", disentangled);
     return disentangled;
 }
+
+// disentangleLoopPaths
+// for each node
+    // if numPathsOut > 2 
+        // ++it 
+    // else if numPaths == 2
+        // if invertedRepeatNode
+            // ++it
+        // for each orientation (need to consider 4 - loop on top and bottom, parallel and cross-wise)
+            // if can disentangle loop by BF
+                
+    // else
+        // if collapsible, collapseNode
+        // testAndCutIfDegenerate
+
+
+// int ContigGraph::disentangle(Bloom* pair_filter, int insertSize){
+//     int disentangled = 0;
+//     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
+//     bool operationDone = false;
+//     std::set<ContigNode *> seenNodes = {};
+//     std::cout << "About to disentangle.  Starting with " << nodeMap.size() << " nodes.\n";
+//     //looks through all contigs adjacent to nodes
+//     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
+//         ContigNode* node = &it->second;
+//         kmer_type kmer = it->first;
+//         Contig* contig = node->contigs[4];
+//         if (!contig){
+//             ++it;
+//             continue;
+//         }
+//         if(seenNodes.find(node) != seenNodes.end()){
+//             it = nodeMap.erase(it);
+//             continue;
+//         }
+//         if(node->numPathsOut() == 2 && contig->node2_p && contig->node1_p){
+//             ContigNode* backNode = contig->otherEndNode(node);
+//             int a,b,c,d;
+
+//             // test for adjacent outwards facing nodes
+//             if(backNode && node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
+//                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
+                
+//                 for (int orientation = 1; orientation < 5; orientation++){ // change orienation instead of calling disentangle with different order 
+//                     if (operationDone) {
+//                         operationDone = false;
+//                         break;
+//                     } // to avoid trying to disentangle something we already have
+
+//                     if (orientation % 2 == 1) {a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];}
+//                     else {b = backNode->getIndicesOut()[0], a = backNode->getIndicesOut()[1];}
+//                     if (orientation > 2){d = node->getIndicesOut()[0], c = node->getIndicesOut()[1];}
+//                     else {c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];}
+                    
+                    
+//                     NodeContigData A = NodeContigData(backNode, a, insertSize);
+//                     NodeContigData B = NodeContigData(backNode, b, insertSize);
+//                     NodeContigData C = NodeContigData(node, c, insertSize);
+//                     NodeContigData D = NodeContigData(node, d, insertSize);
+                    
+//                     double scoreAC, scoreAD, scoreBC, scoreBD;
+//                     scoreAC = getScore(A_juncs, C_juncs, pair_filter, fpRate, insertSize);
+//                     scoreAD = getScore(A_juncs, D_juncs, pair_filter, fpRate, insertSize);
+//                     scoreBC = getScore(B_juncs, C_juncs, pair_filter, fpRate, insertSize);
+//                     scoreBD = getScore(B_juncs, D_juncs, pair_filter, fpRate, insertSize);
+                    
+//                     // all distinct, double-bubble, and single bubble adjacent to junction treated same way                
+//                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
+//                         std::cout << "all contigs distinct, " << contig << "\n";
+//                         if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
+//                             (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 1000 && len_c >= 1000)){
+
+//                             std::cout << "desired split found\n";
+//                             if(allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodeb,Nodec,Noded}) ||
+//                             (Nodea==Nodec && Nodea!=Nodeb && Nodec!=Noded && allDistinct(std::vector<ContigNode*>{node,backNode,Nodeb,Noded})) ||
+//                             (Nodeb==Noded && Nodea!=Nodeb && Nodec!=Noded && allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodec})) ){
+//                                 operationDone = true;  // everything distinct
+//                             }
+//                             else if (Nodea!=Noded && Nodea!=Nodec && Nodeb!=Noded && Nodeb!=Nodec ){//&& nodeA && nodeB && nodeC && nodeD){
+//                                 if (Nodea && Nodec){
+//                                     if (Nodea==Nodeb && Nodec==Noded && 
+//                                         Nodea->indexOf(contig_a) != 4 && Nodea->indexOf(contig_b) != 4 &&
+//                                         Nodec->indexOf(contig_c) != 4 && Nodec->indexOf(contig_d) != 4){
+//                                         operationDone = true; // double bubble
+//                                     }
+//                                 }
+//                                 if (Nodea){
+//                                     if(Nodea==Nodeb && 
+//                                         Nodea->indexOf(contig_a) != 4 && Nodea->indexOf(contig_b) != 4){
+//                                         operationDone = true; // single bubble on back side
+//                                     }
+//                                 }
+//                                 if (Nodec){
+//                                     if(Nodec==Noded && 
+//                                         Nodec->indexOf(contig_c) != 4 && Nodec->indexOf(contig_d) != 4){
+//                                         operationDone = true; // single bubble on front side
+//                                     }
+//                                 }                                   
+//                             }
+//                         }
+                                 
+//                         if (operationDone){
+//                             disentanglePair(contig, backNode, node, a, b, c, d);
+//                             it = nodeMap.erase(it);
+//                             seenNodes.insert(backNode);
+//                             // if(it != nodeMap.end()){
+//                             //     if(backNode->getKmer() == it->first){
+//                             //         ++it;
+//                             //     }
+//                             // }
+//                             // nodeMap.erase(backNode->getKmer());
+//                             disentangled++;
+//                             std::cout << "made decision\n";    
+//                             continue;
+//                         }
+
+//                     }             
+//                     if (orientation==4 && !operationDone) {std::cout << "no decision\n";}
+
+//                 }          
+
+//             }
+//         }
+//         ++it;
+//     }
+
+//     printf("Done disentangling %d pairs of nodes.\n", disentangled);
+//     return disentangled;
+// }
 
 bool ContigGraph::areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac){
     // two one sided T-tests: frac is portion of a's mean allowed to vary
@@ -1067,10 +1156,10 @@ bool ContigGraph::areEquivalentContigCoverages(ContigJuncList A, ContigJuncList 
     if (true){//sa > 10 || sb > 10){
         std::cout << "contig a junc results\n";
         A.printJuncValues();
-        // contig_a->contigJuncs.printJuncResults(A);
+        // contig_contig_aJuncs.printJuncResults(A);
         std::cout << "contig b junc results\n";
         B.printJuncValues();
-        // contig_b->contigJuncs.printJuncResults(B);
+        // contig_contig_bJuncs.printJuncResults(B);
     }
     std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
     std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
@@ -1102,10 +1191,10 @@ bool ContigGraph::areDifferentialContigCoverages(ContigJuncList A, ContigJuncLis
     if (true){ //sa > 10 || sb > 10){
         std::cout << "contig a junc results\n";
         A.printJuncValues();
-        // contig_a->contigJuncs.printJuncResults(A);
+        // contig_contig_aJuncs.printJuncResults(A);
         std::cout << "contig b junc results\n";
         B.printJuncValues();
-        // contig_b->contigJuncs.printJuncResults(B);
+        // contig_contig_bJuncs.printJuncResults(B);
     }
     // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << "\n";
     std::cout << "Diff test: two_samp_var " << two_samp_var << " df " << df << " T " << T << " c_t " << c_t << "\n"; 
@@ -1276,6 +1365,8 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
         std::cout << "1280\n";
         delete backContig;
         delete frontContig;
+        std::cout << "1283\n";
+
     }
     // if(!nodeMap.erase(kmer)) printf("ERROR: tried to erase node %s but there was no node.\n", print_kmer(kmer));
 }
