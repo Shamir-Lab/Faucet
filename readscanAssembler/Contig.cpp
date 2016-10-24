@@ -380,8 +380,8 @@ Contig::Contig(){
 	setSeq("");
 	node1_p = nullptr;
 	node2_p = nullptr;
-	ind1 = -1;
-	ind2 = -1;
+	ind1 = 5;
+	ind2 = 5;
 	contigJuncs = ContigJuncList();
 }
 

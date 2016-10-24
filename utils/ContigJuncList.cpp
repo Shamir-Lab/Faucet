@@ -142,21 +142,28 @@ ContigJuncList ContigJuncList::getShiftedCoverageContigJuncsRange(double shift, 
 
 ContigJuncList ContigJuncList::getShiftedCoverageContigJuncs(double shift){
     junc_list newCov(coverages);
-    for(auto it = coverages.begin(); it != coverages.end(); ++it){
-        double val = (double) *it+shift;   
-        newCov.push_back((int) std::round((val > 255) ? 255: val));
-        newCov.pop_front();
+    for (int i = 0; i < newCov.size(); i++){
+        double val = (double) newCov.at(i)+shift;
+        newCov.at(i) =  (int) std::round((val > 255) ? 255: val);
     }
+    // for(auto it = coverages.begin(); it != coverages.end(); ++it){
+    //     double val = (double) *it+shift;   
+    //     newCov.push_back((int) std::round((val > 255) ? 255: val));
+    //     newCov.pop_front();
+    // }
     return ContigJuncList(seq,distances,newCov);
 }
 
 
 ContigJuncList ContigJuncList::getScaledContigJuncs(double scale_factor){
     junc_list newCov(coverages);
-    for(auto it = coverages.begin(); it != coverages.end(); ++it){
-        newCov.push_back((int) std::round(*it * scale_factor));
-        newCov.pop_front();
+    for (int i = 0; i < newCov.size(); i++){
+        newCov.at(i) =  (int) std::round(newCov.at(i) * scale_factor);
     }
+    // for(auto it = coverages.begin(); it != coverages.end(); ++it){
+    //     newCov.push_back((int) std::round(*it * scale_factor));
+    //     newCov.pop_front();
+    // }
     return ContigJuncList(seq,distances,newCov);
 }
 

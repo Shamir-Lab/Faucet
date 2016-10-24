@@ -31,8 +31,8 @@ public:
     // length can be obtained from sequence
     ContigNode * node1_p;  //adjacent node on side 1
     ContigNode * node2_p; //adjacent node on side 2
-    int ind1; //index on which it connects to the node, on side 1
-    int ind2; //index on which it connects to the node, on side 2
+    unsigned char ind1; //index on which it connects to the node, on side 1
+    unsigned char ind2; //index on which it connects to the node, on side 2
     
     //list of coverage and distance for interior junctions along this contig- since we can use for pair BF and coverage info
     ContigJuncList contigJuncs;

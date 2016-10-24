@@ -153,8 +153,8 @@ Contig* JunctionMap::getContig(Junction startJunc, kmer_type startKmer, int star
     std::list<kmer_type> kmers_to_destroy = {};
     Junction junc = startJunc;
     kmer_type kmer = startKmer;
-    std::deque<unsigned char> coverages;
-    std::deque<unsigned char> distances;
+    std::vector<unsigned char> coverages;
+    std::vector<unsigned char> distances;
     int index = startIndex;
 
     coverages.push_back(junc.getCoverage(startIndex));

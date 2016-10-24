@@ -13,7 +13,7 @@ class ContigJuncList{
 
 public:
 
-    typedef std::deque<unsigned char> junc_list;
+    typedef std::vector<unsigned char> junc_list;
     typedef junc_list::const_iterator const_iterator;
 
 

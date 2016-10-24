@@ -241,7 +241,7 @@ std::list<string> ReadScanner::getValidReads(string read){
     else{
       if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
         result.push_back(read.substr(start, end-start + sizeKmer-1));
-        std::cout << "Adding " << read.substr(start, end-start + sizeKmer) << " as valid string\n";
+        // std::cout << "Adding " << read.substr(start, end-start + sizeKmer) << " as valid string\n";
       }
       start = kmer.pos + 1;
       end = kmer.pos + 1;
@@ -249,7 +249,7 @@ std::list<string> ReadScanner::getValidReads(string read){
   }
    if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
         result.push_back(read.substr(start, end-start+sizeKmer-1));
-        std::cout << "Adding " << read.substr(start, end-start+sizeKmer) << " as valid string\n";
+        // std::cout << "Adding " << read.substr(start, end-start+sizeKmer) << " as valid string\n";
     }
   return result;
 }
