@@ -78,7 +78,8 @@ public:
     //If it exists, does nothing and returns the existing one.
     //Otherwise, returns the new one
     ContigNode * createContigNode(kmer_type kmer, Junction junction);    
-    int disentangle(Bloom* pair_filter, int insertSize);
+    int disentangleParallelPaths(Bloom* pair_filter, int insertSize);
+    int disentangleLoopPaths(Bloom* pair_filter, int insertSize);
     int removeChimericExtensions(int insertSize);
     int collapseBulges(int max_dist);
     bool deleteTipsAndClean();

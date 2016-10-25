@@ -33,7 +33,7 @@ ContigGraph* JunctionMap::buildContigGraph(){
 
 void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
     int count = 0;
-    for(auto it = junctionMap.begin(); it != junctionMap.end(); ){ //for each junction
+    for(auto it = junctionMap.begin(); it != junctionMap.end(); ++it){ //for each junction
         kmer_type kmer = it->first;
         Junction junction = it->second;
         std::set<kmer_type> expired;
@@ -75,21 +75,9 @@ void JunctionMap::buildBranchingPaths(ContigGraph* contigGraph){
 
                 }
             }
-            if (count % 10000 == 0 && count > 0){
-                destroyJunctionSet(expired);
-                expired.clear();
-                fprintf(stderr, "processed %d junctions.\n", count);
-                it = junctionMap.erase(it);
-            }
-            else{
-                expired.insert(kmer);
-                ++it;    
-            }
-            count++;  
+            
         }
-        else{
-            ++it;
-        }
+        
     }  
 }
 
@@ -389,7 +377,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
     // If we are now at a junction, then we found one exactly where expected- return it!
     if(isJunction(doubleKmer.kmer)){ 
         // std::cout << "344\n";
-        printDistAndExtension(dist, maxDist, index, startKmer);
+        // printDistAndExtension(dist, maxDist, index, startKmer);
         return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);
     }
 
