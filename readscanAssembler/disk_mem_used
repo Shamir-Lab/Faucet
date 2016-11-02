@@ -1,0 +1,32 @@
+#!/bin/bash
+# Author: Marc Garcia-Garcera
+#  usage: diskused [program arg1 arg2 ...]
+
+"$@" &
+pid=$!
+status=$(ps -o rss -o vsz -o pid | grep $pid)
+maxdisk=0
+maxmem=0
+while [ "${#status}" -gt "0" ];
+do
+    sleep 0.1
+    disk=$(cat /proc/$pid/io | grep -P '^write_bytes:' | awk '{print $2}')
+    disk=$((disk/1024))
+    if [ "0$disk" -gt "0$maxdisk" ] 2>/dev/null; then
+        maxdisk=$disk
+    fi
+    mem=$(ps -o rss -o vsz -o pid | grep $pid | awk '{print $1}')
+    mem=$((mem/1024))
+    if [ "0$mem" -gt "0$maxmem" ] 2>/dev/null; then
+        maxmem=$mem
+    fi
+status=$(ps -o rss -o vsz -o pid | grep $pid)
+done
+wait $pid
+ret=$?
+
+echo "maximal disk used: $maxdisk KB"
+echo "maximal memory used: $maxmem MB"
+
+
+exit $ret
