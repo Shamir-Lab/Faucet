@@ -76,7 +76,7 @@ public:
 
     std::list<JuncResult> getJuncResults(int m); //returns immediate junc results from contig along this index
 
-    void addNeighbors(std::deque<NodeQueueEntry> & queue); // , bool to_back); //searches forward one step, adds relevant nodes to the queue
+    void addNeighbors(std::vector<NodeQueueEntry> & queue); // , bool to_back); //searches forward one step, adds relevant nodes to the queue
     void recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
     std::list<Contig*> reconstructPathFromParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
     friend bool operator==(NodeQueueEntry a, NodeQueueEntry b) { 

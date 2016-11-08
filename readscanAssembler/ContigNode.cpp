@@ -41,7 +41,7 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     //std::cout << "Getting candidate pairs.\n";
     // clock_t t = clock();
     std::set<kmer_type> seenKmers = {};
-    std::deque<NodeQueueEntry> queue= {};
+    std::vector<NodeQueueEntry> queue;
     // if (maxDist <= contigs[index]->getSeq().length()){
     //     Contig * contig = contigs[index];
     //     return contig->getJuncResults(contig->getSide(this, index),0, maxDist);
@@ -51,7 +51,8 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
 
     while (!queue.empty()){
         NodeQueueEntry entry = queue.front();
-        queue.pop_front();
+        // queue.pop_front();
+        queue.erase(queue.begin());
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
             continue; // don't advance if at dead end
@@ -80,7 +81,8 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
 std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::set<kmer_type> seenKmers = {};
-    std::deque<NodeQueueEntry> queue = {};
+    std::vector<NodeQueueEntry> queue;
+    queue.reserve(20);
     std::unordered_map<NodeQueueEntry, NodeQueueEntry> parents = {};
     std::list<Contig*> path = {};
     // start from shorter branch
@@ -89,7 +91,8 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
 
     while (!queue.empty()){
         NodeQueueEntry entry = queue.front();
-        queue.pop_front();
+        // queue.pop_front();
+        queue.erase(queue.begin());
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
             continue; // don't advance if at dead end
@@ -306,7 +309,7 @@ std::list<JuncResult> NodeQueueEntry::getJuncResults(int maxDist){
      return contig->getJuncResults(contig->getSide(node, index),startDist, maxDist);
 }
 
-void NodeQueueEntry::addNeighbors(std::deque<NodeQueueEntry>& queue){
+void NodeQueueEntry::addNeighbors(std::vector<NodeQueueEntry>& queue){
     Contig* contig = node->contigs[index];
     // if (node->contigs[index]){
     //     printf("no contig at this index!\n");

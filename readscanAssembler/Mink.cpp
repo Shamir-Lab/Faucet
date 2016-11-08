@@ -1,4 +1,4 @@
-
+    
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -223,8 +223,8 @@ int main(int argc, char *argv[])
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
 
-    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/9, fpRate);
-    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/6, fpRate);
+    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers, fpRate);
+    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers, fpRate);
     if(just_load) return 0;
     
     //create JChecker

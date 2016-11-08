@@ -221,12 +221,12 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
     }
-    if(disentangleAndClean(short_pair_filter, read_length)){
-        result = true;
-    }
-    if(disentangleAndClean(long_pair_filter, insertSize)){
-        result = true;
-    }
+    // if(disentangleAndClean(short_pair_filter, read_length)){
+    //     result = true;
+    // }
+    // if(disentangleAndClean(long_pair_filter, insertSize)){
+    //     result = true;
+    // }
     
     return result;
 }
@@ -308,7 +308,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
     for(int i = 0; i < inds.size(); i++) {
         Contig * tig = node->contigs[inds[i]];
         if (node == node->contigs[inds[i]]->otherEndNode(node)){
-            std::cout << "is an inverted repeat at " << inds[i] << std::endl;
+            // std::cout << "is an inverted repeat at " << inds[i] << std::endl;
         }
         covs.push_back(tig->getAvgCoverage());
         lengths.push_back(tig->getSeq().length());
@@ -532,6 +532,7 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
     std::list<Contig*>  cand_path = {};
     std::list<Contig*> alt_path = {};
     if (node->numPathsOut() == 2){
+        std::cout << "535\n";
 
         std::vector<int> inds = node->getIndicesOut();
         // target is far end of longer extension
@@ -549,15 +550,18 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
         }
         if (dist > max_dist ){ return path; }
         if (node->contigs[inds[1]]==node->contigs[inds[0]]){ return path; } // inverted repeat
-
+        std::cout << "553\n";
         // try to reach target starting from other contig
         Contig * start = node->contigs[inds[min_ind]];
         if (start->otherEndNode(node) == target){ 
+            std::cout << "557\n";
+
             path.push_back(start); //NodeQueueEntry(node, min_ind, 0));
             return path;
         }
         // BFS from start up to d or max_dist
         else{
+            std::cout << "564\n";
             cand_path = node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
             if (cand_path.size()==0){
                 alt_path = node->doPathsConvergeNearby(inds[min_ind], inds[max_ind], max_dist);
@@ -568,6 +572,8 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
                 }
             } 
             else{
+                std::cout << "575\n";
+
                 // NodeQueueEntry entry = *cand_path.end(); 
                 int target_dist = 0;
                 for (auto it = cand_path.begin(); it!= cand_path.end(); ++it){
@@ -694,8 +700,8 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                         (P->getSeq().length() < read_length && far_node->indexOf(P)!=4 && far_node->numPathsOut()>1) 
                     ){         
                 
-                std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
-                printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+                // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << "\n";
+                // printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
                 
                 kmer_type far_kmer = far_node->getKmer();     
                 // std::cout << "698\n";               
@@ -746,32 +752,38 @@ int ContigGraph::collapseBulges(int max_dist){
 
     it = nodeMap.begin();
     while(it!=nodeMap.end()){
+        std::cout << "749\n";
         ContigNode* node = &it->second;
         ContigNode* far_node;
         kmer_type kmer = it->first;
         std::list<Contig*> path = getPathIfSimpleBulge(node, max_dist);
         // path size is > 0 only if simple bulge found
         if (path.size() > 0 && seenKmers.find(kmer) == seenKmers.end()){
+            std::cout << "756\n";
+
             std::pair <Contig *, Contig *> Pair = getMinMaxForwardExtensions(node,"coverage");
             Contig * P = Pair.first;
             Contig * Q = Pair.second;    
             Contig * temp;        
 
             if (Q->getAvgCoverage()/P->getAvgCoverage() < 1.5) {
+                std::cout << "764\n";
                 ++it;
                 continue;
             }
 
             if (Q->getSeq().length() == P->getSeq().length()){
                 if (Q->getAvgCoverage()==P->getAvgCoverage()){
+                    std::cout << "771\n";
                     ++it;
                     continue; 
                 }
             }else if(Q != *path.begin()) {
+                std::cout << "776\n";
                 temp = P;
                 P = Q;
                 Q = temp;
-                std::cout << "weird - lower coverage path is one left by bulge removal\n";
+                // std::cout << "weird - lower coverage path is one left by bulge removal\n";
             }
 
             // From here on we break stuff...
@@ -786,6 +798,8 @@ int ContigGraph::collapseBulges(int max_dist){
             ContigJuncList  origJuncs, newJuncs;
            
             for(auto it = path.begin(); it != path.end(); ++it){
+                std::cout << "796\n";
+
                 Contig* contig = *it;
                 origJuncs = contig->contigJuncs;
                 // std::cout << "P cov " << P_cov << ", original juncs\n";
@@ -799,19 +813,24 @@ int ContigGraph::collapseBulges(int max_dist){
             deleteContig(P);
 
             if(isCollapsible(node)){
+                std::cout << "810\n";
+
                 collapseNode(node, kmer);                                                
                 it = nodeMap.erase(it);                           
             }else{
+                std::cout << "814\n";
                 ++it;
             }        
 
         }
         else if (isCollapsible(node) ){ 
+            std::cout << "821\n";
             collapseNode(node, kmer);
             it = nodeMap.erase(it); 
             
         }
         else{
+            std::cout << "827\n";
             ++it;
         }
     }
@@ -932,21 +951,21 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, int insertSize){
                     scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
 
 
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                    std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
-                    std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
-                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                    
+                    // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
+                    // std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
+                    // std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
+                    // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    // std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                    
 
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
-                        std::cout << "all contigs distinct, " << contig << "\n";
+                        // std::cout << "all contigs distinct, " << contig << "\n";
                         // std::cout << "A len: " << A_juncs.size() << " B len: " << B_juncs.size() <<" C len: " << C_juncs.size() <<" D len: " << D_juncs.size()<<'\n';
                         // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
 
                         if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
                             (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 1000 && len_c >= 1000)){
 
-                            std::cout << "desired split found\n";
+                            // std::cout << "desired split found\n";
                             if(allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodeb,Nodec,Noded}) ||
                             (Nodea==Nodec && Nodea!=Nodeb && Nodec!=Noded && allDistinct(std::vector<ContigNode*>{node,backNode,Nodeb,Noded})) ||
                             (Nodeb==Noded && Nodea!=Nodeb && Nodec!=Noded && allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodec})) ){
@@ -983,7 +1002,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, int insertSize){
                                 (std::max(cov_a/cov_b, cov_b/cov_a) >= 1.5 || std::max(cov_c/cov_d, cov_d/cov_c) >= 1.5)
                                 ){
                                 // contig->getSeq().length() > insertSize
-                                std::cout << "split found by coverage\n";
+                                // std::cout << "split found by coverage\n";
                                 operationDone = true;
                             }
                         }    
@@ -1113,11 +1132,11 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, int insertSize){
                     scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
                     scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
 
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                    std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
-                    std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
-                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                
+                    // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
+                    // std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
+                    // std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
+                    // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    // std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                
 
                     if (Nodea==node && Nodec==backNode && Nodeb != node && Nodeb != backNode && Noded != node && Noded != backNode){
                            
@@ -1321,23 +1340,23 @@ bool ContigGraph::areEquivalentContigCoverages(ContigJuncList A, ContigJuncList 
     double c_t = get_critical_val(df, 0.05);
     double t_lo = (diff - thresh_lo) / two_samp_var;
     double t_hi = (diff - thresh_hi) / two_samp_var; 
-    std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
+    // std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
     if (true){//sa > 10 || sb > 10){
-        std::cout << "contig a junc results\n";
+        // std::cout << "contig a junc results\n";
         A.printJuncValues();
         // contig_contig_aJuncs.printJuncResults(A);
-        std::cout << "contig b junc results\n";
+        // std::cout << "contig b junc results\n";
         B.printJuncValues();
         // contig_contig_bJuncs.printJuncResults(B);
     }
-    std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
-    std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
+    // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
+    // std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
     if (t_lo >= c_t && t_hi <= -c_t){
-        std::cout << "returned equivalent\n";
+        // std::cout << "returned equivalent\n";
         return true;
     }
     else {
-        std::cout << "returned not equivalent\n"; 
+        // std::cout << "returned not equivalent\n"; 
         return false;
     }
 }
@@ -1356,23 +1375,23 @@ bool ContigGraph::areDifferentialContigCoverages(ContigJuncList A, ContigJuncLis
     double two_samp_var = pow(pow(sa,2)/na + pow(sb,2)/nb , 0.5);
     double c_t = get_critical_val(df, 0.025);
     double T = std::abs((ma - mb)/two_samp_var);
-    std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
+    // std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
     if (true){ //sa > 10 || sb > 10){
-        std::cout << "contig a junc results\n";
+        // std::cout << "contig a junc results\n";
         A.printJuncValues();
         // contig_contig_aJuncs.printJuncResults(A);
-        std::cout << "contig b junc results\n";
+        // std::cout << "contig b junc results\n";
         B.printJuncValues();
         // contig_contig_bJuncs.printJuncResults(B);
     }
     // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << "\n";
-    std::cout << "Diff test: two_samp_var " << two_samp_var << " df " << df << " T " << T << " c_t " << c_t << "\n"; 
+    // std::cout << "Diff test: two_samp_var " << two_samp_var << " df " << df << " T " << T << " c_t " << c_t << "\n"; 
     if (T > c_t){
-        std::cout << "returned differential\n";
+        // std::cout << "returned differential\n";
         return true;
     }
     else {
-        std::cout << "returned not differential\n"; 
+        // std::cout << "returned not differential\n"; 
         return false;
     }
 }
