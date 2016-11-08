@@ -217,7 +217,7 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
 
     bool result = false;
-    deleteTipsAndClean();
+    // deleteTipsAndClean();
     if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
     }
@@ -765,15 +765,17 @@ int ContigGraph::collapseBulges(int max_dist){
             Contig * P = Pair.first;
             Contig * Q = Pair.second;    
             Contig * temp;        
+            double P_cov = P->getAvgCoverage(); 
+            double Q_cov = Q->getAvgCoverage(); 
 
-            if (Q->getAvgCoverage()/P->getAvgCoverage() < 1.5) {
+            if (Q_cov/P_cov < 1.5) {
                 std::cout << "764\n";
                 ++it;
                 continue;
             }
 
             if (Q->getSeq().length() == P->getSeq().length()){
-                if (Q->getAvgCoverage()==P->getAvgCoverage()){
+                if (Q_cov==P_cov){
                     std::cout << "771\n";
                     ++it;
                     continue; 
@@ -789,14 +791,14 @@ int ContigGraph::collapseBulges(int max_dist){
             // From here on we break stuff...
             // Contig* P = node->contigs[P_index];
             // Contig* Q = node->contigs[Q_index];
-            printf("P cov %f, length %d : Q cov %f, length %d\n", P->getAvgCoverage(), P->getSeq().length(), Q->getAvgCoverage(), Q->getSeq().length());            
+            printf("P cov %f, length %d : Q cov %f, length %d\n", P_cov, P->getSeq().length(), Q_cov, Q->getSeq().length());            
             far_node = P->otherEndNode(node);
             kmer_type far_kmer;
             far_kmer = far_node->getKmer(); // always have two ends for both extensions - guaranteed by getPath method
             
-            double P_cov = P->getAvgCoverage(); 
             ContigJuncList  origJuncs, newJuncs;
-           
+           std::cout << "800\n";
+
             for(auto it = path.begin(); it != path.end(); ++it){
                 std::cout << "796\n";
 
@@ -811,7 +813,7 @@ int ContigGraph::collapseBulges(int max_dist){
                 // contig->contigJuncs.printJuncValues();
             }
             deleteContig(P);
-
+            numDeleted++;
             if(isCollapsible(node)){
                 std::cout << "810\n";
 
