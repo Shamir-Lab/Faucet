@@ -3,6 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unordered_set>
 
 unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
@@ -217,16 +218,16 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
 
     bool result = false;
-    // deleteTipsAndClean();
+    deleteTipsAndClean();
     if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
     }
-    // if(disentangleAndClean(short_pair_filter, read_length)){
-    //     result = true;
-    // }
-    // if(disentangleAndClean(long_pair_filter, insertSize)){
-    //     result = true;
-    // }
+    if(disentangleAndClean(short_pair_filter, read_length)){
+        result = true;
+    }
+    if(disentangleAndClean(long_pair_filter, insertSize)){
+        result = true;
+    }
     
     return result;
 }
@@ -675,7 +676,7 @@ bool ContigGraph::isCollapsible(ContigNode * node){
 int ContigGraph::removeChimericExtensions(int insertSize){
     printf("Removing chimeric extensions. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0; 
-    std::set<kmer_type> seenKmers = {};
+    std::unordered_set<kmer_type> seenKmers = {};
 
     it = nodeMap.begin();
     while(it!=nodeMap.end()){
@@ -748,7 +749,7 @@ int ContigGraph::removeChimericExtensions(int insertSize){
 int ContigGraph::collapseBulges(int max_dist){
     printf("Collapsing simple bulges. Starting with %d nodes. \n", nodeMap.size());
     int numDeleted = 0;
-    std::set<kmer_type> seenKmers = {};
+    std::unordered_set<kmer_type> seenKmers = {};
 
     it = nodeMap.begin();
     while(it!=nodeMap.end()){

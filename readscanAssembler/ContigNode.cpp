@@ -5,6 +5,8 @@ using std::ofstream;
 using std::stringstream;
 #include <sstream> //for std::stringstream 
 #include <string>  //for std::string
+#include <unordered_set>
+
 
 
 
@@ -25,7 +27,7 @@ ContigNode::ContigNode(){
     
 bool ContigNode::isInvertedRepeatNode(){
     std::vector<int> inds = this->getIndicesOut();
-    std::set<Contig *> seenContigs = {};
+    std::unordered_set<Contig *> seenContigs = {};
     for (auto i : inds){
         if(seenContigs.find(contigs[i]) == seenContigs.end()){
             seenContigs.insert(contigs[i]);
@@ -40,7 +42,7 @@ bool ContigNode::isInvertedRepeatNode(){
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     //std::cout << "Getting candidate pairs.\n";
     // clock_t t = clock();
-    std::set<kmer_type> seenKmers = {};
+    std::unordered_set<kmer_type> seenKmers = {};
     std::vector<NodeQueueEntry> queue;
     // if (maxDist <= contigs[index]->getSeq().length()){
     //     Contig * contig = contigs[index];
@@ -80,7 +82,7 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
 
 std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
-    std::set<kmer_type> seenKmers = {};
+    std::unordered_set<kmer_type> seenKmers = {};
     std::vector<NodeQueueEntry> queue;
     queue.reserve(20);
     std::unordered_map<NodeQueueEntry, NodeQueueEntry> parents = {};
