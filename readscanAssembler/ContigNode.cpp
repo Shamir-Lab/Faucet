@@ -81,14 +81,20 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
 
 
 std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, int max_dist){
+    /*
+        BFSearches up to max_dist away from the node to verify extensions out of node
+        converge to the same node. Returns list of Contig ptrs on Q when paths do converge,
+        otherwise returns empty list. 
+    */
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::unordered_set<kmer_type> seenKmers = {};
     std::vector<NodeQueueEntry> queue;
     queue.reserve(20);
-    std::unordered_map<NodeQueueEntry, NodeQueueEntry> parents = {};
+
+    std::vector<NodeQueueEntry> parents = {}; // same nodes are inserted as in queue, but never popped off
+    parents.reserve(20);
     std::list<Contig*> path = {};
-    // start from shorter branch
-    // int start_dist = contigs[min_ind]->getSeq().length();
+    
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
 
     while (!queue.empty()){
@@ -114,7 +120,8 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
                 return path; //entry.startDist;
             }
             else{
-                entry.recordParents(parents);
+                // entry.recordParents(parents);
+                entry.addNeighbors(parents);
                 entry.addNeighbors(queue); 
             }
             
@@ -340,46 +347,67 @@ void NodeQueueEntry::addNeighbors(std::vector<NodeQueueEntry>& queue){
     
 }
 
-void NodeQueueEntry::recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents){
-    Contig* contig = node->contigs[index];
-    // if (node->contigs[index]){
-    //     printf("no contig at this index!\n");
-    // }
-    int otherSide = 3 - contig->getSide(node,index);    
-    ContigNode* nextNode = contig->getNode(otherSide);
-    int nextIndex = contig->getIndex(otherSide);
-    
-
-
-    if(nextNode){
-        if(nextIndex != 4){
-            if(nextNode->contigs[4]){
-                parents[NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance())] = *this;                  
-            }
-        }
-        else{
-            for (int i = 0; i < 4; i++){
-                if(nextNode->contigs[i]){
-                    parents[NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance())] = *this;
-                    
-                }
-            }
-        }
-    }
-    
-}
-
-std::list<Contig*> NodeQueueEntry::reconstructPathFromParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents){
+// use stack of parents to reconstruct path: start from target, get other end node
+std::list<Contig*> NodeQueueEntry::reconstructPathFromParents(std::vector<NodeQueueEntry>& parents){
     std::list<Contig*> path = {};
-    path.push_front(node->contigs[index]);
-    ContigNode * currNode;
-    Contig * currContig;
-    std::unordered_map<NodeQueueEntry, NodeQueueEntry>::iterator currentEntry = parents.find(*this);
-    while(currentEntry != parents.end()){
-        currNode = currentEntry->second.node;
-        currContig = currNode->contigs[currentEntry->second.index];
-        path.push_front(currContig);
-        currentEntry = parents.find(currentEntry->second);
+    path.push_front(node->contigs[index]); // this is the target
+    NodeQueueEntry *currEntry = this;
+
+    // move along parents vector in reverse order
+    // query for other end node using entry's contig index
+    // when other end node is current entry's node, 
+    // make its entry the current entry, add contig to front of path
+    std::cout << "in reconstructPathFromParents\n";
+    for (auto it = parents.rbegin(); it != parents.rend(); ++it){
+        if (it->node->contigs[it->index]->otherEndNode(it->node) == currEntry->node){
+            path.push_front(it->node->contigs[it->index]);
+            currEntry = &(*it);
+        }
     }
+
+
+    // path.push_front(node->contigs[index]);
+    // ContigNode * currNode;
+    // Contig * currContig;
+    // std::unordered_map<NodeQueueEntry, NodeQueueEntry>::iterator currentEntry = parents.find(*this);
+    // while(currentEntry != parents.end()){
+    //     currNode = currentEntry->second.node;
+    //     currContig = currNode->contigs[currentEntry->second.index];
+    //     path.push_front(currContig);
+    //     currentEntry = parents.find(currentEntry->second);
+    // }
     return path;
 }
+
+
+
+
+// void NodeQueueEntry::recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents){
+//     Contig* contig = node->contigs[index];
+//     // if (node->contigs[index]){
+//     //     printf("no contig at this index!\n");
+//     // }
+//     int otherSide = 3 - contig->getSide(node,index);    
+//     ContigNode* nextNode = contig->getNode(otherSide);
+//     int nextIndex = contig->getIndex(otherSide);
+    
+
+
+//     if(nextNode){
+//         if(nextIndex != 4){
+//             if(nextNode->contigs[4]){
+//                 parents[NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance())] = *this;                  
+//             }
+//         }
+//         else{
+//             for (int i = 0; i < 4; i++){
+//                 if(nextNode->contigs[i]){
+//                     parents[NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance())] = *this;
+                    
+//                 }
+//             }
+//         }
+//     }
+    
+// }
+

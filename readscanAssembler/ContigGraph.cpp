@@ -222,12 +222,12 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
     }
-    if(disentangleAndClean(short_pair_filter, read_length)){
-        result = true;
-    }
-    if(disentangleAndClean(long_pair_filter, insertSize)){
-        result = true;
-    }
+    // if(disentangleAndClean(short_pair_filter, read_length)){
+    //     result = true;
+    // }
+    // if(disentangleAndClean(long_pair_filter, insertSize)){
+    //     result = true;
+    // }
     
     return result;
 }
@@ -529,6 +529,11 @@ bool ContigGraph::isBubble(ContigNode* node){
 }
 
 std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_dist){
+    /*
+        used to test if extensions out of a node create a simple bulge
+        returns list of Contig ptrs exiting Q (extension not to be collapsed) when a simple bulge exists
+        otherwise returns an empty list as the path
+    */
     std::list<Contig*>  path = {};
     std::list<Contig*>  cand_path = {};
     std::list<Contig*> alt_path = {};
@@ -798,7 +803,7 @@ int ContigGraph::collapseBulges(int max_dist){
             far_kmer = far_node->getKmer(); // always have two ends for both extensions - guaranteed by getPath method
             
             ContigJuncList  origJuncs, newJuncs;
-           std::cout << "800\n";
+            std::cout << "800\n";
 
             for(auto it = path.begin(); it != path.end(); ++it){
                 std::cout << "796\n";

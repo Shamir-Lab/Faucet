@@ -78,7 +78,8 @@ public:
 
     void addNeighbors(std::vector<NodeQueueEntry> & queue); // , bool to_back); //searches forward one step, adds relevant nodes to the queue
     void recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
-    std::list<Contig*> reconstructPathFromParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
+    // std::list<Contig*> reconstructPathFromParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
+    std::list<Contig*> reconstructPathFromParents(std::vector<NodeQueueEntry>& parents);
     friend bool operator==(NodeQueueEntry a, NodeQueueEntry b) { 
         return a.node == b.node && a.index == b.index && a.startDist == b.startDist; 
     };
