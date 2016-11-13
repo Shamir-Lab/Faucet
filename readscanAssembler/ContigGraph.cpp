@@ -763,7 +763,11 @@ int ContigGraph::collapseBulges(int max_dist){
         ContigNode* node = &it->second;
         ContigNode* far_node;
         kmer_type kmer = it->first;
-        std::list<Contig*> path = getPathIfSimpleBulge(node, max_dist);
+        std::list<Contig*> path = {};
+        if (node->numPathsOut() == 2){
+            path = getPathIfSimpleBulge(node, max_dist);
+        }
+
         // path size is > 0 only if simple bulge found
         if (path.size() > 0 && seenKmers.find(kmer) == seenKmers.end()){
             std::cout << "756\n";

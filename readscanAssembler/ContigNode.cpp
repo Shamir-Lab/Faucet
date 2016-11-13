@@ -91,16 +91,17 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     std::vector<NodeQueueEntry> queue;
     queue.reserve(20);
 
-    std::vector<NodeQueueEntry> parents = {}; // same nodes are inserted as in queue, but never popped off
-    parents.reserve(20);
+    // std::vector<NodeQueueEntry> parents = {}; // same nodes are inserted as in queue, but never popped off
+    // parents.reserve(20);
     std::list<Contig*> path = {};
     
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
-
-    while (!queue.empty()){
-        NodeQueueEntry entry = queue.front();
+    int pos = 0;
+    while (pos < queue.size()){//!queue.empty()){
+        NodeQueueEntry entry = queue.at(pos);//front();
+        pos++;
         // queue.pop_front();
-        queue.erase(queue.begin());
+        // queue.erase(queue.begin());
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
             continue; // don't advance if at dead end
@@ -116,12 +117,12 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
             }
             else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){
                 // reconstruct path from parents
-                path = entry.reconstructPathFromParents(parents);
+                path = entry.reconstructPathFromParents(queue);
                 return path; //entry.startDist;
             }
             else{
                 // entry.recordParents(parents);
-                entry.addNeighbors(parents);
+                // entry.addNeighbors(parents);
                 entry.addNeighbors(queue); 
             }
             
