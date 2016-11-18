@@ -535,10 +535,10 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
         otherwise returns an empty list as the path
     */
     std::list<Contig*>  path = {};
-    std::list<Contig*>  cand_path = {};
-    std::list<Contig*> alt_path = {};
+    std::list<Contig*>  cand_path;
+    std::list<Contig*> alt_path;
     if (node->numPathsOut() == 2){
-        std::cout << "535\n";
+        // std::cout << "535\n";
 
         std::vector<int> inds = node->getIndicesOut();
         // target is far end of longer extension
@@ -556,18 +556,18 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
         }
         if (dist > max_dist ){ return path; }
         if (node->contigs[inds[1]]==node->contigs[inds[0]]){ return path; } // inverted repeat
-        std::cout << "553\n";
+        // std::cout << "553\n";
         // try to reach target starting from other contig
         Contig * start = node->contigs[inds[min_ind]];
         if (start->otherEndNode(node) == target){ 
-            std::cout << "557\n";
+            // std::cout << "557\n";
 
             path.push_back(start); //NodeQueueEntry(node, min_ind, 0));
             return path;
         }
         // BFS from start up to d or max_dist
         else{
-            std::cout << "564\n";
+            // std::cout << "564\n";
             cand_path = node->doPathsConvergeNearby(inds[max_ind], inds[min_ind], max_dist);
             if (cand_path.size()==0){
                 alt_path = node->doPathsConvergeNearby(inds[min_ind], inds[max_ind], max_dist);
@@ -578,7 +578,7 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
                 }
             } 
             else{
-                std::cout << "575\n";
+                // std::cout << "575\n";
 
                 // NodeQueueEntry entry = *cand_path.end(); 
                 int target_dist = 0;
@@ -609,14 +609,14 @@ int ContigGraph::deleteTips(){
         kmer_type kmer = it->first;
         Contig * contig;
         for(int i = 0; i < 4; i++){ 
-            std::cout << "i is " << i << " 597\n";
+            // std::cout << "i is " << i << " 597\n";
             contig = node->contigs[i];
-            std::cout << "599\n";
+            // std::cout << "599\n";
             if(contig){
                 if(isTip(node, i) && i != 4 && node->numPathsOut() > 1){ // just means it's short and has no node at other end
                     // std::cout << "going to remove "<< contig <<" 603\n";
                     cutPath(node,i);   // sets node cov/ptr to 0/null, sets contig's node ptr to null on that side          
-                    std::cout << "605\n";
+                    // std::cout << "605\n";
 
                     deleteContig(contig); // sets both node's cov/ptr to 0/null on (when not already set to null on contig), deletes contig object, sets ptr to null
                     numDeleted++;
@@ -626,7 +626,7 @@ int ContigGraph::deleteTips(){
         }
         if(node->contigs[4]){
             if(isTip(node,4)){ // i = 4
-                std::cout << "616\n";
+                // std::cout << "616\n";
                 contig = node->contigs[4];
                 cutPath(node,4);
                 deleteContig(contig);
@@ -634,13 +634,13 @@ int ContigGraph::deleteTips(){
             }
         }
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
-            std::cout << "620\n";
+            // std::cout << "620\n";
             collapseNode(node, kmer);
             it = nodeMap.erase(it); 
         }
         else if(testAndCutIfDegenerate(node)){  // one end has no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
-            std::cout << "626\n";
+            // std::cout << "626\n";
             it = nodeMap.erase(it); 
         }
         else{
@@ -759,18 +759,20 @@ int ContigGraph::collapseBulges(int max_dist){
 
     it = nodeMap.begin();
     while(it!=nodeMap.end()){
-        std::cout << "749\n";
+        // std::cout << "749\n";
         ContigNode* node = &it->second;
         ContigNode* far_node;
         kmer_type kmer = it->first;
-        std::list<Contig*> path = {};
+        std::list<Contig*> path;
         if (node->numPathsOut() == 2){
             path = getPathIfSimpleBulge(node, max_dist);
+        }else{
+            path = {};
         }
 
         // path size is > 0 only if simple bulge found
         if (path.size() > 0 && seenKmers.find(kmer) == seenKmers.end()){
-            std::cout << "756\n";
+            // std::cout << "756\n";
 
             std::pair <Contig *, Contig *> Pair = getMinMaxForwardExtensions(node,"coverage");
             Contig * P = Pair.first;
@@ -780,19 +782,19 @@ int ContigGraph::collapseBulges(int max_dist){
             double Q_cov = Q->getAvgCoverage(); 
 
             if (Q_cov/P_cov < 1.5) {
-                std::cout << "764\n";
+                // std::cout << "764\n";
                 ++it;
                 continue;
             }
 
             if (Q->getSeq().length() == P->getSeq().length()){
                 if (Q_cov==P_cov){
-                    std::cout << "771\n";
+                    // std::cout << "771\n";
                     ++it;
                     continue; 
                 }
             }else if(Q != *path.begin()) {
-                std::cout << "776\n";
+                // std::cout << "776\n";
                 temp = P;
                 P = Q;
                 Q = temp;
@@ -802,16 +804,16 @@ int ContigGraph::collapseBulges(int max_dist){
             // From here on we break stuff...
             // Contig* P = node->contigs[P_index];
             // Contig* Q = node->contigs[Q_index];
-            printf("P cov %f, length %d : Q cov %f, length %d\n", P_cov, P->getSeq().length(), Q_cov, Q->getSeq().length());            
+            // printf("P cov %f, length %d : Q cov %f, length %d\n", P_cov, P->getSeq().length(), Q_cov, Q->getSeq().length());            
             far_node = P->otherEndNode(node);
             kmer_type far_kmer;
             far_kmer = far_node->getKmer(); // always have two ends for both extensions - guaranteed by getPath method
             
             ContigJuncList  origJuncs, newJuncs;
-            std::cout << "800\n";
+            // std::cout << "800\n";
 
             for(auto it = path.begin(); it != path.end(); ++it){
-                std::cout << "796\n";
+                // std::cout << "796\n";
 
                 Contig* contig = *it;
                 origJuncs = contig->contigJuncs;
@@ -826,24 +828,24 @@ int ContigGraph::collapseBulges(int max_dist){
             deleteContig(P);
             numDeleted++;
             if(isCollapsible(node)){
-                std::cout << "810\n";
+                // std::cout << "810\n";
 
                 collapseNode(node, kmer);                                                
                 it = nodeMap.erase(it);                           
             }else{
-                std::cout << "814\n";
+                // std::cout << "814\n";
                 ++it;
             }        
 
         }
         else if (isCollapsible(node) ){ 
-            std::cout << "821\n";
+            // std::cout << "821\n";
             collapseNode(node, kmer);
             it = nodeMap.erase(it); 
             
         }
         else{
-            std::cout << "827\n";
+            // std::cout << "827\n";
             ++it;
         }
     }

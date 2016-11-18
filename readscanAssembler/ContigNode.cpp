@@ -88,12 +88,12 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     */
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::unordered_set<kmer_type> seenKmers = {};
-    std::vector<NodeQueueEntry> queue;
-    queue.reserve(20);
+    std::vector<NodeQueueEntry> queue(100);
+    // queue.reserve(50);
 
     // std::vector<NodeQueueEntry> parents = {}; // same nodes are inserted as in queue, but never popped off
     // parents.reserve(20);
-    std::list<Contig*> path = {};
+    std::list<Contig*> path;
     
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
     int pos = 0;
@@ -129,7 +129,8 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
         }
 
    }
-   return path;
+   // never reached target - return empty list
+   return {};
 }
 
 
@@ -358,7 +359,7 @@ std::list<Contig*> NodeQueueEntry::reconstructPathFromParents(std::vector<NodeQu
     // query for other end node using entry's contig index
     // when other end node is current entry's node, 
     // make its entry the current entry, add contig to front of path
-    std::cout << "in reconstructPathFromParents\n";
+    // std::cout << "in reconstructPathFromParents\n";
     for (auto it = parents.rbegin(); it != parents.rend(); ++it){
         if (it->node->contigs[it->index]->otherEndNode(it->node) == currEntry->node){
             path.push_front(it->node->contigs[it->index]);
