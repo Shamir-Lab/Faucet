@@ -97,7 +97,7 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     
     queue.push_back(NodeQueueEntry(this, min_ind, 0));
     int pos = 0;
-    while (pos < queue.size()){//!queue.empty()){
+    while (queue.at(pos).node != nullptr){ //pos < queue.size()){//!queue.empty()){
         NodeQueueEntry entry = queue.at(pos);//front();
         pos++;
         // queue.pop_front();
