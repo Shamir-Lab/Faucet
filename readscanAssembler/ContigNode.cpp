@@ -43,18 +43,22 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     //std::cout << "Getting candidate pairs.\n";
     // clock_t t = clock();
     std::unordered_set<kmer_type> seenKmers = {};
-    std::vector<NodeQueueEntry> queue;
+    std::vector<NodeQueueEntry> queue(100);
     // if (maxDist <= contigs[index]->getSeq().length()){
     //     Contig * contig = contigs[index];
     //     return contig->getJuncResults(contig->getSide(this, index),0, maxDist);
     // }  
-    queue.push_back(NodeQueueEntry(this, index, 0));
+    queue.at(0) = (NodeQueueEntry(this, index, 0));
     std::list<JuncResult> results = {};
-
-    while (!queue.empty()){
-        NodeQueueEntry entry = queue.front();
-        // queue.pop_front();
-        queue.erase(queue.begin());
+    int pos = 0;
+    // while (!queue.empty()){
+    //     NodeQueueEntry entry = queue.front();
+    //     // queue.pop_front();
+    //     queue.erase(queue.begin());
+    while (queue.at(pos).node != nullptr){
+        // std::cout << "entered getPairCandidates\n";
+        NodeQueueEntry entry = queue.at(pos);
+        pos++;    
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
             continue; // don't advance if at dead end
@@ -95,9 +99,11 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     // parents.reserve(20);
     std::list<Contig*> path;
     
-    queue.push_back(NodeQueueEntry(this, min_ind, 0));
+    queue.at(0) = (NodeQueueEntry(this, min_ind, 0));
     int pos = 0;
     while (queue.at(pos).node != nullptr){ //pos < queue.size()){//!queue.empty()){
+        // std::cout << "entered doPathsConvergeNearby\n";
+
         NodeQueueEntry entry = queue.at(pos);//front();
         pos++;
         // queue.pop_front();
@@ -329,19 +335,29 @@ void NodeQueueEntry::addNeighbors(std::vector<NodeQueueEntry>& queue){
     ContigNode* nextNode = contig->getNode(otherSide);
     int nextIndex = contig->getIndex(otherSide);
     
-
+    int firstNonEmptyPos = 0;
+    while(queue.at(firstNonEmptyPos).node == nullptr){ firstNonEmptyPos++; }    
 
     if(nextNode){
         if(nextIndex != 4){
             if(nextNode->contigs[4]){
-                queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));                  
+                if (firstNonEmptyPos == queue.size()){
+                    queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance())); 
+                } else {
+                    queue.at(firstNonEmptyPos) = NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance());
+                }
+
             }
         }
         else{
             for (int i = 0; i < 4; i++){
                 if(nextNode->contigs[i]){
-                    queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
-                    
+                    if (firstNonEmptyPos == queue.size()){
+                        queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
+                    } else{
+                        queue.at(firstNonEmptyPos) = NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance());
+                    }
+                    firstNonEmptyPos++;
                 }
             }
         }
@@ -361,6 +377,7 @@ std::list<Contig*> NodeQueueEntry::reconstructPathFromParents(std::vector<NodeQu
     // make its entry the current entry, add contig to front of path
     // std::cout << "in reconstructPathFromParents\n";
     for (auto it = parents.rbegin(); it != parents.rend(); ++it){
+        if (!it->node) continue;
         if (it->node->contigs[it->index]->otherEndNode(it->node) == currEntry->node){
             path.push_front(it->node->contigs[it->index]);
             currEntry = &(*it);

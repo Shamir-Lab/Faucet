@@ -222,12 +222,12 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, 
     if(breakPathsAndClean(short_pair_filter, insertSize)){
         result = true;
     }
-    // if(disentangleAndClean(short_pair_filter, read_length)){
-    //     result = true;
-    // }
-    // if(disentangleAndClean(long_pair_filter, insertSize)){
-    //     result = true;
-    // }
+    if(disentangleAndClean(short_pair_filter, read_length)){
+        result = true;
+    }
+    if(disentangleAndClean(long_pair_filter, insertSize)){
+        result = true;
+    }
     
     return result;
 }
@@ -1181,7 +1181,7 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, int insertSize){
                             if(!Nodeb && !Noded){
                                 isolated_contigs.push_back(*contigBRCRD);
                             }
-                            std::cout << "split found for loop\n";
+                            // std::cout << "split found for loop\n";
                             operationDone = true;
                         }      
                     }
@@ -1356,14 +1356,14 @@ bool ContigGraph::areEquivalentContigCoverages(ContigJuncList A, ContigJuncList 
     double t_lo = (diff - thresh_lo) / two_samp_var;
     double t_hi = (diff - thresh_hi) / two_samp_var; 
     // std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
-    if (true){//sa > 10 || sb > 10){
-        // std::cout << "contig a junc results\n";
-        A.printJuncValues();
-        // contig_contig_aJuncs.printJuncResults(A);
-        // std::cout << "contig b junc results\n";
-        B.printJuncValues();
-        // contig_contig_bJuncs.printJuncResults(B);
-    }
+    // if (true){//sa > 10 || sb > 10){
+    //     // std::cout << "contig a junc results\n";
+    //     A.printJuncValues();
+    //     // contig_contig_aJuncs.printJuncResults(A);
+    //     // std::cout << "contig b junc results\n";
+    //     B.printJuncValues();
+    //     // contig_contig_bJuncs.printJuncResults(B);
+    // }
     // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
     // std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
     if (t_lo >= c_t && t_hi <= -c_t){
@@ -1391,14 +1391,14 @@ bool ContigGraph::areDifferentialContigCoverages(ContigJuncList A, ContigJuncLis
     double c_t = get_critical_val(df, 0.025);
     double T = std::abs((ma - mb)/two_samp_var);
     // std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
-    if (true){ //sa > 10 || sb > 10){
-        // std::cout << "contig a junc results\n";
-        A.printJuncValues();
-        // contig_contig_aJuncs.printJuncResults(A);
-        // std::cout << "contig b junc results\n";
-        B.printJuncValues();
-        // contig_contig_bJuncs.printJuncResults(B);
-    }
+    // if (true){ //sa > 10 || sb > 10){
+    //     // std::cout << "contig a junc results\n";
+    //     A.printJuncValues();
+    //     // contig_contig_aJuncs.printJuncResults(A);
+    //     // std::cout << "contig b junc results\n";
+    //     B.printJuncValues();
+    //     // contig_contig_bJuncs.printJuncResults(B);
+    // }
     // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << "\n";
     // std::cout << "Diff test: two_samp_var " << two_samp_var << " df " << df << " T " << T << " c_t " << c_t << "\n"; 
     if (T > c_t){
