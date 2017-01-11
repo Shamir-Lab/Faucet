@@ -1,24 +1,35 @@
 #!/bin/bash
-# Author: Marc Garcia-Garcera
+# Author: Roye Rozov, 
+# based on script by Marc Garcia-Garcera and Rayan Chikhi
 #  usage: diskused [program arg1 arg2 ...]
 
 "$@" &
 pid=$!
 status=$(ps -o rss -o vsz -o pid | grep $pid)
 maxdisk=0
+deleted=0
 maxmem=0
 while [ "${#status}" -gt "0" ];
 do
-    sleep 0.1
+    sleep 0.05
+    delta=false
     disk=$(cat /proc/$pid/io | grep -P '^write_bytes:' | awk '{print $2}')
-    disk=$((disk/1024))
+    disk=$(disk/1024)
     if [ "0$disk" -gt "0$maxdisk" ] 2>/dev/null; then
         maxdisk=$disk
+        delta=true
     fi
     mem=$(ps -o rss -o vsz -o pid | grep $pid | awk '{print $1}')
+    # echo mem: $mem
     mem=$((mem/1024))
     if [ "0$mem" -gt "0$maxmem" ] 2>/dev/null; then
         maxmem=$mem
+        delta=true
+    fi
+    # only print if at least one value changed
+    if $delta; then
+        echo disk: $disk
+        echo mem: $mem
     fi
 status=$(ps -o rss -o vsz -o pid | grep $pid)
 done

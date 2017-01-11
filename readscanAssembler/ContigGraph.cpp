@@ -192,13 +192,11 @@ bool ContigGraph::deleteTipsAndClean(){
     return result;
 }
 
-bool ContigGraph::breakPathsAndClean(Bloom* pair_filter, int insertSize){
+bool ContigGraph::breakPathsAndClean(){
     bool result = false;
     if(collapseBulges(150) > 0){
         result = true;
     }
-    
-
     return result;
 }
 
@@ -215,14 +213,17 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
     return result;
 }
 
-bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize){
+bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
 
     bool result = false;
     deleteTipsAndClean();
-    if(breakPathsAndClean(short_pair_filter, insertSize)){
+    Contig* longContig = getLongestContig();
+    int insertSize = longContig->getPairsMode(long_pair_filter);
+    std::cout << "insert size set to " << insertSize << std::endl;
+    if(breakPathsAndClean()){
         result = true;
     }
-    if(disentangleAndClean(short_pair_filter, read_length)){
+    if(disentangleAndClean(short_pair_filter, (read_length - sizeKmer + 1)/2 )){
         result = true;
     }
     if(disentangleAndClean(long_pair_filter, insertSize)){
@@ -332,7 +333,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
 
 bool ContigGraph::isTip(ContigNode* node, int index){
     Contig* contig = node->contigs[index];
-    if(contig->getSeq().length() < read_length && !contig->otherEndNode(node)){
+    if(contig->getSeq().length() < 2*sizeKmer+1 && !contig->otherEndNode(node)){
         return true;
     }
     return false;

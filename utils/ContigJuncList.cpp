@@ -182,7 +182,7 @@ double ContigJuncList::getAvgCoverage(std::list<JuncResult> results){
 
 double ContigJuncList::getCoverageSampleVariance(){
     if(coverages.size() < 2){
-        printf("ERROR: 1 or 0 values in junctions list\n");
+        // printf("ERROR: 1 or 0 values in junctions list\n");
         return 0;
     }
     double mean = getAvgCoverage();

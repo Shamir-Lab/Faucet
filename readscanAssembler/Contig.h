@@ -42,7 +42,7 @@ public:
 
     //Concatenates the two contigs, gluing together the specified sides
     Contig* concatenate(Contig* otherContig, int thisSide, int otherSide);
-
+    int getPairsMode(Bloom* pair_filter);
     void printPairStatistics(Bloom* pair_filter);
     int length(); //returns length of sequence
     void reverse(); //reverses the contig orientation

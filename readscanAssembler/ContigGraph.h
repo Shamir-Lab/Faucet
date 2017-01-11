@@ -64,7 +64,7 @@ public:
     std::list<Contig*> getPathIfSimpleBulge(ContigNode* node, int max_dist);
 
     void deleteContig(Contig* contig);
-    bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter, int insertSize); //Cleans graph and returns true if any changes were made
+    bool cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter); //Cleans graph and returns true if any changes were made
 
     bool checkGraph();
     void printContigFastG(std::ostream* fastgFile, Contig * contig);
@@ -83,7 +83,7 @@ public:
     int removeChimericExtensions(int insertSize);
     int collapseBulges(int max_dist);
     bool deleteTipsAndClean();
-    bool breakPathsAndClean(Bloom* pair_filter, int insertSize);
+    bool breakPathsAndClean();
     bool disentangleAndClean(Bloom* pair_filter, int insertSize);
     bool areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac);
     bool areDifferentialContigCoverages(ContigJuncList A, ContigJuncList B);

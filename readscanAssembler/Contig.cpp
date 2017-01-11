@@ -9,6 +9,38 @@
 using std::stringstream;
 using std::ofstream;
 
+
+int Contig::getPairsMode(Bloom* pair_filter){
+	std::list<JuncResult> results = getJuncResults(1, 0, 3*length());
+	const int maxDist = 2000;
+	const int increment = 20;
+	int PairCounts [maxDist/increment] = {};
+
+	for(int i = 0; i < maxDist/increment; i++){
+		PairCounts[i] = 0;
+	}
+
+	for(auto itL = results.begin(); itL != results.end(); itL++){
+		for(auto itR = itL; itR != results.end(); itR++){
+			int index = (itR->distance - itL->distance)/increment;
+			if(index < maxDist/increment && index >= 0){
+				if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+					PairCounts[index] += 1;
+				}
+				
+			}
+		}
+	}
+	int pairs_mode = 0;
+	for(int i = 0; i < maxDist / increment; i++){
+		if (PairCounts[i] > pairs_mode){
+			pairs_mode = PairCounts[i];
+		}
+	}
+	return pairs_mode;
+}
+
+
 //Looks at all junction pairs on this contig, and prints a histogram of how many BF positives and BF negatives there are
 //for pairs at different distances.
 void Contig::printPairStatistics(Bloom* pair_filter){
