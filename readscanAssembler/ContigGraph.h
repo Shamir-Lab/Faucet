@@ -21,21 +21,28 @@ class ContigGraph; //forward declare
 #include "ContigIterator.h"
 using std::unordered_set;
 using std::unordered_map;
+#include "../utils/sparsepp.h"
 using std::string;
+using spp::sparse_hash_map;
+
 
 class ContigGraph 
 {
 std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
-unordered_map<kmer_type,ContigNode> nodeMap;
-unordered_map<kmer_type,ContigNode>::iterator it;
-// unordered_set<kmer_type> expiredKmers;
+// unordered_map<kmer_type,ContigNode> nodeMap;
+sparse_hash_map<kmer_type,ContigNode> nodeMap;
+// unordered_map<kmer_type,ContigNode>::iterator it;
+sparse_hash_map<kmer_type,ContigNode>::iterator it;
+
 
 int read_length;
 
 public: 
     std::vector<Contig> * getIsolatedContigs();
-    unordered_map<kmer_type, ContigNode> * getNodeMap();
+    // unordered_map<kmer_type, ContigNode> * getNodeMap();
+    sparse_hash_map<kmer_type, ContigNode> * getNodeMap();
+
     void switchToNodeVector();
     void setReadLength(int length);
 
@@ -96,7 +103,9 @@ private:
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
     // int cutIfDegenerate(ContigNode* node, kmer_type kmer, auto it);
 
-    unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
+    // unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
+    sparse_hash_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
+
     void collapseNode(ContigNode * node, kmer_type kmer);
     void cutPath(ContigNode* node, int index); //used on nodes with no backward contig
 };

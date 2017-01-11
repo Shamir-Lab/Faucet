@@ -3,9 +3,12 @@
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <unordered_set>
+#include "../utils/sparsepp.h"
+using spp::sparse_hash_map;
 
-unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
+
+// unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
+sparse_hash_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
 }
 
@@ -16,7 +19,8 @@ std::vector<Contig> * ContigGraph::getIsolatedContigs(){
 
 double get_critical_val(int df, double sig){
     // critical values for t distribution at 0.05 alpha level
-    std::unordered_map <int,double> df_critical_vals;
+    // std::unordered_map <int,double> df_critical_vals;
+    sparse_hash_map <int,double> df_critical_vals;
     if (sig == 0.05){
         df_critical_vals[1]=6.314;
         df_critical_vals[2]=2.92;

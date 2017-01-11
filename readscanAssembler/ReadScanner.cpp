@@ -2,9 +2,9 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <unordered_map>
 #include <time.h>
 using namespace std;
+
 
 ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* short_filter, Bloom* long_filter, JChecker* checker, int maxDist){
   reads_file = readFile;

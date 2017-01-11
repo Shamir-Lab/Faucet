@@ -1,7 +1,7 @@
 #ifndef JUNCTION_MAP
 #define JUNCTION_MAP
 
-#include <unordered_map>
+// #include <unordered_map>
 #include <unordered_set>
 #include <string>
 #include "Kmer.h"
@@ -19,9 +19,12 @@
 #include <fstream>
 #include "../readscanAssembler/BfSearchResult.h"
 using std::ofstream;
-using std::unordered_map;
+// using std::unordered_map;
 using std::string;
 using std::unordered_set;
+#include "sparsepp.h"
+using spp::sparse_hash_map;
+
 
 class JunctionMap{
 
@@ -55,7 +58,7 @@ public:
     //false positive connection.  Then returns either a sink or a node result.
     BfSearchResult findNeighbor(Junction junc, kmer_type startKmer, int index);
 
-    unordered_map<kmer_type,Junction> junctionMap;  //stores the junctions themselves
+    sparse_hash_map<kmer_type,Junction> junctionMap;  //stores the junctions themselves
 
     //Returns true if multiple extensions of the given kmer jcheck
     //Assumes the given kmer is in the BF
