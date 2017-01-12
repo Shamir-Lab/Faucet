@@ -13,8 +13,8 @@ using spp::sparse_hash_map;
 class ContigIterator{ 
 private:
     ContigGraph* graph;
-    // std::unordered_map<kmer_type,ContigNode>::iterator nodeIt;
-    sparse_hash_map<kmer_type,ContigNode>::iterator nodeIt;
+    std::unordered_map<kmer_type,ContigNode>::iterator nodeIt;
+    // sparse_hash_map<kmer_type,ContigNode>::iterator nodeIt;
     int index;
     Contig* findNextContig(); //gets the contig but doesn't increment it and index
     void increment(); //increments index and nodeIt to point to next possible contig

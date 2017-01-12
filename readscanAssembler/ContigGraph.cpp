@@ -3,12 +3,12 @@
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "../utils/sparsepp.h"
-using spp::sparse_hash_map;
+// #include "../utils/sparsepp.h"
+// using spp::sparse_hash_map;
 
 
-// unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
-sparse_hash_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
+unordered_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
+// sparse_hash_map<kmer_type, ContigNode> *  ContigGraph::getNodeMap(){
     return &nodeMap;
 }
 
@@ -19,8 +19,8 @@ std::vector<Contig> * ContigGraph::getIsolatedContigs(){
 
 double get_critical_val(int df, double sig){
     // critical values for t distribution at 0.05 alpha level
-    // std::unordered_map <int,double> df_critical_vals;
-    sparse_hash_map <int,double> df_critical_vals;
+    std::unordered_map <int,double> df_critical_vals;
+    // sparse_hash_map <int,double> df_critical_vals;
     if (sig == 0.05){
         df_critical_vals[1]=6.314;
         df_critical_vals[2]=2.92;
@@ -204,13 +204,13 @@ bool ContigGraph::breakPathsAndClean(){
     return result;
 }
 
-bool ContigGraph::disentangleAndClean(Bloom* pair_filter, int insertSize){
+bool ContigGraph::disentangleAndClean(Bloom* pair_filter, double insertSize, double std){
     bool result = false;
     // std::cout << ">name\tlength\tlenA\tlenB\tlenC\tlenD\tcov\tcovA\tcovB\tcovC\tcovD\tAD\tBC\tAC\tBD\tsizeA\tsizeB\tsizeC\tsizeD\n";
-    if(disentangleLoopPaths(pair_filter, insertSize) > 0){
+    if(disentangleLoopPaths(pair_filter, insertSize, std) > 0){
         result = true;
     }
-    if(disentangleParallelPaths(pair_filter, insertSize) > 0){
+    if(disentangleParallelPaths(pair_filter, insertSize, std) > 0){
         result = true;
     }
     
@@ -222,15 +222,24 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
     bool result = false;
     deleteTipsAndClean();
     Contig* longContig = getLongestContig();
-    int insertSize = longContig->getPairsMode(long_pair_filter);
-    std::cout << "insert size set to " << insertSize << std::endl;
+
     if(breakPathsAndClean()){
         result = true;
     }
-    if(disentangleAndClean(short_pair_filter, (read_length - sizeKmer + 1)/2 )){
+
+    std::pair<double, double> mean_std = longContig->getPairsMeanStd(short_pair_filter);
+    double insertSize = mean_std.first; 
+    double std = mean_std.second;
+    std::cout << "short insert size set to " << insertSize << ", std set to " << std << std::endl;
+    if(disentangleAndClean(short_pair_filter, insertSize, std)){
         result = true;
     }
-    if(disentangleAndClean(long_pair_filter, insertSize)){
+
+    mean_std = longContig->getPairsMeanStd(long_pair_filter);
+    insertSize = mean_std.first;
+    std = mean_std.second;
+    std::cout << "long insert size set to " << insertSize << ", std set to " << std << std::endl;
+    if(disentangleAndClean(long_pair_filter, insertSize, std)){
         result = true;
     }
     
@@ -895,7 +904,7 @@ int ContigGraph::collapseBulges(int max_dist){
         // testAndCutIfDegenerate
 
 
-int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, int insertSize){
+int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize, double std){
     int disentangled = 0;
     bool operationDone = false;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
@@ -960,15 +969,16 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, int insertSize){
                     double cov_d = contig_d->getAvgCoverage();
 
                     // add 1 to always get at least a flanking junction
-                    A = backNode->getPairCandidates(a, std::min(len_a, insertSize));
-                    B = backNode->getPairCandidates(b, std::min(len_b, insertSize));
-                    C = node->getPairCandidates(c, std::min(len_c, insertSize));
-                    D = node->getPairCandidates(d, std::min(len_d, insertSize));
+                    int stepSize = (int) insertSize + 3*std;
+                    A = backNode->getPairCandidates(a, std::min(len_a, stepSize));
+                    B = backNode->getPairCandidates(b, std::min(len_b, stepSize));
+                    C = node->getPairCandidates(c, std::min(len_c, stepSize));
+                    D = node->getPairCandidates(d, std::min(len_d, stepSize));
                 
-                    scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
-                    scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
-                    scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
-                    scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
+                    scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
+                    scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
+                    scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
+                    scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
 
 
                     // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
@@ -1076,7 +1086,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, int insertSize){
         // if collapsible, collapseNode
         // testAndCutIfDegenerate
 
-int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, int insertSize){
+int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, double std){
     int disentangled = 0;
     bool operationDone = false;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
@@ -1142,15 +1152,16 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, int insertSize){
                     double cov_d = contig_d->getAvgCoverage();
 
                     // add 1 to always get at least a flanking junction
-                    A = backNode->getPairCandidates(a, std::min(len_a, insertSize));
-                    B = backNode->getPairCandidates(b, std::min(len_b, insertSize));
-                    C = node->getPairCandidates(c, std::min(len_c, insertSize));
-                    D = node->getPairCandidates(d, std::min(len_d, insertSize));
+                    int stepSize = (int) insertSize + 3*std;
+                    A = backNode->getPairCandidates(a, std::min(len_a, stepSize));
+                    B = backNode->getPairCandidates(b, std::min(len_b, stepSize));
+                    C = node->getPairCandidates(c, std::min(len_c, stepSize));
+                    D = node->getPairCandidates(d, std::min(len_d, stepSize));
                 
-                    scoreAC = getScore(A,C, pair_filter, fpRate, insertSize);
-                    scoreAD = getScore(A,D, pair_filter, fpRate, insertSize);
-                    scoreBC = getScore(B,C, pair_filter, fpRate, insertSize);
-                    scoreBD = getScore(B,D, pair_filter, fpRate, insertSize);
+                    scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
+                    scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
+                    scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
+                    scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
 
                     // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
                     // std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';

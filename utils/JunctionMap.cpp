@@ -366,6 +366,7 @@ BfSearchResult JunctionMap::findNeighbor(Junction junc, kmer_type startKmer, int
             break; 
         }
         if (isJunction(doubleKmer.kmer)) {
+            if (getValidJExtension(doubleKmer) < 0){std::cout << "value seen by j checked extension is "<< getValidJExtension(doubleKmer) <<std::endl;}
             assert(getValidJExtension(doubleKmer) >= 0); // this should be a spacer- thus there should be exactly one real extension
             // std::cout << "335\n";
             return BfSearchResult(doubleKmer.kmer, true, returnIndex, dist, contig);

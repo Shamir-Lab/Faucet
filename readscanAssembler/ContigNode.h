@@ -15,8 +15,8 @@ class Contig; // forward declare to avoid circ. dependency
 #include "../utils/JuncPairs.h"
 #include "../utils/Junction.h" 
 using std::ofstream;
-#include "../utils/sparsepp.h"
-using spp::sparse_hash_map;
+// #include "../utils/sparsepp.h"
+// using spp::sparse_hash_map;
 
 
 class ContigNode{
@@ -79,8 +79,8 @@ public:
     std::list<JuncResult> getJuncResults(int m); //returns immediate junc results from contig along this index
 
     void addNeighbors(std::vector<NodeQueueEntry> & queue); // , bool to_back); //searches forward one step, adds relevant nodes to the queue
-    // void recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
-    void recordParents(sparse_hash_map<NodeQueueEntry, NodeQueueEntry>& parents);
+    void recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
+    // void recordParents(sparse_hash_map<NodeQueueEntry, NodeQueueEntry>& parents);
     // std::list<Contig*> reconstructPathFromParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents);
     std::list<Contig*> reconstructPathFromParents(std::vector<NodeQueueEntry>& parents);
     friend bool operator==(NodeQueueEntry a, NodeQueueEntry b) { 

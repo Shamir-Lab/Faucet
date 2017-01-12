@@ -14,7 +14,7 @@ do
     sleep 0.05
     delta=false
     disk=$(cat /proc/$pid/io | grep -P '^write_bytes:' | awk '{print $2}')
-    disk=$(disk/1024)
+    disk=$((disk/1024))
     if [ "0$disk" -gt "0$maxdisk" ] 2>/dev/null; then
         maxdisk=$disk
         delta=true

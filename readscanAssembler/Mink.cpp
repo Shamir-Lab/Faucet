@@ -223,8 +223,8 @@ int main(int argc, char *argv[])
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
 
-    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/100, fpRate);
-    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/100, fpRate);
+    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, fpRate);
+    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, fpRate);
     if(just_load) return 0;
     
     //create JChecker

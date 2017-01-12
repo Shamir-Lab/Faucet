@@ -30,18 +30,18 @@ class ContigGraph
 {
 std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
-// unordered_map<kmer_type,ContigNode> nodeMap;
-sparse_hash_map<kmer_type,ContigNode> nodeMap;
-// unordered_map<kmer_type,ContigNode>::iterator it;
-sparse_hash_map<kmer_type,ContigNode>::iterator it;
+unordered_map<kmer_type,ContigNode> nodeMap;
+// sparse_hash_map<kmer_type,ContigNode> nodeMap;
+unordered_map<kmer_type,ContigNode>::iterator it;
+// sparse_hash_map<kmer_type,ContigNode>::iterator it;
 
 
 int read_length;
 
 public: 
     std::vector<Contig> * getIsolatedContigs();
-    // unordered_map<kmer_type, ContigNode> * getNodeMap();
-    sparse_hash_map<kmer_type, ContigNode> * getNodeMap();
+    unordered_map<kmer_type, ContigNode> * getNodeMap();
+    // sparse_hash_map<kmer_type, ContigNode> * getNodeMap();
 
     void switchToNodeVector();
     void setReadLength(int length);
@@ -85,13 +85,13 @@ public:
     //If it exists, does nothing and returns the existing one.
     //Otherwise, returns the new one
     ContigNode * createContigNode(kmer_type kmer, Junction junction);    
-    int disentangleParallelPaths(Bloom* pair_filter, int insertSize);
-    int disentangleLoopPaths(Bloom* pair_filter, int insertSize);
+    int disentangleParallelPaths(Bloom* pair_filter, double insertSize, double std);
+    int disentangleLoopPaths(Bloom* pair_filter, double insertSize, double std);
     int removeChimericExtensions(int insertSize);
     int collapseBulges(int max_dist);
     bool deleteTipsAndClean();
     bool breakPathsAndClean();
-    bool disentangleAndClean(Bloom* pair_filter, int insertSize);
+    bool disentangleAndClean(Bloom* pair_filter, double insertSize, double std);
     bool areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac);
     bool areDifferentialContigCoverages(ContigJuncList A, ContigJuncList B);
 
@@ -103,8 +103,8 @@ private:
     int destroyDegenerateNodes();// Removes nodes with no back contig or no forward contigs
     // int cutIfDegenerate(ContigNode* node, kmer_type kmer, auto it);
 
-    // unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
-    sparse_hash_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
+    unordered_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
+    // sparse_hash_map<kmer_type, ContigNode> contigNodeMap; // maps kmers to ContigNodes after contigs constructed
 
     void collapseNode(ContigNode * node, kmer_type kmer);
     void cutPath(ContigNode* node, int index); //used on nodes with no backward contig

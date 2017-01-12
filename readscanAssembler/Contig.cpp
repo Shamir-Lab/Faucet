@@ -4,40 +4,40 @@
 #include <algorithm>    // std::reverse
 #include <vector>       // std::vector
 #include <assert.h>
+#include <math.h>
 
 
 using std::stringstream;
 using std::ofstream;
 
-
-int Contig::getPairsMode(Bloom* pair_filter){
+// we ignore effects due to Bloom filter FPs when querying for pairs
+std::pair<double, double> Contig::getPairsMeanStd(Bloom* pair_filter){
 	std::list<JuncResult> results = getJuncResults(1, 0, 3*length());
-	const int maxDist = 2000;
-	const int increment = 20;
-	int PairCounts [maxDist/increment] = {};
-
-	for(int i = 0; i < maxDist/increment; i++){
-		PairCounts[i] = 0;
-	}
+	
+	int pairs_sum = 0;
+	int pairs_count = 0;
 
 	for(auto itL = results.begin(); itL != results.end(); itL++){
 		for(auto itR = itL; itR != results.end(); itR++){
-			int index = (itR->distance - itL->distance)/increment;
-			if(index < maxDist/increment && index >= 0){
-				if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
-					PairCounts[index] += 1;
-				}
-				
+			if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+				pairs_count++;
+				pairs_sum += itR->distance - itL->distance;
 			}
 		}
 	}
-	int pairs_mode = 0;
-	for(int i = 0; i < maxDist / increment; i++){
-		if (PairCounts[i] > pairs_mode){
-			pairs_mode = PairCounts[i];
+	double mean = pairs_sum/ (double) pairs_count;
+	double sum_sqrs = 0;
+	for(auto itL = results.begin(); itL != results.end(); itL++){
+		for(auto itR = itL; itR != results.end(); itR++){
+			if(pair_filter->containsPair(JuncPair(itL->kmer, itR->kmer))){
+				sum_sqrs += pow((itR->distance - itL->distance) - mean, 2);
+			}
 		}
 	}
-	return pairs_mode;
+	double std = pow(sum_sqrs, 0.5) / (pairs_count - 1.5);
+
+	std::pair <int, int> mean_std = std::make_pair(mean, std);
+	return mean_std;
 }
 
 
