@@ -147,210 +147,103 @@ AllTests : $(OBJ_BOTH) ReadscanTest.o JunctionMapTest.o gtest_main.a
 # DO NOT DELETE
 
 ./ReadScanner.o: ReadScanner.h /usr/include/stdio.h /usr/include/features.h
-./ReadScanner.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-./ReadScanner.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-./ReadScanner.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-./ReadScanner.o: /usr/include/libio.h /usr/include/_G_config.h
-./ReadScanner.o: /usr/include/wchar.h /usr/include/bits/stdio_lim.h
-./ReadScanner.o: /usr/include/bits/sys_errlist.h /usr/include/stdlib.h
-./ReadScanner.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
-./ReadScanner.o: /usr/include/endian.h /usr/include/bits/endian.h
-./ReadScanner.o: /usr/include/bits/byteswap.h /usr/include/bits/byteswap-16.h
-./ReadScanner.o: /usr/include/sys/types.h /usr/include/time.h
-./ReadScanner.o: /usr/include/sys/select.h /usr/include/bits/select.h
-./ReadScanner.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-./ReadScanner.o: /usr/include/sys/sysmacros.h
-./ReadScanner.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-./ReadScanner.o: /usr/include/bits/stdlib-float.h /usr/include/sys/time.h
-./ReadScanner.o: /usr/include/string.h /usr/include/xlocale.h
-./ReadScanner.o: /usr/include/inttypes.h /usr/include/stdint.h
-./ReadScanner.o: /usr/include/bits/wchar.h /usr/include/unistd.h
-./ReadScanner.o: /usr/include/bits/posix_opt.h
-./ReadScanner.o: /usr/include/bits/environments.h
-./ReadScanner.o: /usr/include/bits/confname.h /usr/include/getopt.h
-./ReadScanner.o: ../utils/Bloom.h ../utils/Kmer.h ../utils/ReadKmer.h
-./ReadScanner.o: ../utils/DoubleKmer.h ../utils/JuncPairs.h ../utils/Kmer.h
-./ReadScanner.o: ../utils/JChecker.h ../utils/Bloom.h ../utils/JunctionMap.h
-./ReadScanner.o: ../utils/Junction.h ../utils/Cap.h ../utils/JChecker.h
+./ReadScanner.o: /usr/include/stdc-predef.h /usr/include/libio.h
+./ReadScanner.o: /usr/include/_G_config.h /usr/include/wchar.h
+./ReadScanner.o: /usr/include/stdlib.h /usr/include/alloca.h
+./ReadScanner.o: /usr/include/time.h /usr/include/xlocale.h
+./ReadScanner.o: /usr/include/string.h /usr/include/inttypes.h
+./ReadScanner.o: /usr/include/stdint.h /usr/include/unistd.h
+./ReadScanner.o: /usr/include/getopt.h ../utils/Bloom.h ../utils/Kmer.h
+./ReadScanner.o: ../utils/ReadKmer.h ../utils/DoubleKmer.h
+./ReadScanner.o: ../utils/JuncPairs.h ../utils/Kmer.h ../utils/JChecker.h
+./ReadScanner.o: ../utils/Bloom.h ../utils/JunctionMap.h ../utils/Junction.h
+./ReadScanner.o: ../utils/Cap.h ../utils/JChecker.h
 ./ReadScanner.o: ../readscanAssembler/Contig.h ../utils/JuncPairs.h
 ./ReadScanner.o: ../utils/ContigJuncList.h ContigNode.h Contig.h
-./ReadScanner.o: ../utils/Junction.h ../utils/sparsepp.h
-./ReadScanner.o: ../readscanAssembler/ContigNode.h
+./ReadScanner.o: ../utils/Junction.h ../readscanAssembler/ContigNode.h
 ./ReadScanner.o: ../readscanAssembler/ContigGraph.h BfSearchResult.h
-./ReadScanner.o: ContigIterator.h ContigGraph.h
+./ReadScanner.o: ContigIterator.h ContigGraph.h ../utils/sparsepp.h
 ./ReadScanner.o: ../readscanAssembler/BfSearchResult.h ../utils/sparsepp.h
 ./ReadScanner.o: ../utils/ReadKmer.h ../utils/Cap.h
 ./Contig.o: Contig.h /usr/include/assert.h /usr/include/features.h
-./Contig.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-./Contig.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+./Contig.o: /usr/include/stdc-predef.h /usr/include/math.h
 ./ContigNode.o: ContigNode.h Contig.h ../utils/Kmer.h ../utils/JuncPairs.h
-./ContigNode.o: ../utils/Junction.h ../utils/sparsepp.h /usr/include/stdint.h
+./ContigNode.o: ../utils/Junction.h /usr/include/time.h
 ./ContigNode.o: /usr/include/features.h /usr/include/stdc-predef.h
-./ContigNode.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-./ContigNode.o: /usr/include/gnu/stubs.h /usr/include/bits/wchar.h
-./ContigNode.o: /usr/include/time.h /usr/include/bits/types.h
-./ContigNode.o: /usr/include/bits/typesizes.h
+./ContigNode.o: /usr/include/xlocale.h
 ./ContigGraph.o: ContigGraph.h /usr/include/math.h /usr/include/features.h
-./ContigGraph.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-./ContigGraph.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-./ContigGraph.o: /usr/include/bits/huge_val.h /usr/include/bits/huge_valf.h
-./ContigGraph.o: /usr/include/bits/huge_vall.h /usr/include/bits/inf.h
-./ContigGraph.o: /usr/include/bits/nan.h /usr/include/bits/mathdef.h
-./ContigGraph.o: /usr/include/bits/mathcalls.h /usr/include/time.h
-./ContigGraph.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-./ContigGraph.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
-./ContigGraph.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
-./ContigGraph.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
-./ContigGraph.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
-./ContigGraph.o: /usr/include/sys/select.h /usr/include/bits/select.h
-./ContigGraph.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-./ContigGraph.o: /usr/include/sys/sysmacros.h
-./ContigGraph.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-./ContigGraph.o: /usr/include/bits/stdlib-float.h /usr/include/assert.h
-./ContigGraph.o: ../utils/sparsepp.h /usr/include/stdint.h
-./ContigGraph.o: /usr/include/bits/wchar.h
+./ContigGraph.o: /usr/include/stdc-predef.h /usr/include/time.h
+./ContigGraph.o: /usr/include/xlocale.h /usr/include/stdlib.h
+./ContigGraph.o: /usr/include/alloca.h /usr/include/assert.h
 ./ContigIterator.o: ContigIterator.h ContigGraph.h Contig.h ContigNode.h
 ./ContigIterator.o: ../utils/Kmer.h ../utils/JuncPairs.h ../utils/Junction.h
 ./ContigIterator.o: ../utils/sparsepp.h /usr/include/stdint.h
 ./ContigIterator.o: /usr/include/features.h /usr/include/stdc-predef.h
-./ContigIterator.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-./ContigIterator.o: /usr/include/gnu/stubs.h /usr/include/bits/wchar.h
 ../utils/Cap.o: ../utils/Cap.h ../utils/Kmer.h /usr/include/stdint.h
 ../utils/Cap.o: /usr/include/features.h /usr/include/stdc-predef.h
-../utils/Cap.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-../utils/Cap.o: /usr/include/gnu/stubs.h /usr/include/bits/wchar.h
 ../utils/DoubleKmer.o: ../utils/DoubleKmer.h ../utils/Kmer.h
 ../utils/DoubleKmer.o: /usr/include/stdint.h /usr/include/features.h
-../utils/DoubleKmer.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-../utils/DoubleKmer.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-../utils/DoubleKmer.o: /usr/include/bits/wchar.h
+../utils/DoubleKmer.o: /usr/include/stdc-predef.h
 ../utils/ReadKmer.o: ../utils/ReadKmer.h ../utils/Kmer.h
 ../utils/ReadKmer.o: /usr/include/stdint.h /usr/include/features.h
-../utils/ReadKmer.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-../utils/ReadKmer.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-../utils/ReadKmer.o: /usr/include/bits/wchar.h ../utils/DoubleKmer.h
+../utils/ReadKmer.o: /usr/include/stdc-predef.h ../utils/DoubleKmer.h
 ../utils/Bloom.o: /usr/include/stdio.h /usr/include/features.h
-../utils/Bloom.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-../utils/Bloom.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-../utils/Bloom.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-../utils/Bloom.o: /usr/include/libio.h /usr/include/_G_config.h
-../utils/Bloom.o: /usr/include/wchar.h /usr/include/bits/stdio_lim.h
-../utils/Bloom.o: /usr/include/bits/sys_errlist.h /usr/include/stdlib.h
-../utils/Bloom.o: /usr/include/bits/waitflags.h
-../utils/Bloom.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
-../utils/Bloom.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
-../utils/Bloom.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
-../utils/Bloom.o: /usr/include/time.h /usr/include/sys/select.h
-../utils/Bloom.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
-../utils/Bloom.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
-../utils/Bloom.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-../utils/Bloom.o: /usr/include/bits/stdlib-float.h /usr/include/string.h
-../utils/Bloom.o: /usr/include/xlocale.h /usr/include/inttypes.h
-../utils/Bloom.o: /usr/include/stdint.h /usr/include/bits/wchar.h
-../utils/Bloom.o: /usr/include/math.h /usr/include/bits/huge_val.h
-../utils/Bloom.o: /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h
-../utils/Bloom.o: /usr/include/bits/inf.h /usr/include/bits/nan.h
-../utils/Bloom.o: /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h
-../utils/Bloom.o: ../utils/Bloom.h
+../utils/Bloom.o: /usr/include/stdc-predef.h /usr/include/libio.h
+../utils/Bloom.o: /usr/include/_G_config.h /usr/include/wchar.h
+../utils/Bloom.o: /usr/include/stdlib.h /usr/include/alloca.h
+../utils/Bloom.o: /usr/include/string.h /usr/include/xlocale.h
+../utils/Bloom.o: /usr/include/inttypes.h /usr/include/stdint.h
+../utils/Bloom.o: /usr/include/math.h ../utils/Bloom.h
 ../utils/Kmer.o: /usr/include/stdio.h /usr/include/features.h
-../utils/Kmer.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-../utils/Kmer.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-../utils/Kmer.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-../utils/Kmer.o: /usr/include/libio.h /usr/include/_G_config.h
-../utils/Kmer.o: /usr/include/wchar.h /usr/include/bits/stdio_lim.h
-../utils/Kmer.o: /usr/include/bits/sys_errlist.h /usr/include/assert.h
-../utils/Kmer.o: ../utils/Kmer.h /usr/include/stdint.h
-../utils/Kmer.o: /usr/include/bits/wchar.h ../utils/lut.h
+../utils/Kmer.o: /usr/include/stdc-predef.h /usr/include/libio.h
+../utils/Kmer.o: /usr/include/_G_config.h /usr/include/wchar.h
+../utils/Kmer.o: /usr/include/assert.h ../utils/Kmer.h /usr/include/stdint.h
+../utils/Kmer.o: ../utils/lut.h
 ../utils/JChecker.o: ../utils/JChecker.h /usr/include/stdio.h
 ../utils/JChecker.o: /usr/include/features.h /usr/include/stdc-predef.h
-../utils/JChecker.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-../utils/JChecker.o: /usr/include/gnu/stubs.h /usr/include/bits/types.h
-../utils/JChecker.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-../utils/JChecker.o: /usr/include/_G_config.h /usr/include/wchar.h
-../utils/JChecker.o: /usr/include/bits/stdio_lim.h
-../utils/JChecker.o: /usr/include/bits/sys_errlist.h
+../utils/JChecker.o: /usr/include/libio.h /usr/include/_G_config.h
+../utils/JChecker.o: /usr/include/wchar.h
 ../utils/JunctionMap.o: ../utils/JunctionMap.h ../utils/Kmer.h
 ../utils/JunctionMap.o: /usr/include/stdint.h /usr/include/features.h
-../utils/JunctionMap.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-../utils/JunctionMap.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-../utils/JunctionMap.o: /usr/include/bits/wchar.h ../utils/Junction.h
+../utils/JunctionMap.o: /usr/include/stdc-predef.h ../utils/Junction.h
 ../utils/JunctionMap.o: ../utils/Cap.h ../utils/ReadKmer.h
 ../utils/JunctionMap.o: ../utils/DoubleKmer.h ../utils/Bloom.h
 ../utils/JunctionMap.o: ../utils/JChecker.h ../utils/JuncPairs.h
 ../utils/JunctionMap.o: ../readscanAssembler/Contig.h ../utils/Kmer.h
 ../utils/JunctionMap.o: ../utils/JuncPairs.h ../utils/Bloom.h
-../utils/JunctionMap.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
-../utils/JunctionMap.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
-../utils/JunctionMap.o: /usr/include/bits/endian.h
-../utils/JunctionMap.o: /usr/include/bits/byteswap.h
-../utils/JunctionMap.o: /usr/include/bits/types.h
-../utils/JunctionMap.o: /usr/include/bits/typesizes.h
-../utils/JunctionMap.o: /usr/include/bits/byteswap-16.h
-../utils/JunctionMap.o: /usr/include/sys/types.h /usr/include/time.h
-../utils/JunctionMap.o: /usr/include/sys/select.h /usr/include/bits/select.h
-../utils/JunctionMap.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-../utils/JunctionMap.o: /usr/include/sys/sysmacros.h
-../utils/JunctionMap.o: /usr/include/bits/pthreadtypes.h
-../utils/JunctionMap.o: /usr/include/alloca.h
-../utils/JunctionMap.o: /usr/include/bits/stdlib-float.h
+../utils/JunctionMap.o: /usr/include/stdlib.h /usr/include/alloca.h
 ../utils/JunctionMap.o: /usr/include/inttypes.h ../utils/ContigJuncList.h
 ../utils/JunctionMap.o: ContigNode.h Contig.h ../utils/Junction.h
-../utils/JunctionMap.o: ../utils/sparsepp.h /usr/include/string.h
-../utils/JunctionMap.o: /usr/include/xlocale.h
+../utils/JunctionMap.o: /usr/include/string.h /usr/include/xlocale.h
 ../utils/JunctionMap.o: ../readscanAssembler/ContigNode.h
 ../utils/JunctionMap.o: ../readscanAssembler/ContigGraph.h
 ../utils/JunctionMap.o: ../utils/JunctionMap.h
 ../utils/JunctionMap.o: ../readscanAssembler/BfSearchResult.h
 ../utils/JunctionMap.o: ../utils/sparsepp.h ../utils/JChecker.h
 ../utils/JunctionMap.o: BfSearchResult.h ContigIterator.h ContigGraph.h
-../utils/JunctionMap.o: /usr/include/assert.h
+../utils/JunctionMap.o: ../utils/sparsepp.h /usr/include/assert.h
 ../utils/Junction.o: ../utils/Junction.h ../utils/Kmer.h
 ../utils/Junction.o: /usr/include/stdint.h /usr/include/features.h
-../utils/Junction.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-../utils/Junction.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-../utils/Junction.o: /usr/include/bits/wchar.h /usr/include/limits.h
-../utils/Junction.o: /usr/include/bits/posix1_lim.h
-../utils/Junction.o: /usr/include/bits/local_lim.h
-../utils/Junction.o: /usr/include/linux/limits.h
-../utils/Junction.o: /usr/include/bits/posix2_lim.h
+../utils/Junction.o: /usr/include/stdc-predef.h /usr/include/limits.h
 ../utils/JuncPairs.o: ../utils/JuncPairs.h ../utils/Kmer.h
 ../utils/JuncPairs.o: /usr/include/stdint.h /usr/include/features.h
-../utils/JuncPairs.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-../utils/JuncPairs.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-../utils/JuncPairs.o: /usr/include/bits/wchar.h
+../utils/JuncPairs.o: /usr/include/stdc-predef.h
 ../utils/ContigJuncList.o: ../utils/ContigJuncList.h ../utils/JuncPairs.h
 ../utils/ContigJuncList.o: ../utils/Kmer.h /usr/include/stdint.h
 ../utils/ContigJuncList.o: /usr/include/features.h /usr/include/stdc-predef.h
-../utils/ContigJuncList.o: /usr/include/sys/cdefs.h
-../utils/ContigJuncList.o: /usr/include/bits/wordsize.h
-../utils/ContigJuncList.o: /usr/include/gnu/stubs.h /usr/include/bits/wchar.h
 Mink.o: /usr/include/stdio.h /usr/include/features.h
-Mink.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-Mink.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-Mink.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-Mink.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
-Mink.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
-Mink.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
-Mink.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
-Mink.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
-Mink.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
-Mink.o: /usr/include/time.h /usr/include/sys/select.h
-Mink.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
-Mink.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
-Mink.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-Mink.o: /usr/include/bits/stdlib-float.h /usr/include/string.h
-Mink.o: /usr/include/xlocale.h /usr/include/unistd.h
-Mink.o: /usr/include/bits/posix_opt.h /usr/include/bits/environments.h
-Mink.o: /usr/include/bits/confname.h /usr/include/getopt.h
-Mink.o: /usr/include/inttypes.h /usr/include/stdint.h
-Mink.o: /usr/include/bits/wchar.h /usr/include/sys/time.h Mink.h
-Mink.o: ../utils/Bloom.h ../utils/Kmer.h ../utils/ReadKmer.h
-Mink.o: ../utils/DoubleKmer.h ../utils/JuncPairs.h ../utils/Kmer.h
-Mink.o: ../utils/Junction.h ../utils/JChecker.h ../utils/Bloom.h
-Mink.o: ReadScanner.h ../utils/JunctionMap.h ../utils/Junction.h
-Mink.o: ../utils/Cap.h ../utils/JChecker.h ../readscanAssembler/Contig.h
+Mink.o: /usr/include/stdc-predef.h /usr/include/libio.h
+Mink.o: /usr/include/_G_config.h /usr/include/wchar.h /usr/include/stdlib.h
+Mink.o: /usr/include/alloca.h /usr/include/time.h /usr/include/xlocale.h
+Mink.o: /usr/include/string.h /usr/include/unistd.h /usr/include/getopt.h
+Mink.o: /usr/include/inttypes.h /usr/include/stdint.h Mink.h ../utils/Bloom.h
+Mink.o: ../utils/Kmer.h ../utils/ReadKmer.h ../utils/DoubleKmer.h
+Mink.o: ../utils/JuncPairs.h ../utils/Kmer.h ../utils/Junction.h
+Mink.o: ../utils/JChecker.h ../utils/Bloom.h ReadScanner.h
+Mink.o: ../utils/JunctionMap.h ../utils/Junction.h ../utils/Cap.h
+Mink.o: ../utils/JChecker.h ../readscanAssembler/Contig.h
 Mink.o: ../utils/JuncPairs.h ../utils/ContigJuncList.h ContigNode.h Contig.h
-Mink.o: ../utils/sparsepp.h ../readscanAssembler/ContigNode.h
-Mink.o: ../readscanAssembler/ContigGraph.h BfSearchResult.h ContigIterator.h
-Mink.o: ContigGraph.h ../readscanAssembler/BfSearchResult.h
-Mink.o: ../utils/sparsepp.h ../utils/ReadKmer.h ../utils/Cap.h
+Mink.o: ../readscanAssembler/ContigNode.h ../readscanAssembler/ContigGraph.h
+Mink.o: BfSearchResult.h ContigIterator.h ContigGraph.h ../utils/sparsepp.h
+Mink.o: ../readscanAssembler/BfSearchResult.h ../utils/sparsepp.h
+Mink.o: ../utils/ReadKmer.h ../utils/Cap.h
