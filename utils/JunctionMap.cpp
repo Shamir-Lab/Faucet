@@ -608,7 +608,6 @@ bool JunctionMap::isJunction(kmer_type kmer){
 }
 
 JunctionMap::JunctionMap(Bloom* bloo1, JChecker* jcheck, int read_length){
-  junctionMap = {};
   bloom = bloo1;
   jchecker = jcheck;
   maxReadLength = read_length;
@@ -617,7 +616,6 @@ JunctionMap::JunctionMap(Bloom* bloo1, JChecker* jcheck, int read_length){
 //builds junction map from junction map file.
 //Assumes JunctionMap was just initialized
 void JunctionMap::buildFromFile(string junction_file){
-    junctionMap = {};
     ifstream jFile(junction_file);
 
     printf("Reading from Junction file to build junction map.\n");
