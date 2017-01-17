@@ -67,7 +67,11 @@ void Junction::addCoverage(int nucExt){
 
 //Updates the junc info based on finding a path of length length from the extension nucExt
 void Junction::update(int nucExt, unsigned char lengthFor){
-      dist[nucExt] = max(dist[nucExt], lengthFor);
+  if (nucExt < 0 || nucExt > 4) {
+    std::cout << "ERROR: Invalid nucExt in Junction::update: " << nucExt << "\n";
+  }
+  dist[nucExt] = max(dist[nucExt], lengthFor);
+
 }
 
 //"dist dist dist dist dist  cov cov cov cov cov  linked linked linked linked linked " for each of A,C,T,G,Back, in order.
