@@ -197,6 +197,19 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
     return bloo2;
 }
 
+Bloom* getBloomFilterFromReadsSingle(){ //handles loading from reads
+    Bloom* bloo1;
+
+    if(two_hash){
+        bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+    }
+    else{
+        bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
+    }
+    load_single_filter(bloo1, read_load_file, fastq);
+    return bloo1;
+}
+
 //Builds the junction map from either a file or the readscan
 void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, bool no_cleaning){
     ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker, maxSpacerDist);
@@ -223,8 +236,8 @@ int main(int argc, char *argv[])
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
 
-    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, fpRate);
-    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, fpRate);
+    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, fpRate/4);
+    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, fpRate/4);
     if(just_load) return 0;
     
     //create JChecker

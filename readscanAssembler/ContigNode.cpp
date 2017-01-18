@@ -40,23 +40,13 @@ bool ContigNode::isInvertedRepeatNode(){
 }
 
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
-    //std::cout << "Getting candidate pairs.\n";
-    // clock_t t = clock();
+    
     std::unordered_set<kmer_type> seenKmers = {};
     std::vector<NodeQueueEntry> queue(100);
-    // if (maxDist <= contigs[index]->getSeq().length()){
-    //     Contig * contig = contigs[index];
-    //     return contig->getJuncResults(contig->getSide(this, index),0, maxDist);
-    // }  
     queue.at(0) = (NodeQueueEntry(this, index, 0));
     std::list<JuncResult> results = {};
     int pos = 0;
-    // while (!queue.empty()){
-    //     NodeQueueEntry entry = queue.front();
-    //     // queue.pop_front();
-    //     queue.erase(queue.begin());
     while (queue.at(pos).node != nullptr){
-        // std::cout << "entered getPairCandidates\n";
         NodeQueueEntry entry = queue.at(pos);
         pos++;    
         kmer_type unique_kmer;
@@ -70,13 +60,10 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
             if(entry.startDist <= maxDist){
                 std::list<JuncResult> newResults = entry.getJuncResults(maxDist);
                 results.insert(results.end(), newResults.begin(), newResults.end());
-                entry.addNeighbors(queue); //, true);
+                entry.addNeighbors(queue);
             }
         }
-   }
-   //std::cout << "Seen kmers: " << seenKmers.size() << "\n";
-   //std::cout << "Results: " << results.size() << "\n";
-    //std::cout << "Time: "<< clock()-t << " tics.\n";
+    }
     results.sort();
 
     return results;
@@ -91,49 +78,35 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
         otherwise returns empty list. 
     */
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
-    std::unordered_set<kmer_type> seenKmers = {};
+    std::unordered_set<kmer_type> seenKmers = {};   
+    std::list<Contig*> path;    
     std::vector<NodeQueueEntry> queue(100);
-    // queue.reserve(50);
-
-    // std::vector<NodeQueueEntry> parents = {}; // same nodes are inserted as in queue, but never popped off
-    // parents.reserve(20);
-    std::list<Contig*> path;
-    
     queue.at(0) = (NodeQueueEntry(this, min_ind, 0));
     int pos = 0;
-    while (queue.at(pos).node != nullptr){ //pos < queue.size()){//!queue.empty()){
-        // std::cout << "entered doPathsConvergeNearby\n";
 
-        NodeQueueEntry entry = queue.at(pos);//front();
+    while (queue.at(pos).node != nullptr){
+        NodeQueueEntry entry = queue.at(pos);
         pos++;
-        // queue.pop_front();
-        // queue.erase(queue.begin());
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
             continue; // don't advance if at dead end
         }else {
             unique_kmer = entry.node->getUniqueKmer(entry.index);
         }
-        if(seenKmers.find(unique_kmer) == seenKmers.end()){
-        
+        if(seenKmers.find(unique_kmer) == seenKmers.end()){        
             seenKmers.insert(unique_kmer);
-
             if (entry.startDist > max_dist){
                 continue;
             }
             else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){
                 // reconstruct path from parents
                 path = entry.reconstructPathFromParents(queue);
-                return path; //entry.startDist;
+                return path; 
             }
             else{
-                // entry.recordParents(parents);
-                // entry.addNeighbors(parents);
                 entry.addNeighbors(queue); 
-            }
-            
+            }            
         }
-
    }
    // never reached target - return empty list
    return {};

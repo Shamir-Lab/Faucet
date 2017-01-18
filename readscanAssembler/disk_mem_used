@@ -11,7 +11,7 @@ deleted=0
 maxmem=0
 while [ "${#status}" -gt "0" ];
 do
-    sleep 0.05
+    sleep 1
     delta=false
     disk=$(cat /proc/$pid/io | grep -P '^write_bytes:' | awk '{print $2}')
     disk=$((disk/1024))
@@ -28,16 +28,16 @@ do
     fi
     # only print if at least one value changed
     if $delta; then
-        echo disk: $disk
-        echo mem: $mem
+        (>&2 echo disk: $disk)
+        (>&2 echo mem: $mem)
     fi
 status=$(ps -o rss -o vsz -o pid | grep $pid)
 done
 wait $pid
 ret=$?
 
-echo "maximal disk used: $maxdisk KB"
-echo "maximal memory used: $maxmem MB"
+(>&2 echo "maximal disk used: $maxdisk KB")
+(>&2 echo "maximal memory used: $maxmem MB")
 
 
 exit $ret

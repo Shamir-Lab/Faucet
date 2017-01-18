@@ -88,6 +88,7 @@ public:
     int disentangleParallelPaths(Bloom* pair_filter, double insertSize, double std);
     int disentangleLoopPaths(Bloom* pair_filter, double insertSize, double std);
     int removeChimericExtensions(int insertSize);
+    int validateNoneCollapsible();
     int collapseBulges(int max_dist);
     bool deleteTipsAndClean();
     bool breakPathsAndClean();

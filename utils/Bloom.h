@@ -288,6 +288,7 @@ public:
 };
 
 void load_two_filters(Bloom* bloo1, Bloom* bloo2, std::string reads_filename, bool fastq); //if fastq, use fastq. Else use fasta
+void load_single_filter(Bloom* bloo1, string reads_filename, bool fastq);
 
 #endif
 
