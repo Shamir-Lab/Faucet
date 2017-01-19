@@ -26,6 +26,11 @@ using std::unordered_set;
 #include "sparsepp.h"
 using spp::sparse_hash_map;
 
+struct HashKmer {
+   size_t operator()(kmer_type k) const {
+    return (k ^ 2166136261U)  * 16777619UL;
+    }
+};
 
 class JunctionMap{
 
@@ -59,7 +64,7 @@ public:
     //false positive connection.  Then returns either a sink or a node result.
     BfSearchResult findNeighbor(Junction junc, kmer_type startKmer, int index);
     
-    sparse_hash_map<kmer_type,Junction> junctionMap;  //stores the junctions themselves
+    sparse_hash_map<kmer_type,Junction, HashKmer> junctionMap;  //stores the junctions themselves
 
     //Returns true if multiple extensions of the given kmer jcheck
     //Assumes the given kmer is in the BF
