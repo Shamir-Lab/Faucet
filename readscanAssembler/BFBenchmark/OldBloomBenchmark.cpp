@@ -14,10 +14,11 @@ int main(int argc, char *argv[])
   /* This is where you define the number generator for unsigned long long: */
   std::uniform_int_distribution<uint64_t> dis;
 	  
-  int num_kmers = 300000000;  
+  int size = atoi(argv[1]);
 
-  Bloom* bloom = bloom->create_bloom_filter_optimal(num_kmers, .01);
+  Bloom* bloom = bloom->create_bloom_filter_optimal(size, .01);
 
+  int num_kmers = 10000000;
   std::vector<uint64_t> randomKmers;
   randomKmers.reserve(num_kmers);
 
@@ -53,7 +54,7 @@ int main(int argc, char *argv[])
   }
   end = std::chrono::high_resolution_clock::now();
   std::cout << "10M negative queries: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count()/1000000 << "ms" << std::endl;
-  
+
   std::cout << "Done.";
 
   return 0;

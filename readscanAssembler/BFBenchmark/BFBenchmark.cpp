@@ -14,12 +14,12 @@ int main(int argc, char *argv[])
   /* This is where you define the number generator for unsigned long long: */
   std::uniform_int_distribution<uint64_t> dis;
 	  
+  int size = atoi(argv[1]);
 
-  int num_kmers = 300000000;
-
-  bloom_parameters param = bloom_parameters(num_kmers, .01);
+  bloom_parameters param = bloom_parameters(size, .01);
   bloom_filter bloom(param);
   
+  int num_kmers = 10000000;
   std::vector<uint64_t> randomKmers;
   randomKmers.reserve(num_kmers);
 
