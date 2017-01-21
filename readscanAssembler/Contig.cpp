@@ -12,7 +12,7 @@ using std::ofstream;
 
 // we ignore effects due to Bloom filter FPs when querying for pairs
 std::pair<double, double> Contig::getPairsMeanStd(Bloom* pair_filter){
-	std::list<JuncResult> results = getJuncResults(1, 0, std::min(length(),1000));
+	std::list<JuncResult> results = getJuncResults(1, 0, std::min(length(),2000));
 	
 	int pairs_sum = 0;
 	int pairs_count = 0;

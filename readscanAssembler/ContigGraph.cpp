@@ -190,6 +190,9 @@ bool ContigGraph::deleteTipsAndClean(){
     if(deleteTips() > 0){
         result = true;
     } 
+    if (validateNoneCollapsible()){
+        result = true; 
+    }
     if (removeChimericExtensions(150) > 0){
         result  = true;
     }
@@ -216,10 +219,15 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, double insertSize, dou
     if(disentangleLoopPaths(pair_filter, insertSize, std) > 0){
         result = true;
     }
+    if (validateNoneCollapsible()){
+        result = true; 
+    }
     if(disentangleParallelPaths(pair_filter, insertSize, std) > 0){
         result = true;
     }
-    
+    if (validateNoneCollapsible()){
+        result = true; 
+    }
     return result;
 }
 
@@ -623,44 +631,32 @@ int ContigGraph::deleteTips(){
     int numDeleted = 0;
     it = nodeMap.begin();
     while(it != nodeMap.end()){  
-        bool collapsed = false;      
         ContigNode* node = &it->second;
-        // std::cout << "node originally has outdegree " << node->numPathsOut() << std::endl;
         kmer_type kmer = it->first;
         Contig * contig;
         for(int i = 0; i < 4; i++){ 
-            // std::cout << "i is " << i << " 597\n";
             contig = node->contigs[i];
-            // std::cout << "599\n";
             if(contig){
                 if(isTip(node, i) && node->numPathsOut() > 1){ // just means it's short and has no node at other end
-                    // std::cout << "going to remove "<< contig <<" 603\n";
                     cutPath(node,i);   // sets node cov/ptr to 0/null, sets contig's node ptr to null on that side          
-                    // std::cout << "605\n";
-
                     deleteContig(contig); // sets both node's cov/ptr to 0/null on (when not already set to null on contig), deletes contig object, sets ptr to null
                     numDeleted++;
-                    // }
                 }
             }
         }
         if(node->contigs[4]){
             if(isTip(node,4)){ // i = 4
-                // std::cout << "616\n";
                 contig = node->contigs[4];
                 cutPath(node,4);
                 deleteContig(contig);
-                collapsed = true; 
             }
         }
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
-            // std::cout << "620\n";
             collapseNode(node, kmer);
             it = nodeMap.erase(it); 
         }
         else if(testAndCutIfDegenerate(node)){  // one end has no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
-            // std::cout << "626\n";
             it = nodeMap.erase(it); 
         }
         else{
@@ -675,7 +671,6 @@ bool ContigGraph::isCollapsible(ContigNode * node){
     // and end nodes are not the same for both contigs
     if(node->numPathsOut() != 1) {return false;}
     if(!node->contigs[4]) {return false;}
-    // std::cout << "641\n";
 
     Contig * frontContig;
     for (int i = 0; i < 4; i++){ // find the lone remaining contig
