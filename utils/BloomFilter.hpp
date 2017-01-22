@@ -71,16 +71,20 @@ public:
      random_seed(0xA5A5A5A55A5A5A5AULL)
    {}
 
-   bloom_parameters( unsigned long long int cnt, double fprate = 0.0001, unsigned long long int seed = 0xA5A5A5A55A5A5A5AULL ):
+   bloom_parameters( unsigned long long int cnt, double fprate = 0.0001, unsigned long long int seed = 0xA5A5A5A55A5A5A5AULL, bool optimal = true):
 	   minimum_size(1),
 	   maximum_size(std::numeric_limits<unsigned long long int>::max()),
 	   minimum_number_of_hashes(1),
-	   maximum_number_of_hashes(std::numeric_limits<unsigned int>::max() )
+	   maximum_number_of_hashes(std::numeric_limits<unsigned int>::max())
    {
    	projected_element_count = cnt ;
 	false_positive_probability = fprate ;
 	random_seed = seed ;
-	compute_optimal_parameters() ;
+  if (optimal) {
+    compute_optimal_parameters();
+  } else {
+    compute_two_hash_parameters();
+  }
    }
 
    virtual ~bloom_parameters()
@@ -131,6 +135,43 @@ public:
    };
 
    optimal_parameters_t optimal_parameters;
+
+ virtual bool compute_two_hash_parameters()
+   {
+      /*
+        Note:
+        The following will attempt to find the number of hash functions
+        and minimum amount of storage bits required to construct a bloom
+        filter consistent with the user defined false positive probability
+        and estimated element insertion count.
+      */
+
+      if (!(*this))
+         return false;
+      double k = 2.0;
+
+      double numerator   = (- k * projected_element_count) ; 
+      double denominator = std::log(1.0 - std::pow(false_positive_probability, 1.0 / k));
+      double m = numerator/denominator + BLOCK_SIZE;
+
+      optimal_parameters_t& optp = optimal_parameters;
+
+      optp.number_of_hashes = static_cast<unsigned int>(k);
+      optp.table_size = static_cast<unsigned long long int>(m);
+      optp.table_size += (((optp.table_size % bits_per_char) != 0) ? (bits_per_char - (optp.table_size % bits_per_char)) : 0);
+
+      if (optp.number_of_hashes < minimum_number_of_hashes)
+         optp.number_of_hashes = minimum_number_of_hashes;
+      else if (optp.number_of_hashes > maximum_number_of_hashes)
+         optp.number_of_hashes = maximum_number_of_hashes;
+
+      if (optp.table_size < minimum_size)
+         optp.table_size = minimum_size;
+      else if (optp.table_size > maximum_size)
+         optp.table_size = maximum_size;
+
+      return true;
+   }
 
    virtual bool compute_optimal_parameters()
    {
@@ -301,6 +342,21 @@ public:
    {
       delete[] bit_table_;
    }
+
+  void dump(char * filename){
+    FILE *file_data;
+    file_data = fopen(filename,"wb");
+    fwrite(bit_table_, sizeof(unsigned char), raw_table_size_, file_data); //1+
+    printf("bloom dumped \n");
+  }
+
+  void load(char * filename){
+    FILE *file_data;
+    file_data = fopen(filename,"rb");
+    printf("loading bloom filter from file, nelem %lli \n",raw_table_size_);
+    int a = fread(bit_table_, sizeof(unsigned char), raw_table_size_, file_data);// go away warning..
+    printf("bloom loaded\n");
+  }
 
    inline bool operator!() const
    {

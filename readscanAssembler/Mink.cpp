@@ -167,6 +167,64 @@ int handle_arguments(int argc, char *argv[]){
     printf("Size of long: %d\n", sizeof(long));
 }
  
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fastq){
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+
+    int readsProcessed = 0;
+
+    string read;
+    time_t start, stop;
+    time(&start);
+    printf("Weights before load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    uint64_t hashA, hashB;
+    kmer_type canonKmer;
+    uint64_t unambiguousReads = 0;
+    while (getline(solidReads, read))
+    {
+        getline(solidReads, read);//since it's a fasta or fastq we skip the first of every pair of lines
+        std::list<string> readList = getUnambiguousReads(read);
+        while(!readList.empty()){
+            read = readList.front();
+            readList.pop_front();
+            unambiguousReads++;
+            for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
+                canonKmer = kmer.getCanon();
+                /* Less optimized new implementation */
+        
+                if (bloo1->contains(canonKmer)) {
+                    bloo2->add(canonKmer);
+                } else {
+                    bloo1->add(canonKmer);
+                }
+                /*
+                // OLD IMPLEMENTATION: takes advantage of reused hashes
+                hashA = bloo1->oldHash(canonKmer, 0);
+                hashB = bloo1->oldHash(canonKmer, 1);
+                if(bloo1->contains(hashA, hashB)){
+                    bloo2->add(hashA, hashB);
+                }
+                else{
+                    bloo1->add(hashA, hashB);
+                }
+                */
+            }    
+        }
+        readsProcessed++;
+        if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
+        
+        if(fastq) getline(solidReads, read),getline(solidReads, read); //ignore two more lines if its fastq
+    }
+
+    solidReads.close();
+    printf("\n");
+    printf("Weights after load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    printf("Reads processed: %d\n", readsProcessed);
+    printf("Unambiguous reads: %lli\n", unambiguousReads);
+    time(&stop);
+    printf("Time to load: %f \n", difftime(stop,start));
+}
+
 //create and load bloom filter
 Bloom* getBloomFilterFromFile(){
     Bloom* bloom;
