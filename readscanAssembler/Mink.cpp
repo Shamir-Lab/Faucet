@@ -10,7 +10,6 @@
 #include <algorithm> // for max/min
 #include <vector> // for sorting_kmers
 #include <sys/time.h>
-
 #include "Mink.h"
 #include <iostream>
 #include <fstream>

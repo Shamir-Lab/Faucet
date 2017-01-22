@@ -712,7 +712,7 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             if (!far_node || far_node == node){
                 ++it;
             }else if ( ( 
-                        (Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize) || 
+                        (Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize && P->getSeq().length() < read_length) || 
                         Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && 
                         (P->getSeq().length() < read_length && far_node->indexOf(P)!=4 && far_node->numPathsOut()>1) 
                     ){         
