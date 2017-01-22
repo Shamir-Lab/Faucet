@@ -34,7 +34,7 @@ class ReadScanner{
 
 private:
     int maxSpacerDist; // maximum distance in bases between two junctions (spacers added to bridge gaps)
-    Bloom* bloom;
+    bloom_filter* bloom;
     Bloom* short_pair_filter;
     Bloom* long_pair_filter;
     set<kmer_type> jcheckedSet;
@@ -89,6 +89,6 @@ public:
     //Returns back junctions along the read from beginning to end
     std::list<kmer_type> scan_forward(string read, bool no_cleaning); 
 
-    ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, int maxSpacerDist);
+    ReadScanner(JunctionMap* juncMap, string readFile, bloom_filter* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, int maxSpacerDist);
 };
 #endif

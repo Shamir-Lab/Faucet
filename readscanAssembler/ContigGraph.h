@@ -11,7 +11,6 @@ class ContigGraph; //forward declare
 #include <vector>
 #include "../utils/Kmer.h"
 #include "../utils/Junction.h"
-#include "../utils/BloomFilter.hpp"
 #include "../utils/Bloom.h"
 #include "../utils/JunctionMap.h"
 #include "../utils/JChecker.h"

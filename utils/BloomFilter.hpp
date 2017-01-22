@@ -71,7 +71,7 @@ public:
      random_seed(0xA5A5A5A55A5A5A5AULL)
    {}
 
-   bloom_parameters( unsigned long long int cnt, double fprate = 0.0001, unsigned long long int seed = 0xA5A5A5A55A5A5A5AULL, bool optimal = true):
+   bloom_parameters( unsigned long long int cnt, double fprate = 0.0001, bool optimal = true, unsigned long long int seed = 0xA5A5A5A55A5A5A5AULL):
 	   minimum_size(1),
 	   maximum_size(std::numeric_limits<unsigned long long int>::max()),
 	   minimum_number_of_hashes(1),

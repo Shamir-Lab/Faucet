@@ -30,7 +30,7 @@ using std::unordered_set;
 class JunctionMap{
 
 private: 
-    Bloom* bloom;
+    bloom_filter* bloom;
     JChecker* jchecker; 
     int maxReadLength; //needed for finding sinks properly- tells you when to stop scanning   
 
@@ -98,6 +98,6 @@ public:
     Junction* getJunction(kmer_type kmer); //same as above
     void killJunction(kmer_type kmer); //removes the junction at the specified kmer, if there is one
 
-    JunctionMap(Bloom* bloo, JChecker* jchecker, int maxReadLength);
+    JunctionMap(bloom_filter* bloo, JChecker* jchecker, int maxReadLength);
 };
 #endif

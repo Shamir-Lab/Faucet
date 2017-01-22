@@ -167,7 +167,7 @@ int handle_arguments(int argc, char *argv[]){
     printf("Size of long: %d\n", sizeof(long));
 }
  
-void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fastq){
+void load_two_filters(bloom_filter* bloo1, bloom_filter* bloo2, string reads_filename, bool fastq){
     ifstream solidReads;
     solidReads.open(reads_filename);
 
@@ -176,7 +176,7 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
     string read;
     time_t start, stop;
     time(&start);
-    printf("Weights before load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    printf("Weights before load: %f, %f \n", bloo1->occupancy(), bloo2->occupancy());
     uint64_t hashA, hashB;
     kmer_type canonKmer;
     uint64_t unambiguousReads = 0;
@@ -193,9 +193,9 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
                 /* Less optimized new implementation */
         
                 if (bloo1->contains(canonKmer)) {
-                    bloo2->add(canonKmer);
+                    bloo2->insert(canonKmer);
                 } else {
-                    bloo1->add(canonKmer);
+                    bloo1->insert(canonKmer);
                 }
                 /*
                 // OLD IMPLEMENTATION: takes advantage of reused hashes
@@ -218,7 +218,7 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
 
     solidReads.close();
     printf("\n");
-    printf("Weights after load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    printf("Weights after load: %f, %f \n", bloo1->occupancy(), bloo2->occupancy());
     printf("Reads processed: %d\n", readsProcessed);
     printf("Unambiguous reads: %lli\n", unambiguousReads);
     time(&stop);
@@ -226,37 +226,43 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
 }
 
 //create and load bloom filter
-Bloom* getBloomFilterFromFile(){
-    Bloom* bloom;
+bloom_filter* getBloomFilterFromFile(){
+    bloom_filter* bloom;
         if(two_hash){
-            bloom = bloom->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+            bloom_parameters bloom_params(estimated_kmers, fpRate, false);
+            bloom = new bloom_filter(bloom_params);
         }
         else{
-            bloom = bloom->create_bloom_filter_optimal(estimated_kmers, fpRate);
+            bloom_parameters bloom_params(estimated_kmers, fpRate);
+            bloom = new bloom_filter(bloom_params);
         }
         bloom->load(&bloom_input_file[0]);
         return bloom;
 }
 
-Bloom* getBloomFilterFromReads(){ //handles loading from reads
-    Bloom* bloo1;
-    Bloom* bloo2;
+bloom_filter* getBloomFilterFromReads(){ //handles loading from reads
+    bloom_filter* bloo1;
+    bloom_filter* bloo2;
+
+    bloom_parameters bloom_params;
 
     if(two_hash){
-        bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
-        bloo2 = bloo2->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+        bloom_params = bloom_parameters(estimated_kmers, fpRate, false);
     }
     else{
-        bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
-        bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, fpRate);
+        bloom_params = bloom_parameters(estimated_kmers, fpRate);
     }
+
+    bloo1 = new bloom_filter(bloom_params);
+    bloo2 = new bloom_filter(bloom_params);
+
     load_two_filters(bloo1, bloo2, read_load_file, fastq);
     delete(bloo1);
     return bloo2;
 }
 
 //Builds the junction map from either a file or the readscan
-void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, bool no_cleaning){
+void buildJunctionMapFromReads(JunctionMap* junctionMap, bloom_filter* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, bool no_cleaning){
     ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker, maxSpacerDist);
      
     //scan reads, print summary
@@ -272,7 +278,7 @@ int main(int argc, char *argv[])
     }
 
     //Build bloom filter from reads or file, and dump to file
-    Bloom* bloom;
+    bloom_filter* bloom;
     if(from_bloom){
         bloom = getBloomFilterFromFile();
     }
