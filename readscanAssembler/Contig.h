@@ -3,6 +3,7 @@
 
 #include "../utils/Kmer.h"
 #include "../utils/JuncPairs.h"
+#include "../utils/BloomFilter.hpp"
 #include "../utils/Bloom.h"
 #include "../utils/JuncPairs.h"
 #include "../utils/ContigJuncList.h"

@@ -19,6 +19,7 @@ using std::ofstream;
 #define READSCAN_H
 
 #include "../utils/Bloom.h"
+#include "../utils/BloomFilter.hpp"
 #include "../utils/Kmer.h"
 #include "../utils/JChecker.h"
 #include "../utils/JunctionMap.h"

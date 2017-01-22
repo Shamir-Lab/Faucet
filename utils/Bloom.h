@@ -36,8 +36,8 @@ typedef kmer_type bloom_elem;
 #define NSEEDSBLOOM 10
 #define CUSTOMSIZE 1
 
-static const int bits_per_char = 0x08;    // 8 bits in 1 char(unsigned)
-static const unsigned char bit_mask[bits_per_char] = {
+static const int bits_per_character = 0x08;    // 8 bits in 1 char(unsigned)
+static const unsigned char Bit_mask[bits_per_character] = {
     0x01,  //00000001
     0x02,  //00000010
     0x04,  //00000100
@@ -217,7 +217,7 @@ public:
         {
             h %= tai;
             //printf("Setting array position %lli\n", h);
-            blooma [h >> 3] |= bit_mask[h & 7];
+            blooma [h >> 3] |= Bit_mask[h & 7];
         }
     }
 
@@ -245,7 +245,7 @@ public:
         for(int i=0; i<n_hash_func; i++, h = (h+h1)%tai)
         {
             //printf("Checking array position %lli\n", h);
-            if ((blooma[h >> 3 ] & bit_mask[h & 7]) != bit_mask[h & 7]){
+            if ((blooma[h >> 3 ] & Bit_mask[h & 7]) != Bit_mask[h & 7]){
                 return 0;
             }
         }

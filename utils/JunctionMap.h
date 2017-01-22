@@ -8,6 +8,7 @@
 #include "Junction.h"
 #include "Cap.h"
 #include "ReadKmer.h"
+#include "BloomFilter.hpp"
 #include "Bloom.h"
 #include "JChecker.h"
 #include "Kmer.h"

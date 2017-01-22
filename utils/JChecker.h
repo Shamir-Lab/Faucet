@@ -1,6 +1,7 @@
 #ifndef JCHECKER 
 #define JCHECKER
 
+#include "BloomFilter.hpp"
 #include "Bloom.h"
 #include "Kmer.h"
 
