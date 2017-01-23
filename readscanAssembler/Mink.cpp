@@ -179,9 +179,22 @@ Bloom* getBloomFilterFromFile(){
         return bloom;
 }
 
+double my_func(double p1) { 
+    int cardinality = estimated_kmers;
+    int singletons = cardinality/2; 
+    return (log(fpRate)* (cardinality - (1-p1)*singletons) /cardinality) - log(p1);
+}
+     
+
 Bloom* getBloomFilterFromReads(){ //handles loading from reads
     Bloom* bloo1;
     Bloom* bloo2;
+
+    
+    std::function<double (double)> f = my_func;
+    double p1 = brents_fun(f, fpRate, 0.50, 0.0001, 1000);
+    cout << "p2 is " << fpRate << " p1 estimated as " << p1 << endl;
+    
 
     if(two_hash){
         bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
@@ -195,6 +208,7 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
     delete(bloo1);
     return bloo2;
 }
+
 
 Bloom* getBloomFilterFromReadsSingle(){ //handles loading from reads
     Bloom* bloo1;
