@@ -23,6 +23,7 @@ string long_pair_filter_file;
 
 int read_length;
 uint64_t estimated_kmers;
+uint64_t singletons;
 bool two_hash = false;
 bool from_bloom = false;
 bool from_junctions = false;

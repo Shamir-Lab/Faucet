@@ -49,7 +49,7 @@ file_prefix.contigs, file_prefix.graph.
 
 void argumentError(){
     fprintf (stderr,"Usage:\n");
-    fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -file_prefix <prefix>");
+    fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -singletons <num_kmers> -file_prefix <prefix>");
     fprintf(stderr, "\nOptional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
@@ -69,6 +69,8 @@ int handle_arguments(int argc, char *argv[]){
                 read_length = atoi(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-estimated_kmers")) //estimated number of distinct kmers
                 estimated_kmers = atoll(argv[i+1]), i++;
+        else if(0 == strcmp(argv[i] , "-singletons")) //estimated number of distinct kmers
+                singletons = atoll(argv[i+1]), i++;    
         else if(0 == strcmp(argv[i] , "-fp")) //false posiive rate
                 fpRate = atof(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-j")) //value of j for jchecking
@@ -180,9 +182,7 @@ Bloom* getBloomFilterFromFile(){
 }
 
 double my_func(double p1) { 
-    int cardinality = estimated_kmers;
-    int singletons = cardinality/2; 
-    return (log(fpRate)* (cardinality - (1-p1)*singletons) /cardinality) - log(p1);
+    return (log(fpRate)* (estimated_kmers - (1-p1)*singletons) /estimated_kmers) - log(p1);
 }
      
 
@@ -190,20 +190,18 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
     Bloom* bloo1;
     Bloom* bloo2;
 
-    
     std::function<double (double)> f = my_func;
     double p1 = brents_fun(f, fpRate, 0.50, 0.0001, 1000);
     cout << "p2 is " << fpRate << " p1 estimated as " << p1 << endl;
     
-
-    if(two_hash){
-        bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
-        bloo2 = bloo2->create_bloom_filter_2_hash(estimated_kmers, fpRate);
-    }
-    else{
-        bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
-        bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, fpRate);
-    }
+    // if(two_hash){
+    //     bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+    //     bloo2 = bloo2->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+    // }
+    // else{
+    bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, p1);
+    bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, p1);
+    // }
     load_two_filters(bloo1, bloo2, read_load_file, fastq);
     delete(bloo1);
     return bloo2;
