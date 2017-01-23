@@ -24,6 +24,18 @@ string long_pair_filter_file;
 int read_length;
 uint64_t estimated_kmers;
 uint64_t singletons;
+
+
+// requred arguments:
+bool load_file_flag = false;
+bool scan_file_flag = false;
+bool k_val_flag = false;
+bool max_len_flag = false;
+bool est_kmers_flag = false;
+bool est_sing_flag = false;
+bool pref_flag = false;
+
+// optional arguments:
 bool two_hash = false;
 bool from_bloom = false;
 bool from_junctions = false;

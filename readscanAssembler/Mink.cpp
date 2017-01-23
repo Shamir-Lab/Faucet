@@ -53,6 +53,7 @@ void argumentError(){
     fprintf(stderr, "\nOptional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
+
 int handle_arguments(int argc, char *argv[]){
     if (argc==1){
         argumentError();
@@ -60,23 +61,23 @@ int handle_arguments(int argc, char *argv[]){
     }
     for(int i = 1; i < argc; i++){
         if(0 == strcmp(argv[i] , "-read_load_file")) //1st arg: read file name
-                read_load_file = string(argv[i+1]), i++;
+                read_load_file = string(argv[i+1]), i++, load_file_flag=true;
         else if(0 == strcmp(argv[i] , "-read_scan_file")) //1st arg: read file name
-                read_scan_file = string(argv[i+1]), i++;
+                read_scan_file = string(argv[i+1]), i++, scan_file_flag=true;
         else if(0 == strcmp(argv[i] , "-size_kmer")) // 2rd arg: kmer size.
-                setSizeKmer(atoi(argv[i+1])), i++;
+                setSizeKmer(atoi(argv[i+1])), i++, k_val_flag=true;
         else if(0 == strcmp(argv[i], "-max_read_length")) //3rd arg: read length
-                read_length = atoi(argv[i+1]), i++;
+                read_length = atoi(argv[i+1]), i++, max_len_flag=true;
         else if(0 == strcmp(argv[i] , "-estimated_kmers")) //estimated number of distinct kmers
-                estimated_kmers = atoll(argv[i+1]), i++;
+                estimated_kmers = atoll(argv[i+1]), i++, est_kmers_flag=true;
         else if(0 == strcmp(argv[i] , "-singletons")) //estimated number of distinct kmers
-                singletons = atoll(argv[i+1]), i++;    
+                singletons = atoll(argv[i+1]), i++, est_sing_flag=true;    
         else if(0 == strcmp(argv[i] , "-fp")) //false posiive rate
                 fpRate = atof(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-j")) //value of j for jchecking
                 j = atoi(argv[i+1]), i++;
         else if(0 == strcmp(argv[i] , "-file_prefix")) //file prefix used for output files
-                file_prefix = string(argv[i+1]), i++;
+                file_prefix = string(argv[i+1]), i++, pref_flag=true;
         else if(0 == strcmp(argv[i] , "--two_hash")) //use two hash function BF instead of optimal size BF
                 two_hash = true; 
         else if(0 == strcmp(argv[i] , "--just_load_bloom")) //stop after loading bloom
@@ -106,6 +107,10 @@ int handle_arguments(int argc, char *argv[]){
             argumentError();
             return 1;
         }
+        else if (0 == strcmp(argv[i] , "--help") || 0 == strcmp(argv[i] , "-h")){
+            argumentError();
+            return 1;
+        }
         else {
             fprintf (stderr, "Cannot parse tag %s\n", argv[i]);
             argumentError();
@@ -113,7 +118,11 @@ int handle_arguments(int argc, char *argv[]){
         }
         
     }
-
+    if (! (load_file_flag && scan_file_flag && k_val_flag && max_len_flag && est_kmers_flag && est_sing_flag && pref_flag)){
+        fprintf (stderr, "Some required argument is missing.\n");
+        argumentError();
+        return 1; 
+    }
     if(from_junctions && !from_bloom){
         fprintf(stderr, "Cannot start from junctions without a bloom file.\n");
         argumentError();
