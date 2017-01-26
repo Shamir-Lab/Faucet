@@ -42,7 +42,7 @@ bool ContigNode::isInvertedRepeatNode(){
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     
     std::unordered_set<kmer_type> seenKmers = {};
-    std::vector<NodeQueueEntry> queue(100);
+    std::vector<NodeQueueEntry> queue;
     queue.at(0) = (NodeQueueEntry(this, index, 0));
     std::list<JuncResult> results = {};
     int pos = 0;
@@ -80,7 +80,7 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::unordered_set<kmer_type> seenKmers = {};   
     std::list<Contig*> path;    
-    std::vector<NodeQueueEntry> queue(100);
+    std::vector<NodeQueueEntry> queue;
     queue.at(0) = (NodeQueueEntry(this, min_ind, 0));
     int pos = 0;
 
