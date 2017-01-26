@@ -947,18 +947,9 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
                     scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
 
-
-                    // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                    // std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
-                    // std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
-                    // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    // std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                    
-
+                    
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
-                        // std::cout << "all contigs distinct, " << contig << "\n";
-                        // std::cout << "A len: " << A_juncs.size() << " B len: " << B_juncs.size() <<" C len: " << C_juncs.size() <<" D len: " << D_juncs.size()<<'\n';
-                        // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-
+                       
                         if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
                             (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 1000 && len_c >= 1000)){
 
@@ -1006,21 +997,14 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     }
 
                     if (operationDone){
-                        // std::cout << "970\n";
                         disentanglePair(contig, backNode, node, a, b, c, d);
                         disentangled++;
-                        backNode->clearNode();
-                        node->clearNode();
-                        // std::cout << "976\n";
-                        nodeMap.erase(back_kmer);
-                        // std::cout << "978\n";
-                        it = nodeMap.erase(it);
-                        // std::cout << "980\n";
+                        collapseNode(node, kmer);
+                        it = nodeMap.erase(it); 
                         operationDone = false;
                         break;
                     }
                     else{
-                        // std::cout << "985\n";
                         if (orientation==2){ // made it through inner for without disentanglement
                             ++it;
                         }
@@ -1155,16 +1139,10 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                         }      
                     }
                     if (operationDone){
-                        // std::cout << "970\n";
-                        // disentanglePair(contig, backNode, node, a, b, c, d);
+                        disentanglePair(contig, backNode, node, a, b, c, d);
                         disentangled++;
-                        backNode->clearNode();
-                        node->clearNode();
-                        // std::cout << "976\n";
-                        nodeMap.erase(back_kmer);
-                        // std::cout << "978\n";
-                        it = nodeMap.erase(it);
-                        // std::cout << "980\n";
+                        collapseNode(node, kmer);
+                        it = nodeMap.erase(it); 
                         operationDone = false;
                         break;
                     }

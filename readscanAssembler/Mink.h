@@ -11,7 +11,7 @@
 #include "ReadScanner.h"
 #include "ContigGraph.h"
 
-float fpRate = .01;
+float fpRate = .04;
 int j = 1;
 
 string read_load_file;

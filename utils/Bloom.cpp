@@ -166,10 +166,10 @@ void Bloom::addFakeKmers(std::set<bloom_elem> valid_kmers) {
     n_hash_func = 4 ;//def
     user_seed =0;
     nb_elem = 0;
-    // hashSize = (int) log2(tai_bloom)+1;
+    hashSize = (int) log2(tai_bloom)+1;
     //printf("Hash size: %d \n", hashSize);
-    // tai = pow(2, hashSize);
-    tai = tai_bloom;
+    tai = pow(2, hashSize);
+    // tai = tai_bloom;
     //printf("Tai: %lli \n", tai);
     if(tai == 0){
        tai = 1;

@@ -191,7 +191,9 @@ Bloom* getBloomFilterFromFile(){
 }
 
 double my_func(double p1) { 
-    return (log(fpRate)* (estimated_kmers - (1-p1)*singletons) /estimated_kmers) - log(p1);
+    double c = (estimated_kmers - (1-p1)*singletons) /estimated_kmers;
+    return log(2)*log(fpRate) + log(p1)*log(1 - pow(2, -c));
+    // return (log(fpRate)* (estimated_kmers - (1-p1)*singletons) /estimated_kmers) - log(p1);
 }
      
 
@@ -256,8 +258,8 @@ int main(int argc, char *argv[])
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
 
-    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, fpRate/4);
-    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, fpRate/4);
+    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
+    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
     if(just_load) return 0;
     
     //create JChecker
