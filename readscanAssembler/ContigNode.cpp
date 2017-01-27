@@ -43,16 +43,19 @@ std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
     
     std::unordered_set<kmer_type> seenKmers = {};
     std::vector<NodeQueueEntry> queue;
-    queue.at(0) = (NodeQueueEntry(this, index, 0));
+    queue.reserve(100);
+    queue.push_back(NodeQueueEntry(this, index, 0));
     std::list<JuncResult> results = {};
     int pos = 0;
     while (queue.at(pos).node != nullptr){
         NodeQueueEntry entry = queue.at(pos);
         pos++;    
+        if (pos > queue.size() - 1) break;
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
             continue; // don't advance if at dead end
         }else {
+            // record unique kmer to avoid cycles
             unique_kmer = entry.node->getUniqueKmer(entry.index);
         }
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
@@ -81,16 +84,20 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     std::unordered_set<kmer_type> seenKmers = {};   
     std::list<Contig*> path;    
     std::vector<NodeQueueEntry> queue;
-    queue.at(0) = (NodeQueueEntry(this, min_ind, 0));
+    queue.reserve(100);
+    queue.push_back(NodeQueueEntry(this, min_ind, 0));
     int pos = 0;
 
     while (queue.at(pos).node != nullptr){
         NodeQueueEntry entry = queue.at(pos);
         pos++;
+        if (pos > queue.size() - 1) break;
+
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
             continue; // don't advance if at dead end
         }else {
+            // record unique kmer to avoid cycles
             unique_kmer = entry.node->getUniqueKmer(entry.index);
         }
         if(seenKmers.find(unique_kmer) == seenKmers.end()){        

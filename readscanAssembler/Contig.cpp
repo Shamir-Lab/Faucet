@@ -25,6 +25,7 @@ std::pair<double, double> Contig::getPairsMeanStd(Bloom* pair_filter){
 			}
 		}
 	}
+	if (pairs_sum==0 || pairs_count==0) return std::make_pair(0,0);
 	double mean = pairs_sum/ (double) pairs_count;
 	double sum_sqrs = 0;
 	for(auto itL = results.begin(); itL != results.end(); itL++){

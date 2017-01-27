@@ -360,7 +360,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
 
 bool ContigGraph::isTip(ContigNode* node, int index){
     Contig* contig = node->contigs[index];
-    if(contig->getSeq().length() < 2*sizeKmer+1 && !contig->otherEndNode(node)){//} && isLowCovContig(contig)){
+    if(contig->getSeq().length() < 2*sizeKmer && !contig->otherEndNode(node)){//} && isLowCovContig(contig)){
         return true;
     }
     return false;
@@ -876,7 +876,9 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
     bool operationDone = false;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
+    if (insertSize <= 0 || std <= 0) return 0;
     std::cout << "About to disentangle parallel paths.  Starting with " << nodeMap.size() << " nodes.\n";
+
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         ContigNode* node = &it->second;
@@ -999,8 +1001,10 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     if (operationDone){
                         disentanglePair(contig, backNode, node, a, b, c, d);
                         disentangled++;
-                        collapseNode(node, kmer);
-                        it = nodeMap.erase(it); 
+                        backNode->clearNode();
+                        node->clearNode();
+                        nodeMap.erase(back_kmer);
+                        it = nodeMap.erase(it);
                         operationDone = false;
                         break;
                     }
@@ -1028,7 +1032,9 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
     bool operationDone = false;
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
+    if (insertSize <= 0 || std <= 0) return 0;
     std::cout << "About to disentangle loop paths.  Starting with " << nodeMap.size() << " nodes.\n";
+
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
         ContigNode* node = &it->second;
@@ -1139,10 +1145,16 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                         }      
                     }
                     if (operationDone){
+                        // std::cout << "970\n";
                         disentanglePair(contig, backNode, node, a, b, c, d);
                         disentangled++;
-                        collapseNode(node, kmer);
-                        it = nodeMap.erase(it); 
+                        backNode->clearNode();
+                        node->clearNode();
+                        // std::cout << "976\n";
+                        nodeMap.erase(back_kmer);
+                        // std::cout << "978\n";
+                        it = nodeMap.erase(it);
+                        // std::cout << "980\n";
                         operationDone = false;
                         break;
                     }
