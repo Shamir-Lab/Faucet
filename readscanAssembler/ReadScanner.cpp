@@ -228,29 +228,73 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   return result;
 }
 
-std::list<std::pair<string, int> > ReadScanner::getValidReads(string read){
-  std::list<std::pair<string,int> > result = {};
+std::list<string> ReadScanner::getValidReads(string read){
+  std::list<string> result = {};
   //Move to the first valid kmer
-  int start = 0, end = 0;
+  int start = 0, end = 0, last_start = 0, last_end = 0;
   int minLength = sizeKmer;//only use valid reads with at least this many valid kmers
+  std::list <kmer_type> mercy_kmers = {};
+  ReadKmer * lastKmer = nullptr;
+  bool last_was_junc; 
+  uint64_t hashA, hashB;
+
 
   for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd()>= 0; kmer.forward(), kmer.forward()){
     if(bloom->oldContains(kmer.getCanon())){
+      if (!lastKmer){
+        lastKmer = new ReadKmer(kmer);
+      }
+
+      if (mercy_kmers.size() > 0){ // indicates you came from non-solid to solid
+        if (testForJunction(kmer)){
+          // if region between last_start to 
+          // last_end was long enough
+          // insert to result list  
+          if(last_end >= last_start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
+            result.push_back(read.substr(last_start, last_end-last_start + sizeKmer-1));
+          }
+        }
+        else{
+          // insert all mercy kmers into BF
+          // start is last_start
+          for (auto kmer: mercy_kmers){
+            hashA = bloom->oldHash(kmer, 0);
+            hashB = bloom->oldHash(kmer, 1);
+            bloom->add(hashA, hashB);            
+          }
+          start = last_start;
+        }
+      }
+
+      // empty list of mercy kmers
+      mercy_kmers.clear();
       end++;
     } 
     else{
-      if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
-        result.push_back(std::make_pair(read.substr(start, end-start + sizeKmer-1) , start));
-        // std::cout << "Adding " << read.substr(start, end-start + sizeKmer) << " as valid string\n";
+      if (mercy_kmers.size()==0){ // just entered non-solid region
+        last_was_junc = testForJunction(*lastKmer);
+        // record previous boundaries
+        last_start = start; 
+        last_end = end;
+      }
+
+      if (last_was_junc){
+        if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
+          result.push_back(read.substr(start, end-start + sizeKmer-1) );
+        }
+      }
+      else{        
+        mercy_kmers.push_back(kmer.getCanon());
       }
       start = kmer.pos + 1;
       end = kmer.pos + 1;
     }
+    lastKmer = &kmer;
   }
    if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
-        result.push_back(std::make_pair(read.substr(start, end-start+sizeKmer-1) , start));
-        // std::cout << "Adding " << read.substr(start, end-start+sizeKmer) << " as valid string\n";
+        result.push_back(read.substr(start, end-start+sizeKmer-1) );
     }
+  delete lastKmer;
   return result;
 }
 
@@ -258,7 +302,7 @@ std::list<std::pair<string, int> > ReadScanner::getValidReads(string read){
 std::list<kmer_type> ReadScanner::scanInputRead(string read, bool no_cleaning){
   std::list<kmer_type> result = {};
   std::list<string> readList = getUnambiguousReads(read);
-  std::list<std::pair<string, int> > validReads;
+  std::list<string> validReads;
   string validRead;
   bool mercy = true;
   while(!readList.empty()){
@@ -268,24 +312,8 @@ std::list<kmer_type> ReadScanner::scanInputRead(string read, bool no_cleaning){
           unambiguousReads++;
           validReads = getValidReads(read);
 
-          // copy the list over to a vector, to make interation a bit simpler
-          // std::vector<std::pair<string, int > > vr_copy{ std::begin(validReads), std::end(validReads) };
-
-          // // retrieval of mercy kmers - when we have two adjacent solid regions
-          // // seperated by a low coverage region, and no junctions flanking the 
-          // // low region, we add the kmers of the low region to B2          
-          // if (mercy && validReads.size()>=2){
-          //   for (int i = 0; i < vr_copy.size() - 1; i++){
-          //     int start = vr_copy[i].second + vr_copy[i].first.length();
-          //     int end = vr_copy[i+1].second;
-          //     kmer_type frontKmer;
-          //     kmer_type backKmer;
-              
-          //   }
-          // }
-
           while(!validReads.empty()){
-            validRead = validReads.front().first;
+            validRead = validReads.front();
             validReads.pop_front();
             result.splice(result.end(),scan_forward(validRead, no_cleaning));
             readsNoErrors++;

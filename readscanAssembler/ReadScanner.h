@@ -78,8 +78,7 @@ public:
     bool find_next_junction(ReadKmer * kmer, int lastJuncPos);
 
     //Returns substrings of the read that are valid with BF and longer than sizeKmer
-    // std::list<string> getValidReads(string read);
-    std::list<std::pair<string, int> > getValidReads(string read);
+    std::list<string> getValidReads(string read);
 
     //Scans a read. 
     //Identifies all junctions on the read, and links adjacent junctions to each other.
