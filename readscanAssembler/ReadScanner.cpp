@@ -228,8 +228,8 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   return result;
 }
 
-std::list<string> ReadScanner::getValidReads(string read){
-  std::list<string> result = {};
+std::list<std::pair<string, int> > ReadScanner::getValidReads(string read){
+  std::list<std::pair<string,int> > result = {};
   //Move to the first valid kmer
   int start = 0, end = 0;
   int minLength = sizeKmer;//only use valid reads with at least this many valid kmers
@@ -240,7 +240,7 @@ std::list<string> ReadScanner::getValidReads(string read){
     } 
     else{
       if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
-        result.push_back(read.substr(start, end-start + sizeKmer-1));
+        result.push_back(std::make_pair(read.substr(start, end-start + sizeKmer-1) , start));
         // std::cout << "Adding " << read.substr(start, end-start + sizeKmer) << " as valid string\n";
       }
       start = kmer.pos + 1;
@@ -248,7 +248,7 @@ std::list<string> ReadScanner::getValidReads(string read){
     }
   }
    if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
-        result.push_back(read.substr(start, end-start+sizeKmer-1));
+        result.push_back(std::make_pair(read.substr(start, end-start+sizeKmer-1) , start));
         // std::cout << "Adding " << read.substr(start, end-start+sizeKmer) << " as valid string\n";
     }
   return result;
@@ -258,17 +258,34 @@ std::list<string> ReadScanner::getValidReads(string read){
 std::list<kmer_type> ReadScanner::scanInputRead(string read, bool no_cleaning){
   std::list<kmer_type> result = {};
   std::list<string> readList = getUnambiguousReads(read);
-  std::list<string> validReads;
+  std::list<std::pair<string, int> > validReads;
   string validRead;
+  bool mercy = true;
   while(!readList.empty()){
         read = readList.front();
         readList.pop_front();
         if(read.length() >= sizeKmer + 2*jchecker->j + 1){
           unambiguousReads++;
           validReads = getValidReads(read);
-          // std::cout << "there are " << validReads.size() << " valid reads\n";
+
+          // copy the list over to a vector, to make interation a bit simpler
+          // std::vector<std::pair<string, int > > vr_copy{ std::begin(validReads), std::end(validReads) };
+
+          // // retrieval of mercy kmers - when we have two adjacent solid regions
+          // // seperated by a low coverage region, and no junctions flanking the 
+          // // low region, we add the kmers of the low region to B2          
+          // if (mercy && validReads.size()>=2){
+          //   for (int i = 0; i < vr_copy.size() - 1; i++){
+          //     int start = vr_copy[i].second + vr_copy[i].first.length();
+          //     int end = vr_copy[i+1].second;
+          //     kmer_type frontKmer;
+          //     kmer_type backKmer;
+              
+          //   }
+          // }
+
           while(!validReads.empty()){
-            validRead = validReads.front();
+            validRead = validReads.front().first;
             validReads.pop_front();
             result.splice(result.end(),scan_forward(validRead, no_cleaning));
             readsNoErrors++;

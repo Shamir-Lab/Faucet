@@ -884,16 +884,25 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
-        
+        ContigNode* backNode = contig->otherEndNode(node);
+
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
             collapseNode(node, kmer);
             // std::cout << "870\n";
             it = nodeMap.erase(it); 
             // std::cout << "872\n";
         }
+        else if (isCollapsible(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
+        }
         else if(testAndCutIfDegenerate(node)){  // either one has or both ends have no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
             it = nodeMap.erase(it); 
+        }
+        else if (testAndCutIfDegenerate(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
         }
         else if (node->numPathsOut() > 2){
             ++it;
@@ -904,7 +913,6 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
             continue;   
         }
         else if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
-            ContigNode* backNode = contig->otherEndNode(node);
             int a,b,c,d;
             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
@@ -1040,16 +1048,25 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
-        
+        ContigNode* backNode = contig->otherEndNode(node);
+
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
             collapseNode(node, kmer);
             // std::cout << "870\n";
             it = nodeMap.erase(it); 
             // std::cout << "872\n";
         }
+        else if (isCollapsible(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
+        }
         else if(testAndCutIfDegenerate(node)){  // either one has or both ends have no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
             it = nodeMap.erase(it); 
+        }
+        else if (testAndCutIfDegenerate(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
         }
         else if (node->numPathsOut() > 2){
             ++it;
@@ -1060,7 +1077,6 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
             continue;   
         }
         else if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
-            ContigNode* backNode = contig->otherEndNode(node);
             int a,b,c,d;
             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
