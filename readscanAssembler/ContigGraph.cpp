@@ -905,6 +905,14 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
         }
         else if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
             ContigNode* backNode = contig->otherEndNode(node);
+            if (!backNode || isCollapsible(backNode)){ 
+                ++it;
+                continue;
+            }
+            if(testAndCutIfDegenerate(backNode)){  
+                ++it;
+                continue;
+            }
             int a,b,c,d;
             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
@@ -1061,6 +1069,14 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
         }
         else if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
             ContigNode* backNode = contig->otherEndNode(node);
+            if (!backNode || isCollapsible(backNode)){ 
+                ++it;
+                continue;
+            }
+            if(testAndCutIfDegenerate(backNode)){  
+                ++it;
+                continue;
+            }
             int a,b,c,d;
             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
