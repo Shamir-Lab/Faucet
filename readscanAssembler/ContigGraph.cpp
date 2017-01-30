@@ -239,8 +239,8 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
     if(breakPathsAndClean()){
         result = true;
     }
-    Contig* longContig = getLongestContig();
 
+    Contig* longContig = getLongestContig();
     std::pair<double, double> mean_std = longContig->getPairsMeanStd(short_pair_filter);
     double insertSize = mean_std.first; 
     double std = mean_std.second;
@@ -249,6 +249,7 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
         result = true;
     }
 
+    longContig = getLongestContig();
     mean_std = longContig->getPairsMeanStd(long_pair_filter);
     insertSize = mean_std.first;
     std = mean_std.second;
@@ -445,6 +446,10 @@ int ContigGraph::deleteIsolatedContigs(){
  
 
 bool ContigGraph::testAndCutIfDegenerate(ContigNode* node){
+    
+    if(node->numPathsOut() == 0 && !node->contigs[4]){
+        return true;
+    }
     if(node->numPathsOut() == 0){
         if(node->contigs[4]){
             cutPath(node, 4);
@@ -753,8 +758,15 @@ int ContigGraph::validateNoneCollapsible(){
     while(it!=nodeMap.end()){
         kmer_type kmer = it->first;
         ContigNode* node = &it->second;
-        if (isCollapsible(node)){ 
+        if(node->numPathsOut() == 0 && !node->contigs[4]){
+            it = nodeMap.erase(it); 
+            numDeleted++;
+        }
+        else if (isCollapsible(node)){ 
             collapseNode(node, kmer);
+            it = nodeMap.erase(it); 
+            numDeleted++;
+        }else if(testAndCutIfDegenerate(node)){
             it = nodeMap.erase(it); 
             numDeleted++;
         }
@@ -884,16 +896,19 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
-        
+        std::cout << "887\n";        
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
             collapseNode(node, kmer);
-            // std::cout << "870\n";
-            it = nodeMap.erase(it); 
+            std::cout << "890\n";
+            it = nodeMap.erase(it);
+            continue;
             // std::cout << "872\n";
         }
         else if(testAndCutIfDegenerate(node)){  // either one has or both ends have no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
+            std::cout << "896\n";
             it = nodeMap.erase(it); 
+            continue;
         }
         else if (node->numPathsOut() > 2){
             ++it;
@@ -906,10 +921,12 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
         else if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
             ContigNode* backNode = contig->otherEndNode(node);
             if (!backNode || isCollapsible(backNode)){ 
-                ++it;
+                std::cout << "910\n";
+        		++it;
                 continue;
             }
             if(testAndCutIfDegenerate(backNode)){  
+                std::cout << "915\n";                
                 ++it;
                 continue;
             }
@@ -917,6 +934,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
                 kmer_type back_kmer = backNode->getKmer();
+                std::cout << "923\n";
                 for (int orientation = 1; orientation < 3; orientation++){
                     if (orientation % 2 == 1) {a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];}
                     else {b = backNode->getIndicesOut()[0], a = backNode->getIndicesOut()[1];}
@@ -1011,7 +1029,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                         disentangled++;
                         backNode->clearNode();
                         node->clearNode();
-                        nodeMap.erase(back_kmer);
+                        // nodeMap.erase(back_kmer);
                         it = nodeMap.erase(it);
                         operationDone = false;
                         break;
@@ -1048,16 +1066,19 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
         ContigNode* node = &it->second;
         kmer_type kmer = it->first;
         Contig* contig = node->contigs[4];
-        
+        std::cout << "1055\n";
         if (isCollapsible(node)){ // left with one extension on each end - redundant node
             collapseNode(node, kmer);
-            // std::cout << "870\n";
-            it = nodeMap.erase(it); 
+            std::cout << "1058\n";
+            it = nodeMap.erase(it);
+            continue; 
             // std::cout << "872\n";
         }
         else if(testAndCutIfDegenerate(node)){  // either one has or both ends have no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
+            std::cout << "1064\n";
             it = nodeMap.erase(it); 
+            continue;
         }
         else if (node->numPathsOut() > 2){
             ++it;
@@ -1070,10 +1091,12 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
         else if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
             ContigNode* backNode = contig->otherEndNode(node);
             if (!backNode || isCollapsible(backNode)){ 
+                std::cout << "1078\n";
                 ++it;
                 continue;
             }
             if(testAndCutIfDegenerate(backNode)){  
+                std::cout << "1083\n";
                 ++it;
                 continue;
             }
@@ -1081,6 +1104,7 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
                 kmer_type back_kmer = backNode->getKmer();
+                std::cout << "1091\n";
                 for (int orientation = 1; orientation < 5; orientation++){
                     if (orientation % 2 == 1) {a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];}
                     else {b = backNode->getIndicesOut()[0], a = backNode->getIndicesOut()[1];}
@@ -1167,7 +1191,7 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                         backNode->clearNode();
                         node->clearNode();
                         // std::cout << "976\n";
-                        nodeMap.erase(back_kmer);
+                        // nodeMap.erase(back_kmer);
                         // std::cout << "978\n";
                         it = nodeMap.erase(it);
                         // std::cout << "980\n";
