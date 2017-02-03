@@ -240,11 +240,12 @@ std::list<string> ReadScanner::getValidReads(string read){
 
 
   for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd()>= 0; kmer.forward(), kmer.forward()){
-    if(bloom->oldContains(kmer.getCanon())){
-      if (!lastKmer){
-        lastKmer = new ReadKmer(kmer);
-      }
+    if (!lastKmer){
+      lastKmer = new ReadKmer(kmer);
+    }
 
+    if(bloom->oldContains(kmer.getCanon())){
+      
       if (mercy_kmers.size() > 0){ // indicates you came from non-solid to solid
         if (testForJunction(kmer)){
           // if region between last_start to 
@@ -294,7 +295,7 @@ std::list<string> ReadScanner::getValidReads(string read){
    if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
         result.push_back(read.substr(start, end-start+sizeKmer-1) );
     }
-  delete lastKmer;
+  if (lastKmer) delete lastKmer;
   return result;
 }
 
