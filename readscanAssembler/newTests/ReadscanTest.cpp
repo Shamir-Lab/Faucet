@@ -4,9 +4,9 @@
 #include "../ReadScanner.h"
 #include "../../utils/Bloom.h"
 #include "../../utils/JunctionMap.h"
-using std::map;
-#include "../../utils/sparsepp.h"
-using spp::sparse_hash_map;
+using std::unordered_map;
+// #include "../../utils/sparsepp.h"
+// using spp::std::unordered_map;
 
 
 class readScan : public ::testing::Test {
@@ -109,7 +109,7 @@ TEST_F(readScan, singleReadNoJunctions) {
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
     // Expected junctions & distances
     // TCCTA 
     // 0 0 15 0 1 
@@ -145,7 +145,7 @@ TEST_F(readScan, singleReadOneFakeJunction) {
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
     // Expected junctions & distances
     // CCTAT 
     // 0 0 0 15 3 
@@ -181,7 +181,7 @@ TEST_F(readScan, LongReadNoJunctions) {
     addKmers(bloom, kmers);
 
     scanner->scanInputRead(reads[0], true);
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
     // Expected junctions & distances
     // ATCGC 
     // 1 0 0 0 3 
@@ -235,7 +235,7 @@ TEST_F(readScan, buildFullMap) {
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
     scanner->scanInputRead(reads[2], true);
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
     // Expected junctions & distances
     // CTAGT 
@@ -275,7 +275,7 @@ TEST_F(readScan, smallDblJuncMap) {
 
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
     printJunctionMap(*scanner);
 }

@@ -400,32 +400,25 @@ void ContigGraph::deleteContig(Contig* contig){
 
 
 void ContigGraph::cutPath(ContigNode* node, int index){
-    // std::cout << "called cutPath\n";
     if(!node->contigs[index]){
         printf("ERROR: tried to cut nonexistant path.");
+        return;
     }
-    //printf("Did error check \n");
     Contig* contig = node->contigs[index];
-    //printf("Getting side\n");
     int side = contig->getSide(node, index);
     int otherSide = 3 - side;
-    //printf("A\n");
     if(contig->node1_p == contig->node2_p){ //to handle inverted repeats and loops
-       // printf("A1\n");
-        // std::cout << "cut path for loop/repeat\n";
+        std::cout << "410\n";
         int otherIndex = contig->getIndex(otherSide);
         contig->setSide(side, nullptr); //set to point to null instead of the node
         contig->setSide(otherSide, nullptr);
         node->breakPath(index);
         node->breakPath(otherIndex);
     }
-    else{
-        // std::cout << "cut path for single extension\n";
-        //printf("A2\n");
+    else{    
         contig->setSide(side, nullptr);
         node->breakPath(index);
     }
-    //printf("To break path.\n");
 }
 
 
@@ -1027,9 +1020,12 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     if (operationDone){
                         disentanglePair(contig, backNode, node, a, b, c, d);
                         disentangled++;
-                        backNode->clearNode();
-                        node->clearNode();
-                        // nodeMap.erase(back_kmer);
+                        for (int i = 0; i< 4; i++){
+                            cutPath(backNode, i);
+                            cutPath(node, i);
+                        }
+                        // backNode->clearNode();
+                        // node->clearNode();
                         it = nodeMap.erase(it);
                         operationDone = false;
                         break;
@@ -1188,13 +1184,13 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                         // std::cout << "970\n";
                         disentanglePair(contig, backNode, node, a, b, c, d);
                         disentangled++;
-                        backNode->clearNode();
-                        node->clearNode();
-                        // std::cout << "976\n";
-                        // nodeMap.erase(back_kmer);
-                        // std::cout << "978\n";
+                        for (int i = 0; i< 4; i++){
+                            cutPath(backNode, i);
+                            cutPath(node, i);
+                        }
+                        // backNode->clearNode();
+                        // node->clearNode();
                         it = nodeMap.erase(it);
-                        // std::cout << "980\n";
                         operationDone = false;
                         break;
                     }
@@ -1241,17 +1237,6 @@ bool ContigGraph::areEquivalentContigCoverages(ContigJuncList A, ContigJuncList 
     double c_t = get_critical_val(df, 0.05);
     double t_lo = (diff - thresh_lo) / two_samp_var;
     double t_hi = (diff - thresh_hi) / two_samp_var; 
-    // std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
-    // if (true){//sa > 10 || sb > 10){
-    //     // std::cout << "contig a junc results\n";
-    //     A.printJuncValues();
-    //     // contig_contig_aJuncs.printJuncResults(A);
-    //     // std::cout << "contig b junc results\n";
-    //     B.printJuncValues();
-    //     // contig_contig_bJuncs.printJuncResults(B);
-    // }
-    // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << " two_samp_var " << two_samp_var << "\n";
-    // std::cout << "df " << df << " t_lo " << t_lo << " t_hi " << t_hi << " c_t " << c_t << "\n"; 
     if (t_lo >= c_t && t_hi <= -c_t){
         // std::cout << "returned equivalent\n";
         return true;
@@ -1276,17 +1261,7 @@ bool ContigGraph::areDifferentialContigCoverages(ContigJuncList A, ContigJuncLis
     double two_samp_var = pow(pow(sa,2)/na + pow(sb,2)/nb , 0.5);
     double c_t = get_critical_val(df, 0.025);
     double T = std::abs((ma - mb)/two_samp_var);
-    // std::cout << "ma " << ma << " mb " << mb << " sa " << sa << " sb " << sb << " na " << na << " nb " << nb << "\n";
-    // if (true){ //sa > 10 || sb > 10){
-    //     // std::cout << "contig a junc results\n";
-    //     A.printJuncValues();
-    //     // contig_contig_aJuncs.printJuncResults(A);
-    //     // std::cout << "contig b junc results\n";
-    //     B.printJuncValues();
-    //     // contig_contig_bJuncs.printJuncResults(B);
-    // }
-    // std::cout << "diff " << diff << " thresh_hi " << thresh_hi << " thresh_lo " << thresh_lo << "\n";
-    // std::cout << "Diff test: two_samp_var " << two_samp_var << " df " << df << " T " << T << " c_t " << c_t << "\n"; 
+    
     if (T > c_t){
         // std::cout << "returned differential\n";
         return true;
@@ -1396,9 +1371,10 @@ int ContigGraph::collapseDummyNodes(){
 
 void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
     Contig* backContig = node->contigs[4];
-    Contig* frontContig;
+    Contig* frontContig = nullptr;
     if(!backContig){
-        printf("WTF no back\n");
+        // printf("WTF no back\n");
+        std::cout << "1402\n";
         return;
     }
     int fronti = 0;
@@ -1409,13 +1385,15 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
         }
     }
     if(!frontContig){
-        printf("WTF no front\n");
+        // printf("WTF no front\n");
+        std::cout << "1414\n";
         return;
     }
 
     if(frontContig == backContig){ //circular sequence with a redundant node
-        frontContig->node1_p=nullptr;
-        frontContig->node2_p=nullptr;
+        std::cout << "1419\n";
+        // frontContig->node1_p=nullptr;
+        // frontContig->node2_p=nullptr;
         addIsolatedContig(*frontContig);
         delete backContig;
     }
@@ -1427,12 +1405,13 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
         
         Contig* newContig = backContig->concatenate(frontContig, backSide, frontSide);
         if(backNode){
-               backNode->contigs[newContig->ind1] = newContig;
+            backNode->contigs[newContig->ind1] = newContig;
         }
         if(frontNode){
             frontNode->contigs[newContig->ind2] = newContig;
         }
         if(!backNode && !frontNode){
+            std::cout << "1439\n";
             addIsolatedContig(*newContig);
             delete newContig;
         } 

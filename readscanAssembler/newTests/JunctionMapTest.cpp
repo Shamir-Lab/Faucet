@@ -6,8 +6,8 @@
 #include "../../utils/JunctionMap.h"
 #include "../ContigGraph.h"
 using std::map;
-#include "../../utils/sparsepp.h"
-using spp::sparse_hash_map;
+// #include "../../utils/sparsepp.h"
+// using spp::std::unordered_map;
 
 
 class juncMapData : public ::testing::Test {
@@ -131,7 +131,7 @@ TEST_F(juncMapData, buildBranchingPaths) {
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
     scanner->scanInputRead(reads[2], true);
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
     // Expected junctions & distances before changes
     // CTAGT 
@@ -171,7 +171,7 @@ TEST_F(juncMapData, smallDoubleJuncMap) {
 
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
     printJunctionMap(*scanner);
 
@@ -207,7 +207,7 @@ TEST_F(juncMapData, endJuncMap) {
     scanner->scanInputRead(reads[0], true);
     scanner->scanInputRead(reads[1], true);
 
-    sparse_hash_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
+    std::unordered_map<kmer_type, Junction> map = scanner->getJunctionMap()->junctionMap;
 
     printJunctionMap(*scanner);
 
