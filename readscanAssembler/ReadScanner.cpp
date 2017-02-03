@@ -55,6 +55,28 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
   return false;  
 }
 
+//Check alternate extensions, and if the total valid extension count is 0, return true. 
+//Should only be called on a kmer at least j away from the end of the read
+bool ReadScanner::hasNoAltExtension(ReadKmer readKmer){
+  kmer_type real_ext = readKmer.getRealExtension(); // extension on read - may not be in BF
+
+  for(int nt=0; nt<4; nt++) {//for each extension
+    kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
+    if(real_ext != test_ext){//if the alternate and real extensions are different
+      if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
+      { 
+        NbJCheckKmer++;
+        if(jchecker->jcheck(test_ext)){//if the branch jchecks
+            return false;
+        }
+      }
+    }
+  }
+
+  return true;  
+}
+
+
 //starts at the given ReadKmer, and scans till it either finds an existing junction, finds a new junction, or hits the end of the read.
 //Does not modify any junctions- simply updates ReadKmer to be at a junction or off the end of the read
 //Returns true if junction was found
@@ -247,7 +269,8 @@ std::list<string> ReadScanner::getValidReads(string read){
     if(bloom->oldContains(kmer.getCanon())){
       
       if (mercy_kmers.size() > 0){ // indicates you came from non-solid to solid
-        if (testForJunction(kmer)){ 
+        kmer.direction = !kmer.direction; // flip to look at last base instead of next
+        if (!hasNoAltExtension(kmer)){ 
           // if region between last_start to 
           // last_end was long enough
           // insert to result list  
@@ -258,22 +281,22 @@ std::list<string> ReadScanner::getValidReads(string read){
         else{
           // insert all mercy kmers into BF
           // start is last_start
-          for (auto kmer: mercy_kmers){
-            hashA = bloom->oldHash(kmer, 0);
-            hashB = bloom->oldHash(kmer, 1);
+          for (auto mkmer: mercy_kmers){
+            hashA = bloom->oldHash(mkmer, 0);
+            hashB = bloom->oldHash(mkmer, 1);
             bloom->add(hashA, hashB);            
           }
           start = last_start;
         }
       }
-
+      kmer.direction = !kmer.direction; // revert to looking forward
       // empty list of mercy kmers
       mercy_kmers.clear();
       end++;
     } 
     else{
       if (mercy_kmers.size()==0){ // just entered non-solid region
-        last_was_junc = testForJunction(*lastKmer);
+        last_was_junc = !hasNoAltExtension(*lastKmer);
         // record previous boundaries
         last_start = start; 
         last_end = end;
@@ -295,7 +318,6 @@ std::list<string> ReadScanner::getValidReads(string read){
    if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
         result.push_back(read.substr(start, end-start+sizeKmer-1) );
     }
-  // if (lastKmer) delete lastKmer;
   return result;
 }
 
