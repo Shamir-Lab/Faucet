@@ -247,7 +247,7 @@ std::list<string> ReadScanner::getValidReads(string read){
     if(bloom->oldContains(kmer.getCanon())){
       
       if (mercy_kmers.size() > 0){ // indicates you came from non-solid to solid
-        if (testForJunction(kmer)){
+        if (testForJunction(kmer)){ 
           // if region between last_start to 
           // last_end was long enough
           // insert to result list  
@@ -295,7 +295,7 @@ std::list<string> ReadScanner::getValidReads(string read){
    if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
         result.push_back(read.substr(start, end-start+sizeKmer-1) );
     }
-  if (lastKmer) delete lastKmer;
+  // if (lastKmer) delete lastKmer;
   return result;
 }
 
