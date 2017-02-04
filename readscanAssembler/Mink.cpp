@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
     }
 
     Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
-    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
+    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, 0.01);
     if(just_load) return 0;
     
     //create JChecker
@@ -289,24 +289,15 @@ int main(int argc, char *argv[])
     contigGraph->setReadLength(read_length);
     delete(bloom);
 
-    contigGraph->checkGraph();
-
-    contigGraph->printGraph(file_prefix + ".raw_graph.fastg");
-    contigGraph->printContigs(file_prefix + ".raw_contigs.fasta");
+    // contigGraph->checkGraph();
+    // contigGraph->printGraph(file_prefix + ".raw_graph.fastg");
+    // contigGraph->printContigs(file_prefix + ".raw_contigs.fasta");
 
     if (no_cleaning){ return 0; }
-    // Contig* longContig = contigGraph->getLongestContig();
-    // int insertSize = longContig->getPairsMode();
     while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter));
 
-    // printf("Short pair filter info:\n");
-    // longContig->printPairStatistics(short_pair_filter);
-    // printf("Long pair filter info:\n");
-    // longContig->printPairStatistics(long_pair_filter);
-
     contigGraph->checkGraph();
-
-    contigGraph->printContigs(file_prefix + ".cleaned_contigs.fasta");
+    // contigGraph->printContigs(file_prefix + ".cleaned_contigs.fasta");
     contigGraph->printGraph(file_prefix + ".cleaned_graph.fastg");
 
     printf("Program reached end. \n");
