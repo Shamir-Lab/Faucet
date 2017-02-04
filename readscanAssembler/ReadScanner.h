@@ -72,10 +72,6 @@ public:
     //the real extension seen on the read represents a valid, jcheckable option, and not a tip shorter than j.
     bool testForJunction(ReadKmer kmer);
 
-    // checks that a given readKmer has no extensions other than what's seen on a read
-    bool hasNoAltExtension(ReadKmer readKmer);
-
-
     //Starting from the given kmer, scans forward until a junction is found or the end of the read is hit.
     //Returns true if a junction was found.  The supplied ReadKmer is also adjusted to the position of the new junction,\
     //or to the end of the read.
