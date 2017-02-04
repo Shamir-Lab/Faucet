@@ -46,7 +46,7 @@ private:
 
     uint64_t NbCandKmer, NbRawCandKmer, NbJCheckKmer, NbNoJuncs, 
         NbSkipped, NbProcessed, readsProcessed, NbSolidKmer,readsNoErrors,
-         NbJuncPairs, unambiguousReads;
+         NbJuncPairs, unambiguousReads, mercyKmers;
 
     JChecker* jchecker;
     JunctionMap* junctionMap;

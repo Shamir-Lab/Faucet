@@ -282,7 +282,8 @@ std::list<string> ReadScanner::getValidReads(string read){
           for (auto mkmer: mercy_kmers){
             hashA = bloom->oldHash(mkmer, 0);
             hashB = bloom->oldHash(mkmer, 1);
-            bloom->add(hashA, hashB);            
+            bloom->add(hashA, hashB);
+            mercyKmers++;
           }
           start = last_start;
         } else if (!hasNoAltExtension(kmer) && !last_was_junc) {
@@ -352,7 +353,7 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
 {
   NbCandKmer=0, NbRawCandKmer = 0, NbJCheckKmer = 0, NbNoJuncs = 0, 
   NbSkipped = 0, NbProcessed = 0, readsProcessed = 0, NbSolidKmer =0, 
-  readsNoErrors = 0,  NbJuncPairs = 0, unambiguousReads = 0;
+  readsNoErrors = 0,  NbJuncPairs = 0, unambiguousReads = 0, mercyKmers = 0;
 
   time_t start;
   time_t stop;
@@ -417,6 +418,7 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
 
   solidReads.close();
   time(&stop);
+  printf("Mercy kmers: %lli\n", mercyKmers);
   printf("Reads processed: %lli\n", readsProcessed);
   printf("Unambiguous reads: %lli\n", unambiguousReads);
   printf("Time in seconds for read scan: %f \n", difftime(stop,start));
