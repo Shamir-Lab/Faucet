@@ -898,11 +898,19 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
             continue;
             // std::cout << "872\n";
         }
+        else if (isCollapsible(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
+        }
         else if(testAndCutIfDegenerate(node)){  // either one has or both ends have no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
             std::cout << "896\n";
             it = nodeMap.erase(it); 
             continue;
+        }
+        else if (testAndCutIfDegenerate(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
         }
         else if (node->numPathsOut() > 2){
             ++it;
@@ -1073,11 +1081,19 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
             continue; 
             // std::cout << "872\n";
         }
+        else if (isCollapsible(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
+        }
         else if(testAndCutIfDegenerate(node)){  // either one has or both ends have no extension - expired 'degenerate' node
             // calls cutpath on opposite end -- 4 when no front, all fronts when no back
             std::cout << "1064\n";
             it = nodeMap.erase(it); 
             continue;
+        }
+        else if (testAndCutIfDegenerate(backNode)){ // dont have iterator for backnode, and kmer may not exist
+            ++it;
+            continue;   
         }
         else if (node->numPathsOut() > 2){
             ++it;
