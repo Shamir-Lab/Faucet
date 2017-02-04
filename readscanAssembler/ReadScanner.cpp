@@ -288,8 +288,9 @@ std::list<string> ReadScanner::getValidReads(string read){
           }
           start = last_start;
         }
+        kmer.direction = !kmer.direction; // revert to looking forward
       }
-      kmer.direction = !kmer.direction; // revert to looking forward
+      // RED FLAG: this isn't in the same block as the other swap direction
       // empty list of mercy kmers
       mercy_kmers.clear();
       end++;
