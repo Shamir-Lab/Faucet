@@ -361,7 +361,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
 
 bool ContigGraph::isTip(ContigNode* node, int index){
     Contig* contig = node->contigs[index];
-    if(contig->getSeq().length() < 2*sizeKmer && !contig->otherEndNode(node)){//} && isLowCovContig(contig)){
+    if(contig->getSeq().length() < read_length && !contig->otherEndNode(node)){//} && isLowCovContig(contig)){
         return true;
     }
     return false;
@@ -709,10 +709,9 @@ int ContigGraph::removeChimericExtensions(int insertSize){
 
             if (!far_node || far_node == node){
                 ++it;
-            }else if ( ( 
-                        (Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && contig->getSeq().length() >= insertSize && P->getSeq().length() < read_length) || 
-                        Q->getAvgCoverage()/P->getAvgCoverage() >= 10) && 
-                        (P->getSeq().length() < read_length && far_node->indexOf(P)!=4 && far_node->numPathsOut()>1) 
+            }else if ( P->getSeq().length() < 150 && 
+                        Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && 
+                        far_node->indexOf(P)!=4 && far_node->numPathsOut()>1
                     ){         
 
                 kmer_type far_kmer = far_node->getKmer();     
@@ -972,7 +971,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
                        
                         if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
-                            (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 1000 && len_c >= 1000)){
+                            (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 500 && len_c >= 500)){
 
                             // std::cout << "desired split found\n";
                             if(allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodeb,Nodec,Noded}) ||
