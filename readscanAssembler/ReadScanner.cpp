@@ -250,7 +250,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   return result;
 }
 
-void addValidReadIfLongEnough(std::list<string> result, string read, int startPos, int endPos, int minLength) {
+void addValidReadIfLongEnough(std::list<string> & result, string read, int startPos, int endPos, int minLength) {
   if (endPos >= startPos + minLength) {
     result.push_back(read.substr(startPos, endPos - startPos + sizeKmer - 1));
   }
