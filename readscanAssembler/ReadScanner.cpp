@@ -250,6 +250,12 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   return result;
 }
 
+void addValidReadIfLongEnough(std::list<string> result, string read, int startPos, int endPos, int minLength) {
+  if (endPos >= startPos + minLength) {
+    result.push_back(read.substr(startPos, endPos - startPos + sizeKmer - 1));
+  }
+}
+
 std::list<string> ReadScanner::getValidReads(string read){
   std::list<string> result = {};
   //Move to the first valid kmer
@@ -270,15 +276,7 @@ std::list<string> ReadScanner::getValidReads(string read){
       
       if (mercy_kmers.size() > 0){ // indicates you came from non-solid to solid
         kmer.direction = !kmer.direction; // flip to look at last base instead of next
-        if (!hasNoAltExtension(kmer)){ 
-          // if region between last_start to 
-          // last_end was long enough
-          // insert to result list  
-          if(last_end >= last_start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
-            result.push_back(read.substr(last_start, last_end-last_start + sizeKmer-1));
-          }
-        }
-        else{
+        if (hasNoAltExtension(kmer) && !last_was_junc) {
           // insert all mercy kmers into BF
           // start is last_start
           for (auto mkmer: mercy_kmers){
@@ -287,38 +285,40 @@ std::list<string> ReadScanner::getValidReads(string read){
             bloom->add(hashA, hashB);            
           }
           start = last_start;
+        } else if (!hasNoAltExtension(kmer) && !last_was_junc) {
+          addValidReadIfLongEnough(result, read, last_start, last_end, minLength);
         }
         kmer.direction = !kmer.direction; // revert to looking forward
+        mercy_kmers.clear();
       }
-      // RED FLAG: this isn't in the same block as the other swap direction
       // empty list of mercy kmers
-      mercy_kmers.clear();
       end++;
     } 
     else{
-      if (mercy_kmers.size()==0){ // just entered non-solid region
+      if (mercy_kmers.size()==0 && end > 0){ // just entered non-solid region, from non-zero previous solid region
         last_was_junc = !hasNoAltExtension(*lastKmer);
+        if (last_was_junc){
+          addValidReadIfLongEnough(result, read, start, end, minLength);
+        }
         // record previous boundaries
         last_start = start; 
         last_end = end;
       }
-
-      if (last_was_junc){
-        if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
-          result.push_back(read.substr(start, end-start + sizeKmer-1) );
-        }
-      }
-      else{        
-        mercy_kmers.push_back(kmer.getCanon());
-      }
+      mercy_kmers.push_back(kmer.getCanon());
       start = kmer.pos + 1;
       end = kmer.pos + 1;
     }
     lastKmer = &kmer;
   }
-   if(end >= start + minLength){ //buffer to ensure no reads exactly kmer size- might be weird edge cases there
-        result.push_back(read.substr(start, end-start+sizeKmer-1) );
+
+  // Handle last segment when end is reached
+  if (mercy_kmers.size() > 0) {
+    if (!last_was_junc) {
+      addValidReadIfLongEnough(result, read, last_start, last_end, minLength);
     }
+  } else {
+      addValidReadIfLongEnough(result, read, start, end, minLength);
+  }
   return result;
 }
 
