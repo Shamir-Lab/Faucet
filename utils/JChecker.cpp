@@ -5,8 +5,6 @@
 //j = 0 always returns true
 //j > 0 checks extensions up to j deep from kmer, and returns true if there is a sequence of j extensions
 //which returns all positive in the bloom filter
-
-/* Commenting this out because new BF doesn't implement rolling hash
 bool JChecker::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
   if(j == 0){
     return true;
@@ -47,8 +45,7 @@ bool JChecker::jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1){
     nextHashes = tempor;
   }
 }
- */
-
+    
 //Normal version of jchecking, without rolling hash.  
 //Old hash! use only for old hash!  For kpomerscanner
 bool JChecker::jcheck(kmer_type kmer){
@@ -64,7 +61,7 @@ bool JChecker::jcheck(kmer_type kmer){
       this_kmer = lastKmers[k];
       for(int nt = 0; nt < 4; nt++){ //for every possible extension
         nextKmer = next_kmer(this_kmer, nt, FORWARD);
-        if(bloom->contains(get_canon(nextKmer))){//add any positive extensions to the next level
+        if(bloom->oldContains(get_canon(nextKmer))){//add any positive extensions to the next level
           nextKmers[nextCount] = nextKmer;
           nextCount++;
         }
@@ -82,7 +79,7 @@ bool JChecker::jcheck(kmer_type kmer){
   return true;
 }
 
-JChecker::JChecker(int jVal, bloom_filter* bloo){
+JChecker::JChecker(int jVal, Bloom* bloo){
     j = jVal;
     bloom = bloo;
 

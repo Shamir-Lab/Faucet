@@ -6,7 +6,7 @@
 using namespace std;
 
 
-ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, bloom_filter* bloo1, Bloom* short_filter, Bloom* long_filter, JChecker* checker, int maxDist){
+ReadScanner::ReadScanner(JunctionMap* juncMap, string readFile, Bloom* bloo1, Bloom* short_filter, Bloom* long_filter, JChecker* checker, int maxDist){
   reads_file = readFile;
   bloom = bloo1;
   short_pair_filter = short_filter;
@@ -42,7 +42,7 @@ bool ReadScanner::testForJunction(ReadKmer readKmer){
   for(int nt=0; nt<4; nt++) {//for each extension
     kmer_type test_ext = readKmer.getExtension(nt); //get possible extension
     if(real_ext != test_ext){//if the alternate and real extensions are different- note that I took out the other two distinction checks
-      if(bloom->contains(get_canon(test_ext)))//if the branch checks out initially
+      if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
       { 
         NbJCheckKmer++;
         if(jchecker->jcheck(test_ext)){//if the branch jchecks
@@ -235,7 +235,7 @@ std::list<string> ReadScanner::getValidReads(string read){
   int minLength = sizeKmer;//only use valid reads with at least this many valid kmers
 
   for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd()>= 0; kmer.forward(), kmer.forward()){
-    if(bloom->contains(kmer.getCanon())){
+    if(bloom->oldContains(kmer.getCanon())){
       end++;
     } 
     else{
@@ -295,7 +295,7 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
   string read;
 
   // write all positive extensions in disk file
-  printf("Weight before read scan: %f \n", bloom->occupancy());
+  printf("Weight before read scan: %f \n", bloom->weight());
   int lastSum = 0, thisSum = 0;
   bool firstEnd = true;
   std::list<kmer_type> backJuncs1;

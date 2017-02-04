@@ -476,7 +476,7 @@ int JunctionMap::getValidJExtension(DoubleKmer kmer){
     int answer = -1;
     for(int i = 0; i < 4; i++){
         nextKmer = kmer.getExtension(i, FORWARD);
-        if(bloom->contains(get_canon(nextKmer))){
+        if(bloom->oldContains(get_canon(nextKmer))){
             if(jchecker->jcheck(nextKmer)){
                 if(answer != -1){
                     //Found multiple valid extensions!
@@ -607,7 +607,7 @@ bool JunctionMap::isJunction(kmer_type kmer){
     return junctionMap.find(kmer) != junctionMap.end();
 }
 
-JunctionMap::JunctionMap(bloom_filter* bloo1, JChecker* jcheck, int read_length){
+JunctionMap::JunctionMap(Bloom* bloo1, JChecker* jcheck, int read_length){
   junctionMap = {};
   bloom = bloo1;
   jchecker = jcheck;

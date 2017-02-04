@@ -177,74 +177,14 @@ int handle_arguments(int argc, char *argv[]){
     printf("Size of long: %d\n", sizeof(long));
 }
  
-void load_two_filters(bloom_filter* bloo1, bloom_filter* bloo2, string reads_filename, bool fastq){
-    ifstream solidReads;
-    solidReads.open(reads_filename);
-
-    int readsProcessed = 0;
-
-    string read;
-    time_t start, stop;
-    time(&start);
-    printf("Weights before load: %f, %f \n", bloo1->occupancy(), bloo2->occupancy());
-    uint64_t hashA, hashB;
-    kmer_type canonKmer;
-    uint64_t unambiguousReads = 0;
-    while (getline(solidReads, read))
-    {
-        getline(solidReads, read);//since it's a fasta or fastq we skip the first of every pair of lines
-        std::list<string> readList = getUnambiguousReads(read);
-        while(!readList.empty()){
-            read = readList.front();
-            readList.pop_front();
-            unambiguousReads++;
-            for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
-                canonKmer = kmer.getCanon();
-                /* Less optimized new implementation */
-        
-                if (bloo1->contains(canonKmer)) {
-                    bloo2->insert(canonKmer);
-                } else {
-                    bloo1->insert(canonKmer);
-                }
-                /*
-                // OLD IMPLEMENTATION: takes advantage of reused hashes
-                hashA = bloo1->oldHash(canonKmer, 0);
-                hashB = bloo1->oldHash(canonKmer, 1);
-                if(bloo1->contains(hashA, hashB)){
-                    bloo2->add(hashA, hashB);
-                }
-                else{
-                    bloo1->add(hashA, hashB);
-                }
-                */
-            }    
-        }
-        readsProcessed++;
-        if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);
-        
-        if(fastq) getline(solidReads, read),getline(solidReads, read); //ignore two more lines if its fastq
-    }
-
-    solidReads.close();
-    printf("\n");
-    printf("Weights after load: %f, %f \n", bloo1->occupancy(), bloo2->occupancy());
-    printf("Reads processed: %d\n", readsProcessed);
-    printf("Unambiguous reads: %lli\n", unambiguousReads);
-    time(&stop);
-    printf("Time to load: %f \n", difftime(stop,start));
-}
-
 //create and load bloom filter
-bloom_filter* getBloomFilterFromFile(){
-    bloom_filter* bloom;
+Bloom* getBloomFilterFromFile(){
+    Bloom* bloom;
         if(two_hash){
-            bloom_parameters bloom_params(estimated_kmers, fpRate, false);
-            bloom = new bloom_filter(bloom_params);
+            bloom = bloom->create_bloom_filter_2_hash(estimated_kmers, fpRate);
         }
         else{
-            bloom_parameters bloom_params(estimated_kmers, fpRate);
-            bloom = new bloom_filter(bloom_params);
+            bloom = bloom->create_bloom_filter_optimal(estimated_kmers, fpRate);
         }
         bloom->load(&bloom_input_file[0]);
         return bloom;
@@ -256,28 +196,44 @@ double my_func(double p1) {
     // return (log(fpRate)* (estimated_kmers - (1-p1)*singletons) /estimated_kmers) - log(p1);
 }
      
-bloom_filter* getBloomFilterFromReads(){ //handles loading from reads
-    bloom_filter* bloo1;
-    bloom_filter* bloo2;
 
-    bloom_parameters bloom_params;
+Bloom* getBloomFilterFromReads(){ //handles loading from reads
+    Bloom* bloo1;
+    Bloom* bloo2;
 
     std::function<double (double)> f = my_func;
     double p1 = brents_fun(f, fpRate, 0.50, 0.0001, 1000);
     cout << "p2 is " << fpRate << " p1 estimated as " << p1 << endl;
     
-    bloom_params = bloom_parameters(estimated_kmers, p1);
-    bloo1 = new bloom_filter(bloom_params);
-    bloo2 = new bloom_filter(bloom_params);
-
+    // if(two_hash){
+    //     bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+    //     bloo2 = bloo2->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+    // }
+    // else{
+    bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, p1);
+    bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, p1);
+    // }
     load_two_filters(bloo1, bloo2, read_load_file, fastq);
     delete(bloo1);
     return bloo2;
 }
 
 
+Bloom* getBloomFilterFromReadsSingle(){ //handles loading from reads
+    Bloom* bloo1;
+
+    if(two_hash){
+        bloo1 = bloo1->create_bloom_filter_2_hash(estimated_kmers, fpRate);
+    }
+    else{
+        bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, fpRate);
+    }
+    load_single_filter(bloo1, read_load_file, fastq);
+    return bloo1;
+}
+
 //Builds the junction map from either a file or the readscan
-void buildJunctionMapFromReads(JunctionMap* junctionMap, bloom_filter* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, bool no_cleaning){
+void buildJunctionMapFromReads(JunctionMap* junctionMap, Bloom* bloom, Bloom* short_pair_filter, Bloom* long_pair_filter, JChecker* jchecker, bool no_cleaning){
     ReadScanner* scanner = new ReadScanner(junctionMap, read_scan_file, bloom, short_pair_filter, long_pair_filter, jchecker, maxSpacerDist);
      
     //scan reads, print summary
@@ -293,7 +249,7 @@ int main(int argc, char *argv[])
     }
 
     //Build bloom filter from reads or file, and dump to file
-    bloom_filter* bloom;
+    Bloom* bloom;
     if(from_bloom){
         bloom = getBloomFilterFromFile();
     }

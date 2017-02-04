@@ -241,6 +241,95 @@ Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate
 
     return bloo1;
 }
+
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fastq){
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+
+    int readsProcessed = 0;
+
+    string read;
+    time_t start, stop;
+    time(&start);
+    printf("Weights before load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    uint64_t hashA, hashB;
+    kmer_type canonKmer;
+    uint64_t unambiguousReads = 0;
+    while (getline(solidReads, read))
+    {
+        getline(solidReads, read);//since it's a fasta or fastq we skip the first of every pair of lines
+        std::list<string> readList = getUnambiguousReads(read);
+        while(!readList.empty()){
+            read = readList.front();
+            readList.pop_front();
+            unambiguousReads++;
+            for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
+                canonKmer = kmer.getCanon();
+                hashA = bloo1->oldHash(canonKmer, 0);
+                hashB = bloo1->oldHash(canonKmer, 1);
+                if(bloo1->contains(hashA, hashB)){
+                    bloo2->add(hashA, hashB);
+                }
+                else{
+                    bloo1->add(hashA, hashB);
+                }
+            }    
+        }
+        readsProcessed++;
+        if ((readsProcessed%100000)==0) fprintf (stdout,"reads consumed: %c %lld\n",13,(long long)readsProcessed);
+        
+        if(fastq) getline(solidReads, read),getline(solidReads, read); //ignore two more lines if its fastq
+    }
+
+    solidReads.close();
+    printf("\n");
+    printf("Weights after load: %f, %f \n", bloo1->weight(), bloo2->weight());
+    printf("Reads processed: %d\n", readsProcessed);
+    printf("Unambiguous reads: %lli\n", unambiguousReads);
+    time(&stop);
+    printf("Time to load: %f \n", difftime(stop,start));
+}
+
+void load_single_filter(Bloom* bloo1, string reads_filename, bool fastq){
+    ifstream solidReads;
+    solidReads.open(reads_filename);
+    int readsProcessed = 0;
+    string read;
+    time_t start, stop;
+    time(&start);
+    printf("Weight before load: %f\n", bloo1->weight());
+    uint64_t hashA, hashB;
+    kmer_type canonKmer;
+    uint64_t unambiguousReads = 0;
+
+    while (getline(solidReads, read))
+    {
+        getline(solidReads, read);//since it's a fasta or fastq we skip the first of every pair of lines
+        std::list<string> readList = getUnambiguousReads(read);
+        while(!readList.empty()){
+            read = readList.front();
+            readList.pop_front();
+            unambiguousReads++;
+            for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
+                canonKmer = kmer.getCanon();
+                hashA = bloo1->oldHash(canonKmer, 0);
+                hashB = bloo1->oldHash(canonKmer, 1);                                
+                bloo1->add(hashA, hashB);                
+            }    
+        }
+        readsProcessed++;
+        if ((readsProcessed%10000)==0) fprintf (stderr,"%c %lld",13,(long long)readsProcessed);        
+        if(fastq) getline(solidReads, read),getline(solidReads, read); //ignore two more lines if its fastq
+    }
+    solidReads.close();
+    printf("\n");
+    printf("Weight after load: %f\n", bloo1->weight());
+    printf("Reads processed: %d\n", readsProcessed);
+    printf("Unambiguous reads: %lli\n", unambiguousReads);
+    time(&stop);
+    printf("Time to load: %f \n", difftime(stop,start));
+}
+
 void Bloom::load_from_reads(const char* reads_filename){
     ifstream solidReads;
     solidReads.open(reads_filename);

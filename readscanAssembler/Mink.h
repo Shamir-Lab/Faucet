@@ -1,8 +1,6 @@
 #ifndef MINK_MAIN
 #define MINK_MAIN
 
-
-#include "../utils/BloomFilter.hpp"
 #include "../utils/Bloom.h"
 #include "../utils/Kmer.h"
 #include "../utils/Junction.h"

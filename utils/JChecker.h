@@ -1,14 +1,13 @@
 #ifndef JCHECKER 
 #define JCHECKER
 
-#include "BloomFilter.hpp"
 #include "Bloom.h"
 #include "Kmer.h"
 
 class JChecker 
 {
     private:
-        bloom_filter* bloom;
+        Bloom* bloom;
 
         //for incremental hashing
         uint64_t ** lastHashes;
@@ -25,6 +24,6 @@ class JChecker
         int j; //value of j!
         bool jcheck(char* kmerSeq, uint64_t nextH0, uint64_t nextH1);//incremental version
         bool jcheck(kmer_type kmer);//normal version
-        JChecker(int jVal, bloom_filter* bloo);
+        JChecker(int jVal, Bloom* bloo);
 };
 #endif
