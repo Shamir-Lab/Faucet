@@ -6,7 +6,7 @@
 URL_FILE=wget_urls
 READ_COMMAND=wget\ --read-timeout=5\ --timeout=15\ -t\ 0\ -qO-\ -i\ $URL_FILE\ \|\ bzip2\ -d\ -c\ -q
 
-eval "./mink -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers 3000000000 -file_prefix $1 --two_hash --paired_ends --fastq"
+eval "./mink -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers 300000000 -singletons 300000000 -file_prefix $1 --paired_ends --fastq"
 
 # eval "./mink -size_kmer 27 \
 # -max_read_length 130 \
