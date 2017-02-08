@@ -1,14 +1,13 @@
 #!/bin/bash
-#Runs Mink with k = 27, max read length = 100, estimated kmer size = 60 million, two hash functions
-#Takes on parameter- the output file prefix
-#Streams the input file from Roye's website at http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz
+#Runs Faucet
+#Takes two parameter- the output file prefix and a file listing the input file URLs
 
 URL_FILE=$2
 READ_COMMAND=wget\ --read-timeout=5\ --timeout=15\ -t\ 0\ -qO-\ -i\ $URL_FILE\ \|\ bzip2\ -d\ -c\ -q
 
-eval "./mink -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers 3300000000 -singletons 500000000 -file_prefix $1 --fastq"
+eval "./faucet -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers 3300000000 -singletons 500000000 -file_prefix $1 --fastq"
 
-# eval "./mink -size_kmer 27 \
+# eval "./faucet -size_kmer 27 \
 # -max_read_length 130 \
 # -estimated_kmers 3000000000 \
 # -read_load_file <($READ_COMMAND) \
@@ -17,7 +16,7 @@ eval "./mink -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -
 # --just_load_bloom \
 # --fastq "
 
-# eval "./mink -size_kmer 27 \
+# eval "./faucet -size_kmer 27 \
 # -max_read_length 130 \
 # -estimated_kmers 3000000000 \
 # -read_scan_file <($READ_COMMAND) \
