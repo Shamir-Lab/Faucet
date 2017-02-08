@@ -37,7 +37,7 @@ Optional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --t
 	-singletons <num_kmers> 
 	-file_prefix <prefix>, the desired prefix string or directory path for output files 
  
-	we recommend applying ntCard to extract the number estimated k-mers (F0) and singletons (f1) in the dataset.
+	we recommend applying <a href="https://github.com/bcgsc/ntCard">ntCard</a> to extract the number estimated k-mers (F0) and singletons (f1) in the dataset.
 
 <!-- ### optional arguments:
 	--fastq 
@@ -49,8 +49,8 @@ Optional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --t
 	-junctions_file <filename> 
 	--paired_ends --no_cleaning
  -->
-# <a name="bam-prep">Preparing the BAM input:
+<!-- # <a name="bam-prep">Preparing the BAM input: -->
 
-# Outputs:
+<!-- # Outputs: -->
 
 
