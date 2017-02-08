@@ -10,7 +10,7 @@
 #include <algorithm> // for max/min
 #include <vector> // for sorting_kmers
 #include <sys/time.h>
-#include "Mink.h"
+#include "Faucet.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -21,9 +21,9 @@ using namespace std;
 #define MIN_CONTIG_SIZE (2*sizeKmer+1)
 
 /*
-To run Mink, first type make in the directory to compile.
+To run Faucet, first type make in the directory to compile.
 
-Then, type ./mink, followed by the following arguments:
+Then, type ./faucet, followed by the following arguments:
 -read_load_file <>, name of reads file  to load bloom filter from (current format is each line has a string of characters representing the read)
 -read_scan_file <>, name of reads file  for read scan (current format is each line has a string of characters representing the read)
 -size_kmer k
@@ -49,7 +49,7 @@ file_prefix.contigs, file_prefix.graph.
 
 void argumentError(){
     fprintf (stderr,"Usage:\n");
-    fprintf (stderr,"./mink -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -singletons <num_kmers> -file_prefix <prefix>");
+    fprintf (stderr,"./faucet -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -singletons <num_kmers> -file_prefix <prefix>");
     fprintf(stderr, "\nOptional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 

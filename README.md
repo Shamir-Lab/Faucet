@@ -37,7 +37,7 @@ Optional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --t
 	-singletons <num_kmers> 
 	-file_prefix <prefix>, the desired prefix string or directory path for output files 
  
-we recommend applying <a href="https://github.com/bcgsc/ntCard">ntCard</a> to extract the number estimated k-mers (F0) and singletons (f1) in the dataset.
+we recommend using <a href="https://github.com/bcgsc/ntCard">ntCard</a> to extract the number of estimated k-mers (F0) and singletons (f1) in the dataset.
 
 <!-- ### optional arguments:
 	--fastq 

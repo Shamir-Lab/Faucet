@@ -15,29 +15,29 @@ READSCAN_FILES= ReadScanner.cpp Contig.cpp ContigNode.cpp ContigGraph.cpp Contig
 SRC_READSCAN= $(addprefix $(READSCAN_PREFIX),$(READSCAN_FILES))
 SRC_UTILS= $(addprefix $(UTIL_PREFIX),$(UTIL_FILES))
 
-SRC_MINK= Mink.cpp
+SRC_MINK= Faucet.cpp
 
-EXEC=mink
+EXEC=faucet
 
-#Object files for readscan utils and mink
+#Object files for readscan utils and faucet
 OBJ_BOTH= $(SRC_UTILS:.cpp=.o) $(SRC_READSCAN:.cpp=.o) 
 OBJ_MINK= $(SRC_MINK:.cpp=.o) 
 
-mink: $(OBJ_BOTH) $(OBJ_MINK)
-	g++ --std=c++0x $(SRC_READSCAN) $(SRC_UTILS) $(SRC_MINK) -o mink $(CFLAGS)
+faucet: $(OBJ_BOTH) $(OBJ_MINK)
+	g++ --std=c++0x $(SRC_READSCAN) $(SRC_UTILS) $(SRC_MINK) -o faucet $(CFLAGS)
 
 %.o: %.cpp %.h
 	g++ -o $@ -c $< $(CFLAGS)
 
 install:
-	cp mink /usr/local/bin
+	cp faucet /usr/local/bin
 	cp minia /usr/local/bin
 
 depend:
 	makedepend $(SRC_READSCAN) $(SRC_UTILS) $(SRC_MINK)
 
 clean:
-	\rm -f *.o ../utils/*.o mink $(TESTS) $(TEST_PREFIX)/*.o $(TEST_PREFIX)/*.a gtest_main.a
+	\rm -f *.o ../utils/*.o faucet $(TESTS) $(TEST_PREFIX)/*.o $(TEST_PREFIX)/*.a gtest_main.a
 
 ############# GTEST Targets ######################
 
@@ -323,33 +323,34 @@ AllTests : $(OBJ_BOTH) ReadscanTest.o JunctionMapTest.o gtest_main.a
 ../utils/ContigJuncList.o: /usr/include/sys/cdefs.h
 ../utils/ContigJuncList.o: /usr/include/bits/wordsize.h
 ../utils/ContigJuncList.o: /usr/include/gnu/stubs.h /usr/include/bits/wchar.h
-Mink.o: /usr/include/stdio.h /usr/include/features.h
-Mink.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-Mink.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-Mink.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-Mink.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
-Mink.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
-Mink.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
-Mink.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
-Mink.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
-Mink.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
-Mink.o: /usr/include/time.h /usr/include/sys/select.h
-Mink.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
-Mink.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
-Mink.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-Mink.o: /usr/include/bits/stdlib-float.h /usr/include/string.h
-Mink.o: /usr/include/xlocale.h /usr/include/unistd.h
-Mink.o: /usr/include/bits/posix_opt.h /usr/include/bits/environments.h
-Mink.o: /usr/include/bits/confname.h /usr/include/getopt.h
-Mink.o: /usr/include/inttypes.h /usr/include/stdint.h
-Mink.o: /usr/include/bits/wchar.h /usr/include/sys/time.h Mink.h
-Mink.o: ../utils/Bloom.h ../utils/Kmer.h ../utils/ReadKmer.h
-Mink.o: ../utils/DoubleKmer.h ../utils/JuncPairs.h ../utils/Kmer.h
-Mink.o: ../utils/Junction.h ../utils/JChecker.h ../utils/Bloom.h
-Mink.o: ReadScanner.h ../utils/JunctionMap.h ../utils/Junction.h
-Mink.o: ../utils/Cap.h ../utils/JChecker.h ../readscanAssembler/Contig.h
-Mink.o: ../utils/JuncPairs.h ../utils/ContigJuncList.h ContigNode.h Contig.h
-Mink.o: ../readscanAssembler/ContigNode.h ../readscanAssembler/ContigGraph.h
-Mink.o: BfSearchResult.h ContigIterator.h ContigGraph.h ../utils/sparsepp.h
-Mink.o: ../readscanAssembler/BfSearchResult.h ../utils/ReadKmer.h
-Mink.o: ../utils/Cap.h
+Faucet.o: /usr/include/stdio.h /usr/include/features.h
+Faucet.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
+Faucet.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+Faucet.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+Faucet.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+Faucet.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+Faucet.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
+Faucet.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
+Faucet.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+Faucet.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
+Faucet.o: /usr/include/time.h /usr/include/sys/select.h
+Faucet.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+Faucet.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+Faucet.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+Faucet.o: /usr/include/bits/stdlib-float.h /usr/include/string.h
+Faucet.o: /usr/include/xlocale.h /usr/include/unistd.h
+Faucet.o: /usr/include/bits/posix_opt.h /usr/include/bits/environments.h
+Faucet.o: /usr/include/bits/confname.h /usr/include/getopt.h
+Faucet.o: /usr/include/inttypes.h /usr/include/stdint.h
+Faucet.o: /usr/include/bits/wchar.h /usr/include/sys/time.h Faucet.h
+Faucet.o: ../utils/Bloom.h ../utils/Kmer.h ../utils/ReadKmer.h
+Faucet.o: ../utils/DoubleKmer.h ../utils/JuncPairs.h ../utils/Kmer.h
+Faucet.o: ../utils/Junction.h ../utils/JChecker.h ../utils/Bloom.h
+Faucet.o: ReadScanner.h ../utils/JunctionMap.h ../utils/Junction.h
+Faucet.o: ../utils/Cap.h ../utils/JChecker.h ../readscanAssembler/Contig.h
+Faucet.o: ../utils/JuncPairs.h ../utils/ContigJuncList.h ContigNode.h
+Faucet.o: Contig.h ../readscanAssembler/ContigNode.h
+Faucet.o: ../readscanAssembler/ContigGraph.h BfSearchResult.h
+Faucet.o: ContigIterator.h ContigGraph.h ../utils/sparsepp.h
+Faucet.o: ../readscanAssembler/BfSearchResult.h ../utils/ReadKmer.h
+Faucet.o: ../utils/Cap.h
