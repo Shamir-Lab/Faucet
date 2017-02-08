@@ -13,11 +13,11 @@
 #include "Kmer.h"
 #include "JuncPairs.h"
 
-#include "../readscanAssembler/Contig.h"
-#include "../readscanAssembler/ContigNode.h"
-#include "../readscanAssembler/ContigGraph.h"
+#include "../src/Contig.h"
+#include "../src/ContigNode.h"
+#include "../src/ContigGraph.h"
 #include <fstream>
-#include "../readscanAssembler/BfSearchResult.h"
+#include "../src/BfSearchResult.h"
 using std::ofstream;
 // using std::unordered_map;
 using std::string;
