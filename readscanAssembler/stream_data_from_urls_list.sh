@@ -3,10 +3,10 @@
 #Takes on parameter- the output file prefix
 #Streams the input file from Roye's website at http://www.tau.ac.il/~rozovr/chr20.c50.fa.gz
 
-URL_FILE=wget_urls
+URL_FILE=$2
 READ_COMMAND=wget\ --read-timeout=5\ --timeout=15\ -t\ 0\ -qO-\ -i\ $URL_FILE\ \|\ bzip2\ -d\ -c\ -q
 
-eval "./mink -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers 300000000 -singletons 300000000 -file_prefix $1 --paired_ends --fastq"
+eval "./mink -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers 3300000000 -singletons 500000000 -file_prefix $1 --fastq"
 
 # eval "./mink -size_kmer 27 \
 # -max_read_length 130 \
