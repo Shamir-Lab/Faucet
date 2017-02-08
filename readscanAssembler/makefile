@@ -1,4 +1,4 @@
-######## Mink main makefile ###########
+######## Faucet main makefile ###########
 
 CFLAGS+= --std=c++11 -g -O4 -D_FILE_OFFSET_BITS=64 -isystem $(GTEST_DIR)/include # needed to handle files > 2 GB on 32 bits systems
 
