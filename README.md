@@ -12,7 +12,7 @@ Example usage:
 The above command takes as input the file interlaced_reads.fq (where entries alternate between mates 1 and 2 of a paired end library), and the input format is fastq. Faucet does not accept separate mate files, but can accept fasta format and files composed of read sequences alone.
 
 # Streaming from a remote source
-An demonstration of assembling streamed reads from a remote server is provided in the script src/stream_data_from_urls_list.sh
+A demonstration streaming reads from a remote server is provided in the script src/stream_data_from_urls_list.sh
 
 
 # Requirements
