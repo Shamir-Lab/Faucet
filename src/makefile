@@ -7,7 +7,7 @@ READSCAN_PREFIX =./
 UTIL_PREFIX =../utils/
 TEST_PREFIX =./newTests/
 
-# List of just filenames for utils and readscanAssembler
+# List of just filenames for utils and src
 UTIL_FILES =Cap.cpp DoubleKmer.cpp ReadKmer.cpp Bloom.cpp Kmer.cpp JChecker.cpp JunctionMap.cpp Junction.cpp JuncPairs.cpp ContigJuncList.cpp
 READSCAN_FILES= ReadScanner.cpp Contig.cpp ContigNode.cpp ContigGraph.cpp ContigIterator.cpp
 
@@ -28,10 +28,6 @@ faucet: $(OBJ_BOTH) $(OBJ_MINK)
 
 %.o: %.cpp %.h
 	g++ -o $@ -c $< $(CFLAGS)
-
-install:
-	cp faucet /usr/local/bin
-	cp minia /usr/local/bin
 
 depend:
 	makedepend $(SRC_READSCAN) $(SRC_UTILS) $(SRC_MINK)
@@ -172,100 +168,49 @@ AllTests : $(OBJ_BOTH) ReadscanTest.o JunctionMapTest.o gtest_main.a
 ./ReadScanner.o: ../utils/DoubleKmer.h ../utils/JuncPairs.h ../utils/Kmer.h
 ./ReadScanner.o: ../utils/JChecker.h ../utils/Bloom.h ../utils/JunctionMap.h
 ./ReadScanner.o: ../utils/Junction.h ../utils/Cap.h ../utils/JChecker.h
-./ReadScanner.o: ../utils/Junction.h ../utils/ReadKmer.h ../utils/Cap.h
-./ReadScanner.o: ../utils/JuncPairs.h
-./Contig.o: Contig.h ../utils/Kmer.h ../utils/JuncPairs.h ../utils/Bloom.h
-./Contig.o: /usr/include/stdlib.h /usr/include/features.h
+./ReadScanner.o: ../src/Contig.h ../utils/JuncPairs.h
+./ReadScanner.o: ../utils/ContigJuncList.h ContigNode.h Contig.h
+./ReadScanner.o: ../utils/Junction.h ../src/ContigNode.h
+./ReadScanner.o: ../src/ContigGraph.h BfSearchResult.h
+./ReadScanner.o: ContigIterator.h ContigGraph.h ../utils/sparsepp.h
+./ReadScanner.o: ../src/BfSearchResult.h ../utils/ReadKmer.h
+./ReadScanner.o: ../utils/Cap.h
+./Contig.o: Contig.h /usr/include/assert.h /usr/include/features.h
 ./Contig.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
 ./Contig.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-./Contig.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
-./Contig.o: /usr/include/endian.h /usr/include/bits/endian.h
-./Contig.o: /usr/include/bits/byteswap.h /usr/include/bits/types.h
-./Contig.o: /usr/include/bits/typesizes.h /usr/include/bits/byteswap-16.h
-./Contig.o: /usr/include/sys/types.h /usr/include/time.h
-./Contig.o: /usr/include/sys/select.h /usr/include/bits/select.h
-./Contig.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-./Contig.o: /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h
-./Contig.o: /usr/include/alloca.h /usr/include/bits/stdlib-float.h
-./Contig.o: /usr/include/inttypes.h /usr/include/stdint.h
-./Contig.o: /usr/include/bits/wchar.h ../utils/Kmer.h ../utils/ReadKmer.h
-./Contig.o: ../utils/DoubleKmer.h ../utils/JuncPairs.h
-./Contig.o: ../utils/ContigJuncList.h ContigNode.h ../utils/Junction.h
-./Contig.o: /usr/include/string.h /usr/include/xlocale.h
-./Contig.o: /usr/include/assert.h /usr/include/math.h
-./Contig.o: /usr/include/bits/huge_val.h /usr/include/bits/huge_valf.h
-./Contig.o: /usr/include/bits/huge_vall.h /usr/include/bits/inf.h
-./Contig.o: /usr/include/bits/nan.h /usr/include/bits/mathdef.h
-./Contig.o: /usr/include/bits/mathcalls.h
+./Contig.o: /usr/include/math.h /usr/include/bits/huge_val.h
+./Contig.o: /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h
+./Contig.o: /usr/include/bits/inf.h /usr/include/bits/nan.h
+./Contig.o: /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h
 ./ContigNode.o: ContigNode.h Contig.h ../utils/Kmer.h ../utils/JuncPairs.h
-./ContigNode.o: ../utils/Bloom.h /usr/include/stdlib.h
-./ContigNode.o: /usr/include/features.h /usr/include/stdc-predef.h
-./ContigNode.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-./ContigNode.o: /usr/include/gnu/stubs.h /usr/include/bits/waitflags.h
-./ContigNode.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
-./ContigNode.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
-./ContigNode.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-./ContigNode.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
-./ContigNode.o: /usr/include/time.h /usr/include/sys/select.h
-./ContigNode.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
-./ContigNode.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
-./ContigNode.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-./ContigNode.o: /usr/include/bits/stdlib-float.h /usr/include/inttypes.h
-./ContigNode.o: /usr/include/stdint.h /usr/include/bits/wchar.h
-./ContigNode.o: ../utils/Kmer.h ../utils/ReadKmer.h ../utils/DoubleKmer.h
-./ContigNode.o: ../utils/JuncPairs.h ../utils/ContigJuncList.h
-./ContigNode.o: /usr/include/string.h /usr/include/xlocale.h
-./ContigNode.o: ../utils/Junction.h
-./ContigGraph.o: ContigGraph.h ../utils/Kmer.h ../utils/Junction.h
-./ContigGraph.o: ../utils/Bloom.h /usr/include/stdlib.h
-./ContigGraph.o: /usr/include/features.h /usr/include/stdc-predef.h
-./ContigGraph.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-./ContigGraph.o: /usr/include/gnu/stubs.h /usr/include/bits/waitflags.h
+./ContigNode.o: ../utils/Junction.h /usr/include/time.h
+./ContigNode.o: /usr/include/bits/types.h /usr/include/features.h
+./ContigNode.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
+./ContigNode.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+./ContigNode.o: /usr/include/bits/typesizes.h
+./ContigGraph.o: ContigGraph.h /usr/include/math.h /usr/include/features.h
+./ContigGraph.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
+./ContigGraph.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+./ContigGraph.o: /usr/include/bits/huge_val.h /usr/include/bits/huge_valf.h
+./ContigGraph.o: /usr/include/bits/huge_vall.h /usr/include/bits/inf.h
+./ContigGraph.o: /usr/include/bits/nan.h /usr/include/bits/mathdef.h
+./ContigGraph.o: /usr/include/bits/mathcalls.h /usr/include/time.h
+./ContigGraph.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+./ContigGraph.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
 ./ContigGraph.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
 ./ContigGraph.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
-./ContigGraph.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
 ./ContigGraph.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
-./ContigGraph.o: /usr/include/time.h /usr/include/sys/select.h
-./ContigGraph.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
-./ContigGraph.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+./ContigGraph.o: /usr/include/sys/select.h /usr/include/bits/select.h
+./ContigGraph.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+./ContigGraph.o: /usr/include/sys/sysmacros.h
 ./ContigGraph.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-./ContigGraph.o: /usr/include/bits/stdlib-float.h /usr/include/inttypes.h
-./ContigGraph.o: /usr/include/stdint.h /usr/include/bits/wchar.h
-./ContigGraph.o: ../utils/Kmer.h ../utils/ReadKmer.h ../utils/DoubleKmer.h
-./ContigGraph.o: ../utils/JuncPairs.h ../utils/JunctionMap.h
-./ContigGraph.o: ../utils/Junction.h ../utils/Cap.h ../utils/Bloom.h
-./ContigGraph.o: ../utils/JChecker.h ../utils/JChecker.h ../utils/JuncPairs.h
-./ContigGraph.o: Contig.h ../utils/ContigJuncList.h ContigNode.h
-./ContigGraph.o: /usr/include/string.h /usr/include/xlocale.h
-./ContigGraph.o: BfSearchResult.h ContigIterator.h ../utils/sparsepp.h
-./ContigGraph.o: /usr/include/math.h /usr/include/bits/huge_val.h
-./ContigGraph.o: /usr/include/bits/huge_valf.h /usr/include/bits/huge_vall.h
-./ContigGraph.o: /usr/include/bits/inf.h /usr/include/bits/nan.h
-./ContigGraph.o: /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h
-./ContigGraph.o: /usr/include/assert.h
-./ContigIterator.o: ContigIterator.h ContigGraph.h ../utils/Kmer.h
-./ContigIterator.o: ../utils/Junction.h ../utils/Bloom.h
-./ContigIterator.o: /usr/include/stdlib.h /usr/include/features.h
-./ContigIterator.o: /usr/include/stdc-predef.h /usr/include/sys/cdefs.h
-./ContigIterator.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-./ContigIterator.o: /usr/include/bits/waitflags.h
-./ContigIterator.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
-./ContigIterator.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
-./ContigIterator.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-./ContigIterator.o: /usr/include/bits/byteswap-16.h /usr/include/sys/types.h
-./ContigIterator.o: /usr/include/time.h /usr/include/sys/select.h
-./ContigIterator.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
-./ContigIterator.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
-./ContigIterator.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-./ContigIterator.o: /usr/include/bits/stdlib-float.h /usr/include/inttypes.h
-./ContigIterator.o: /usr/include/stdint.h /usr/include/bits/wchar.h
-./ContigIterator.o: ../utils/Kmer.h ../utils/ReadKmer.h ../utils/DoubleKmer.h
-./ContigIterator.o: ../utils/JuncPairs.h ../utils/JunctionMap.h
-./ContigIterator.o: ../utils/Junction.h ../utils/Cap.h ../utils/Bloom.h
-./ContigIterator.o: ../utils/JChecker.h ../utils/JChecker.h
-./ContigIterator.o: ../utils/JuncPairs.h Contig.h ../utils/ContigJuncList.h
-./ContigIterator.o: ContigNode.h /usr/include/string.h /usr/include/xlocale.h
-./ContigIterator.o: BfSearchResult.h ../utils/sparsepp.h
+./ContigGraph.o: /usr/include/bits/stdlib-float.h /usr/include/assert.h
+./ContigIterator.o: ContigIterator.h ContigGraph.h Contig.h ContigNode.h
+./ContigIterator.o: ../utils/Kmer.h ../utils/JuncPairs.h ../utils/Junction.h
+./ContigIterator.o: ../utils/sparsepp.h /usr/include/stdint.h
+./ContigIterator.o: /usr/include/features.h /usr/include/stdc-predef.h
+./ContigIterator.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+./ContigIterator.o: /usr/include/gnu/stubs.h /usr/include/bits/wchar.h
 ../utils/Cap.o: ../utils/Cap.h ../utils/Kmer.h /usr/include/stdint.h
 ../utils/Cap.o: /usr/include/features.h /usr/include/stdc-predef.h
 ../utils/Cap.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
@@ -328,6 +273,31 @@ AllTests : $(OBJ_BOTH) ReadscanTest.o JunctionMapTest.o gtest_main.a
 ../utils/JunctionMap.o: ../utils/Cap.h ../utils/ReadKmer.h
 ../utils/JunctionMap.o: ../utils/DoubleKmer.h ../utils/Bloom.h
 ../utils/JunctionMap.o: ../utils/JChecker.h ../utils/JuncPairs.h
+../utils/JunctionMap.o: ../src/Contig.h ../utils/Kmer.h
+../utils/JunctionMap.o: ../utils/JuncPairs.h ../utils/Bloom.h
+../utils/JunctionMap.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
+../utils/JunctionMap.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
+../utils/JunctionMap.o: /usr/include/bits/endian.h
+../utils/JunctionMap.o: /usr/include/bits/byteswap.h
+../utils/JunctionMap.o: /usr/include/bits/types.h
+../utils/JunctionMap.o: /usr/include/bits/typesizes.h
+../utils/JunctionMap.o: /usr/include/bits/byteswap-16.h
+../utils/JunctionMap.o: /usr/include/sys/types.h /usr/include/time.h
+../utils/JunctionMap.o: /usr/include/sys/select.h /usr/include/bits/select.h
+../utils/JunctionMap.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+../utils/JunctionMap.o: /usr/include/sys/sysmacros.h
+../utils/JunctionMap.o: /usr/include/bits/pthreadtypes.h
+../utils/JunctionMap.o: /usr/include/alloca.h
+../utils/JunctionMap.o: /usr/include/bits/stdlib-float.h
+../utils/JunctionMap.o: /usr/include/inttypes.h ../utils/ContigJuncList.h
+../utils/JunctionMap.o: ContigNode.h Contig.h ../utils/Junction.h
+../utils/JunctionMap.o: /usr/include/string.h /usr/include/xlocale.h
+../utils/JunctionMap.o: ../src/ContigNode.h
+../utils/JunctionMap.o: ../src/ContigGraph.h
+../utils/JunctionMap.o: ../utils/JunctionMap.h
+../utils/JunctionMap.o: ../src/BfSearchResult.h
+../utils/JunctionMap.o: ../utils/JChecker.h BfSearchResult.h ContigIterator.h
+../utils/JunctionMap.o: ContigGraph.h ../utils/sparsepp.h
 ../utils/JunctionMap.o: /usr/include/assert.h
 ../utils/Junction.o: ../utils/Junction.h ../utils/Kmer.h
 ../utils/Junction.o: /usr/include/stdint.h /usr/include/features.h
@@ -373,7 +343,9 @@ Faucet.o: ../utils/Bloom.h ../utils/Kmer.h ../utils/ReadKmer.h
 Faucet.o: ../utils/DoubleKmer.h ../utils/JuncPairs.h ../utils/Kmer.h
 Faucet.o: ../utils/Junction.h ../utils/JChecker.h ../utils/Bloom.h
 Faucet.o: ReadScanner.h ../utils/JunctionMap.h ../utils/Junction.h
-Faucet.o: ../utils/Cap.h ../utils/JChecker.h ../utils/ReadKmer.h
-Faucet.o: ../utils/Cap.h ../utils/JuncPairs.h ContigNode.h Contig.h
-Faucet.o: ../utils/ContigJuncList.h ContigGraph.h BfSearchResult.h
-Faucet.o: ContigIterator.h ../utils/sparsepp.h
+Faucet.o: ../utils/Cap.h ../utils/JChecker.h ../src/Contig.h
+Faucet.o: ../utils/JuncPairs.h ../utils/ContigJuncList.h ContigNode.h Contig.h
+Faucet.o: ../src/ContigNode.h ../src/ContigGraph.h
+Faucet.o: BfSearchResult.h ContigIterator.h ContigGraph.h ../utils/sparsepp.h
+Faucet.o: ../src/BfSearchResult.h ../utils/ReadKmer.h
+Faucet.o: ../utils/Cap.h
