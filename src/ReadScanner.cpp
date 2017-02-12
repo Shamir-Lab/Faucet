@@ -339,7 +339,10 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
       }
       else{emptyCount++;}
     }
-    if ((readsProcessed%100000)==0) fprintf (stdout," reads scanned: %c %lld\n",13,(long long)readsProcessed);
+    if ((readsProcessed%100000)==0){
+      fprintf (stdout,"\rreads scanned: %lld",(long long)readsProcessed);
+      fflush(stdout);
+    }
     readsProcessed++;
     if(fastq) getline(solidReads, read), getline(solidReads, read); //if fastq skip two more lines
     firstEnd = !firstEnd;

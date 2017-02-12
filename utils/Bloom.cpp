@@ -276,8 +276,10 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
             }    
         }
         readsProcessed++;
-        if ((readsProcessed%100000)==0) fprintf (stdout,"reads consumed: %c %lld\n",13,(long long)readsProcessed);
-        
+        if ((readsProcessed%100000)==0){
+         fprintf (stdout,"\rreads consumed: %lld",(long long)readsProcessed);
+         fflush(stdout);
+        }
         if(fastq) getline(solidReads, read),getline(solidReads, read); //ignore two more lines if its fastq
     }
 

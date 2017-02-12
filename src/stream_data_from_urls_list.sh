@@ -1,11 +1,15 @@
 #!/bin/bash
 #Runs Faucet
-#Takes two parameter- the output file prefix and a file listing the input file URLs
+#Takes 4 parameter- 
+#1) the output file prefix and a 
+#2) file listing the input file URLs
+#3) estimated kmers
+#4) singletons
 
 URL_FILE=$2
 READ_COMMAND=wget\ --read-timeout=5\ --timeout=15\ -t\ 0\ -qO-\ -i\ $URL_FILE\ \|\ bzip2\ -d\ -c\ -q
 
-eval "./faucet -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers 3300000000 -singletons 500000000 -file_prefix $1 --fastq"
+eval "./faucet -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers $3 -singletons $4 -file_prefix $1 --fastq"
 
 # eval "./faucet -size_kmer 27 \
 # -max_read_length 130 \
