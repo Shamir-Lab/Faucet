@@ -50,7 +50,7 @@ file_prefix.contigs, file_prefix.graph.
 void argumentError(){
     fprintf (stderr,"Usage:\n");
     fprintf (stderr,"./faucet -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -singletons <num_kmers> -file_prefix <prefix>");
-    fprintf(stderr, "\nOptional arguments: --fastq -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
+    fprintf(stderr, "\nOptional arguments: --fastq --high_cov -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
 
@@ -86,6 +86,8 @@ int handle_arguments(int argc, char *argv[]){
                 no_cleaning = true;            
         else if(0 == strcmp(argv[i] , "--fastq")) //input is fastq file
                 fastq = true;
+        else if(0 == strcmp(argv[i] , "--high_cov")) //input is likely high coverage
+                high_cov = true;            
         else if(0 == strcmp(argv[i], "--node_graph")) //use node graph rather than contig graph
                 node_graph = true; 
         else if(0 == strcmp(argv[i], "--paired_ends")) //assume interleaved paired end reads
@@ -257,9 +259,18 @@ int main(int argc, char *argv[])
         bloom = getBloomFilterFromReads();
         bloom->dump(&(file_prefix + ".bloom")[0]);
     }
-
-    Bloom* short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
-    Bloom* long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, 0.01);
+    
+    Bloom* short_pair_filter;
+    Bloom* long_pair_filter;
+    if (!high_cov){
+        short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
+        if (paired_ends) long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, 0.01);
+        else long_pair_filter = nullptr;
+    }else {
+        short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/2, 0.01);
+        if (paired_ends) long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/2, 0.01);
+        else long_pair_filter = nullptr;
+    }
     if(just_load) return 0;
     
     //create JChecker
@@ -277,13 +288,13 @@ int main(int argc, char *argv[])
         junctionMap->writeToFile(file_prefix + ".junctions");
         if(!no_cleaning){
             short_pair_filter->dump(&(file_prefix + ".short_pair_filter")[0]);
-            long_pair_filter->dump(&(file_prefix + ".long_pair_filter")[0]);
+            if (paired_ends) long_pair_filter->dump(&(file_prefix + ".long_pair_filter")[0]);
         }
     }
     //dump junctions to file
     
     printf("Weight of short pair filter: %f\n", short_pair_filter->weight());
-    printf("Weight of long pair filter: %f\n", long_pair_filter->weight());
+    if (paired_ends) printf("Weight of long pair filter: %f\n", long_pair_filter->weight());
     printf("Number of junctions: %d\n", junctionMap->junctionMap.size());
     ContigGraph* contigGraph = junctionMap->buildContigGraph();
     contigGraph->setReadLength(read_length);

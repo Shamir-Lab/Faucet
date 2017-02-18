@@ -332,7 +332,6 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
               }
               if (!paired){
                 long_pair_filter->addPair(JuncPair(pair1, *backJuncs2.begin()));
-                // long_pair_filter->addPair(JuncPair(pair1, backJuncs2.back()));
               }
           }
         }

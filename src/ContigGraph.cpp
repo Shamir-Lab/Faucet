@@ -249,15 +249,16 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
         result = true;
     }
 
-    longContig = getLongestContig();
-    mean_std = longContig->getPairsMeanStd(long_pair_filter);
-    insertSize = mean_std.first;
-    std = mean_std.second;
-    std::cout << "long insert size set to " << insertSize << ", std set to " << std << std::endl;
-    if(disentangleAndClean(long_pair_filter, insertSize, std)){
-        result = true;
+    if (long_pair_filter){ // skip in case not paired-end
+        longContig = getLongestContig();
+        mean_std = longContig->getPairsMeanStd(long_pair_filter);
+        insertSize = mean_std.first;
+        std = mean_std.second;
+        std::cout << "long insert size set to " << insertSize << ", std set to " << std << std::endl;
+        if(disentangleAndClean(long_pair_filter, insertSize, std)){
+            result = true;
+        }
     }
-    
     return result;
 }
 
