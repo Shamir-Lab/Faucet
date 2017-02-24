@@ -9,7 +9,7 @@
 URL_FILE=$2
 READ_COMMAND=wget\ --read-timeout=5\ --timeout=15\ -t\ 0\ -qO-\ -i\ $URL_FILE\ \|\ bzip2\ -d\ -c\ -q
 
-eval "./faucet -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers $3 -singletons $4 -file_prefix $1 --fastq"
+eval "./faucet -read_load_file <($READ_COMMAND) -read_scan_file <($READ_COMMAND) -size_kmer 31 -max_read_length 130 -estimated_kmers $3 -singletons $4 -file_prefix $1 --fastq --high_cov"
 
 # eval "./faucet -size_kmer 27 \
 # -max_read_length 130 \

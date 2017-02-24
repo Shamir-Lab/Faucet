@@ -207,9 +207,11 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
   }
   if (!no_cleaning){
     if(result.size()==2){
-      if (firstBackJunc && lastForwardJunc && !(rev_pos > for_pos)){
-        // printf("accepted rev_pos %d for_pos %d\n", rev_pos, for_pos);
+      if (firstBackJunc && lastForwardJunc && !(rev_pos > for_pos)){ // outward facing pair
         short_pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
+      }
+      if ((firstBackJunc && !lastForwardJunc) || (!firstBackJunc && lastForwardJunc)){ // 2 juncs facing in same direction
+        short_pair_filter->addPair(JuncPair(result.front()->getRealExtension(), result.back()->getRealExtension()));        
       }
     }
     else if(result.size()>2){ 
