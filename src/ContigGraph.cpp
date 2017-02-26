@@ -1177,7 +1177,7 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                             if(!Nodeb && !Noded){
                                 isolated_contigs.push_back(*contigBRCRD);
                             }
-                            std::cout << "split found for loop\n";
+                            // std::cout << "split found for loop\n";
                             operationDone = true;
                         }      
                     }

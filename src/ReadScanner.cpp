@@ -325,9 +325,9 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
             if (!no_cleaning){
               for(auto it2 = backJuncs2.begin(); it2 != backJuncs2.end(); it2++){
                 kmer_type pair2 = *it2;
-                 //printf("Adding pair\n");
-                 //pair_filter->addPair(JuncPair(pair1, pair2));
-              
+                 
+                // long_pair_filter->addPair(JuncPair(pair1, pair2));
+
                 if(long_pair_filter->containsPair(JuncPair(pair1,pair2))){
                     paired = true;
                 }
