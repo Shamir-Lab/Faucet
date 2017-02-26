@@ -1150,8 +1150,9 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
 
                     if (Nodea==node && Nodec==backNode && Nodeb != node && Nodeb != backNode && Noded != node && Noded != backNode){
                            
-                        if((scoreAD>0 || scoreBC>0) ){ // && scoreAC == 0 && scoreBD == 0
-                            // loop - genomic repeat                            
+                        // below, check either connected to surrounding genome (i.e., unlike a plasmid) or 
+                        // loop short enough not to have any junctions
+                        if((scoreAD>0 || scoreBC>0 || (A.size()==0 && C.size()==0 && len_a < read_length)) ){ 
 
                             ContigJuncList origJuncs = contig->contigJuncs;   
                             ContigJuncList newJuncs;                             
@@ -1176,20 +1177,18 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                             if(!Nodeb && !Noded){
                                 isolated_contigs.push_back(*contigBRCRD);
                             }
-                            // std::cout << "split found for loop\n";
+                            std::cout << "split found for loop\n";
                             operationDone = true;
                         }      
                     }
                     if (operationDone){
-                        // std::cout << "970\n";
-                        disentanglePair(contig, backNode, node, a, b, c, d);
+                        
                         disentangled++;
                         for (int i = 0; i< 4; i++){
                             cutPath(backNode, i);
                             cutPath(node, i);
                         }
-                        // backNode->clearNode();
-                        // node->clearNode();
+                        
                         it = nodeMap.erase(it);
                         operationDone = false;
                         break;
