@@ -211,7 +211,7 @@ std::list<kmer_type> ReadScanner::scan_forward(string read, bool no_cleaning){
         short_pair_filter->addPair(JuncPair(firstBackJunc->getRealExtension(), lastForwardJunc->getRealExtension()));
       }
       if ((firstBackJunc && !lastForwardJunc) || (!firstBackJunc && lastForwardJunc)){ // 2 juncs facing in same direction
-        short_pair_filter->addPair(JuncPair(result.front()->getRealExtension(), result.back()->getRealExtension()));        
+        short_pair_filter->addPair(JuncPair(result.front(), result.back())); // don't need to getRealExtension because was done on insertion     
       }
     }
     else if(result.size()>2){ 

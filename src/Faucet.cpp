@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
     while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter));
 
     contigGraph->checkGraph();
-    // contigGraph->printContigs(file_prefix + ".cleaned_contigs.fasta");
+    contigGraph->printContigs(file_prefix + ".cleaned_contigs.fasta");
     contigGraph->printGraph(file_prefix + ".cleaned_graph.fastg");
 
     printf("Program reached end. \n");
