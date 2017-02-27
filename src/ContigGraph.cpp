@@ -164,27 +164,6 @@ void ContigGraph::setReadLength(int length){
     read_length = length;
 }
 
-void ContigGraph::switchToNodeVector(){
-    for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
-        kmer_type kmer = it->first;
-        ContigNode* originalNode = &it->second;
-        nodeVector.push_back(*originalNode);
-        ContigNode* newNode = &nodeVector.back();
-        for(int i = 0; i < 5; i++){
-            if(newNode->contigs[i]){
-                if(newNode->contigs[i]->node1_p == originalNode){
-                    newNode->contigs[i]->node1_p = newNode;
-                } 
-                if(newNode->contigs[i]->node2_p == originalNode){
-                    newNode->contigs[i]->node2_p = newNode;
-                }
-            }
-        }
-        ++it;
-        nodeMap.erase(kmer);
-    }
-}
-
 bool ContigGraph::deleteTipsAndClean(){
     bool result = false;
     if(deleteTips() > 0){
@@ -234,11 +213,15 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, double insertSize, dou
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
 
     bool result = false;
-    deleteTipsAndClean();
-
-    if(breakPathsAndClean()){
-        result = true;
-    }
+    // do{
+        // result = false;
+        if (deleteTipsAndClean()){
+            result = true;
+        }
+        if(breakPathsAndClean()){
+            result = true;
+        }
+    // }while(result);
 
     Contig* longContig = getLongestContig();
     std::pair<double, double> mean_std = longContig->getPairsMeanStd(short_pair_filter);
@@ -307,28 +290,6 @@ bool ContigGraph::checkGraph(){
     printf("Done checking graph\n");
     return true;
 
-}
-
-//Returns a list of extensions which are there but have no support
-std::vector<int> ContigGraph::getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter, int insertSize){
-    if(!node->contigs[4]){
-        printf("GRAPHERROR: tried to test support at node with no backcontig.\n");
-        return {};
-    }
-    // int insertSize = 500;
-    std::list<JuncResult> backResults = node->getPairCandidates(4, insertSize);
-    std::list<JuncResult> forResults;
-    std::vector<int> results = {};
-    for (int i = 0; i < 4; i++){
-        if(node->contigs[i]){
-            Contig* contig = node->contigs[i];
-            forResults = node->getPairCandidates(i, insertSize);
-            if(getScore(backResults, forResults, pair_filter, .01, insertSize)==0){
-                results.push_back(i);
-            }
-        }   
-    }
-    return results;
 }
 
 std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode * node, std::string trait){
@@ -486,36 +447,10 @@ int ContigGraph::destroyDegenerateNodes(){
     return numDegen;
 }
 
-
-double ContigGraph::getTailBound(int numTrials, double p, int result){
-    double mean = 1.0*numTrials*p;
-    double delta = (1.0*result / mean) - 1;
-    double chernoffBound;
-    if( delta < 0){
-        chernoffBound = 1.0;
-    }
-    else if(delta < 1){
-        chernoffBound = exp(-delta*delta*mean/3);
-    }
-    else if (delta > 1){
-        chernoffBound = exp(-delta*mean/3);
-    }
-    //std::cout <<" Chernoff: " << chernoffBound << " \n";
-    double markovBound = 1.0;
-    if (result >  mean){
-        markovBound = mean/result;
-    }
-    //std::cout <<" Markov: " << markovBound << " \n";
-    //std::cout << "Min: " << std::min(chernoffBound, markovBound) << "\n";
-    return std::min(chernoffBound, markovBound);
-}
-
 //returns a score based on how many pairs of kmers from the first and second lists are in the filter,
 //relative to the FP rate of the filter
 double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate, int insertSize){
     double score = 0;
-    // int insertSize = 500;
-    // int readLength = read_length; //100;
     int counter = 0;
     std::unordered_set<JuncPair> seenPairs = {};
     
@@ -535,9 +470,7 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
     }
 
     
-    //std::cout << "Total pairs: " << rightCand.size()*leftCand.size() << ", counter: " << counter << "\n";
-    //std::cout << "Junctions: " << leftCand.size() << "," << rightCand.size() << ". Score: " << score << "\n";
-    return score; //getTailBound(leftCand.size()*rightCand.size(),fpRate, score);
+    return score; 
 }
 
 bool ContigGraph::isBubble(ContigNode* node){
@@ -958,21 +891,29 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
 
                     // add 1 to always get at least a flanking junction
                     int stepSize = (int) insertSize + 3*std;
-                    A = backNode->getPairCandidates(a, std::min(len_a, stepSize));
-                    B = backNode->getPairCandidates(b, std::min(len_b, stepSize));
-                    C = node->getPairCandidates(c, std::min(len_c, stepSize));
-                    D = node->getPairCandidates(d, std::min(len_d, stepSize));
+                    A = backNode->getPairCandidates(a, 2*std::min(len_a, stepSize));
+                    B = backNode->getPairCandidates(b, 2*std::min(len_b, stepSize));
+                    C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
+                    D = node->getPairCandidates(d, 2*std::min(len_d, stepSize));
                 
                     scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
                     scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
                     scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
                     scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
 
+
+                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
+                    std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
+                    std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
+                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                
+
                     
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
                        
                         if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
-                            (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 500 && len_c >= 500)){
+                            (std::min(scoreAC, scoreBD) >= 2 && std::min(scoreAC,scoreBD) >= 3*std::max(scoreAD,scoreBC)) ){
+                            // (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 500 && len_c >= 500)){
 
                             // std::cout << "desired split found\n";
                             if(allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodeb,Nodec,Noded}) ||
@@ -1132,21 +1073,15 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
 
                     // add 1 to always get at least a flanking junction
                     int stepSize = (int) insertSize + 3*std;
-                    A = backNode->getPairCandidates(a, std::min(len_a, stepSize));
-                    B = backNode->getPairCandidates(b, std::min(len_b, stepSize));
-                    C = node->getPairCandidates(c, std::min(len_c, stepSize));
-                    D = node->getPairCandidates(d, std::min(len_d, stepSize));
+                    A = backNode->getPairCandidates(a, 2*std::min(len_a, stepSize));
+                    B = backNode->getPairCandidates(b, 2*std::min(len_b, stepSize));
+                    C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
+                    D = node->getPairCandidates(d, 2*std::min(len_d, stepSize));
                 
                     scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
                     scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
                     scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
                     scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
-
-                    // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                    // std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
-                    // std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
-                    // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    // std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                
 
                     if (Nodea==node && Nodec==backNode && Nodeb != node && Nodeb != backNode && Noded != node && Noded != backNode){
                            

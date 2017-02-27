@@ -31,9 +31,7 @@ class ContigGraph
 std::vector<ContigNode> nodeVector;
 std::vector<Contig> isolated_contigs;
 unordered_map<kmer_type,ContigNode> nodeMap;
-// sparse_hash_map<kmer_type,ContigNode> nodeMap;
 unordered_map<kmer_type,ContigNode>::iterator it;
-// sparse_hash_map<kmer_type,ContigNode>::iterator it;
 
 
 int read_length;
@@ -41,14 +39,8 @@ int read_length;
 public: 
     std::vector<Contig> * getIsolatedContigs();
     unordered_map<kmer_type, ContigNode> * getNodeMap();
-    // sparse_hash_map<kmer_type, ContigNode> * getNodeMap();
 
-    void switchToNodeVector();
     void setReadLength(int length);
-
-    //Gets tail bound for binomia ldistribution with number of trials, probability,
-    //and for result specified
-    double getTailBound(int numTrials, double p, int result);
     bool isCollapsible(ContigNode * node);
 
     //Gets number of supporting pairs given candidate list
@@ -63,7 +55,6 @@ public:
     //Returns true if it goes ahead with disentanglement
     void disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
     void addIsolatedContig(Contig contig);
-    std::vector<int> getUnsupportedExtensions(ContigNode* node, Bloom* pair_filter, int insertSize);
     bool isLowCovContig(Contig* contig);
     bool isLowMassContig(Contig* contig);
     bool isTip(ContigNode* node, int i);
@@ -111,17 +102,5 @@ private:
     void cutPath(ContigNode* node, int index); //used on nodes with no backward contig
 };
 
-// class NodeContigData{ //contains all info for an entry in the queue for a node BFS
-// public:
-//     Contig * contig;
-//     ContigNode * far_node;
-//     int len;
-//     double cov;
-//     // std::list<JuncResult> juncs;
-
-//     NodeContigData(ContigNode * node, int index, int insertSize);
-//     NodeContigData();
-
-// };
 
 #endif

@@ -40,33 +40,44 @@ bool ContigNode::isInvertedRepeatNode(){
 }
 
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
-    
+    std::cout << "43\n";
+
     std::unordered_set<kmer_type> seenKmers = {};
     std::vector<NodeQueueEntry> queue;
     queue.reserve(100);
+    int pos = 0;
     queue.push_back(NodeQueueEntry(this, index, 0));
     std::list<JuncResult> results = {};
-    int pos = 0;
+
     while (queue.at(pos).node != nullptr){
+        std::cout << "51, queue size is "<< queue.size() << ", pos is "<< pos <<"\n";
         NodeQueueEntry entry = queue.at(pos);
         pos++;    
-        if (pos > queue.size() - 1) break;
         kmer_type unique_kmer;
+        std::cout << "57\n";
         if (!entry.node->contigs[entry.index]){
+            std::cout << "60\n";
             continue; // don't advance if at dead end
         }else {
             // record unique kmer to avoid cycles
             unique_kmer = entry.node->getUniqueKmer(entry.index);
+            std::cout << "64\n";
         }
         if(seenKmers.find(unique_kmer) == seenKmers.end()){
             seenKmers.insert(unique_kmer);
+            std::cout << "68\n";
             if(entry.startDist <= maxDist){
+                std::cout << "70\n";
                 std::list<JuncResult> newResults = entry.getJuncResults(maxDist);
                 results.insert(results.end(), newResults.begin(), newResults.end());
+                std::cout << "results size " << results.size()<<"\n";
                 entry.addNeighbors(queue);
             }
         }
+        std::cout << "77, queue size is "<< queue.size() << ", pos is "<< pos <<"\n";
+        if (pos > queue.size() - 1) break;
     }
+    std::cout << "final results size is " << results.size() << "\n";
     results.sort();
 
     return results;
@@ -80,6 +91,8 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
         converge to the same node. Returns list of Contig ptrs on Q when paths do converge,
         otherwise returns empty list. 
     */
+    std::cout << "94\n";
+
     ContigNode* target = contigs[max_ind]->otherEndNode(this);
     std::unordered_set<kmer_type> seenKmers = {};   
     std::list<Contig*> path;    
@@ -89,31 +102,42 @@ std::list<Contig*> ContigNode::doPathsConvergeNearby(int max_ind, int min_ind, i
     int pos = 0;
 
     while (queue.at(pos).node != nullptr){
+        std::cout << "105\n";
+
         NodeQueueEntry entry = queue.at(pos);
         pos++;
-        if (pos > queue.size() - 1) break;
 
         kmer_type unique_kmer;
         if (!entry.node->contigs[entry.index]){
+            std::cout << "112\n";
+
             continue; // don't advance if at dead end
         }else {
+            std::cout << "116\n";
             // record unique kmer to avoid cycles
             unique_kmer = entry.node->getUniqueKmer(entry.index);
         }
         if(seenKmers.find(unique_kmer) == seenKmers.end()){        
             seenKmers.insert(unique_kmer);
             if (entry.startDist > max_dist){
-                continue;
+                std::cout << "123\n";
+                if (pos > queue.size() - 1) break;
+                else continue;
             }
             else if (entry.node->contigs[entry.index]->otherEndNode(entry.node)==target){
                 // reconstruct path from parents
+                std::cout << "128\n";
                 path = entry.reconstructPathFromParents(queue);
                 return path; 
             }
             else{
+                std::cout << "133\n";
                 entry.addNeighbors(queue); 
             }            
         }
+        std::cout << "137, queue size is "<< queue.size() << ", pos is "<< pos <<"\n";
+        if (pos > queue.size() - 1) break;
+
    }
    // never reached target - return empty list
    return {};
@@ -315,29 +339,38 @@ void NodeQueueEntry::addNeighbors(std::vector<NodeQueueEntry>& queue){
     ContigNode* nextNode = contig->getNode(otherSide);
     int nextIndex = contig->getIndex(otherSide);
     
-    int firstNonEmptyPos = 0;
-    while(queue.at(firstNonEmptyPos).node == nullptr){ firstNonEmptyPos++; }    
+    std::cout << "328\n";
+    // int lastNonEmptyPos = 0;
+    // std::cout << "329, queue size is "<< queue.size() << ", lastNonEmptyPos is "<< lastNonEmptyPos <<"\n";
+    // while(queue.at(lastNonEmptyPos).node){ lastNonEmptyPos++; }    
+    // std::cout << "331, queue size is "<< queue.size() << ", lastNonEmptyPos is "<< lastNonEmptyPos <<"\n";
 
     if(nextNode){
         if(nextIndex != 4){
             if(nextNode->contigs[4]){
-                if (firstNonEmptyPos == queue.size()){
+                // if (lastNonEmptyPos == queue.size()){
                     queue.push_back(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance())); 
-                } else {
-                    queue.at(firstNonEmptyPos) = NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance());
-                }
+                    std::cout << "334, queue size is "<< queue.size() <<"\n";
+                // } else {
+                //     // queue.at(lastNonEmptyPos) = NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance());
+                //     queue.push_pack(NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance()));
+                //     std::cout << "338, queue size is "<< queue.size() << ", lastNonEmptyPos is "<< lastNonEmptyPos <<"\n";
+                // }
 
             }
         }
         else{
             for (int i = 0; i < 4; i++){
                 if(nextNode->contigs[i]){
-                    if (firstNonEmptyPos == queue.size()){
+                    // if (lastNonEmptyPos == queue.size()){
                         queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));
-                    } else{
-                        queue.at(firstNonEmptyPos) = NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance());
-                    }
-                    firstNonEmptyPos++;
+                        std::cout << "348, queue size is "<< queue.size() <<"\n";
+                    // } else{
+                    //     // queue.at(lastNonEmptyPos) = NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance());
+                    //     queue.push_back(NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance()));                        
+                    //     std::cout << "351, queue size is "<< queue.size() << ", lastNonEmptyPos is "<< lastNonEmptyPos <<"\n";
+                    // }
+                    // lastNonEmptyPos++;
                 }
             }
         }
