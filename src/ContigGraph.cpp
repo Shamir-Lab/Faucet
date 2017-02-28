@@ -323,7 +323,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
 
 bool ContigGraph::isTip(ContigNode* node, int index){
     Contig* contig = node->contigs[index];
-    if(contig->getSeq().length() < read_length && !contig->otherEndNode(node)){//} && isLowCovContig(contig)){
+    if(contig->getSeq().length() < read_length && (!contig->otherEndNode(node) || contig->otherEndNode(node) == node) ){//} && isLowCovContig(contig)){
         return true;
     }
     return false;
@@ -596,6 +596,7 @@ int ContigGraph::deleteTips(){
         }
     }
     printf("Deleted %d tips. %d nodes remain\n", numDeleted, nodeMap.size());
+    return numDeleted;
 }
 
 bool ContigGraph::isCollapsible(ContigNode * node){
@@ -902,11 +903,11 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
 
 
-                    std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
-                    std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
-                    std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
-                    std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
-                    std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                
+                    // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
+                    // std::cout << "lenA: " << len_a << ", lenB: "<< len_b << ", lenC: " << len_c << ", lenD: "<< len_d <<'\n';
+                    // std::cout << "covA: " << cov_a << ", covB: "<< cov_b << ", covC: " << cov_c << ", covD: "<< cov_d <<'\n';                
+                    // std::cout << "scoreAD: " << scoreAD << ", scoreBC: "<< scoreBC << ", scoreAC: " << scoreAC << ", scoreBD: "<< scoreBD <<'\n';
+                    // std::cout << "size A: " << A.size() << ", size B: "<< B.size() << ", size C: " << C.size() << ", size D: "<< D.size() <<'\n';                
 
                     
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){

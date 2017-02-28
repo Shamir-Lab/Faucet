@@ -330,6 +330,7 @@ void ReadScanner::scanReads(bool fastq, bool paired_ends, bool no_cleaning)
 
                 if(long_pair_filter->containsPair(JuncPair(pair1,pair2))){
                     paired = true;
+                    break;
                 }
               }
               if (!paired){
