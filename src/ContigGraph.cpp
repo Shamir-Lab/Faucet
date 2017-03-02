@@ -213,15 +213,13 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, double insertSize, dou
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
 
     bool result = false;
-    // do{
-        // result = false;
-        if (deleteTipsAndClean()){
-            result = true;
-        }
-        if(breakPathsAndClean()){
-            result = true;
-        }
-    // }while(result);
+    
+    if (deleteTipsAndClean()){
+        result = true;
+    }
+    if(breakPathsAndClean()){
+        result = true;
+    }
 
     Contig* longContig = getLongestContig();
     std::pair<double, double> mean_std = longContig->getPairsMeanStd(short_pair_filter);
@@ -912,8 +910,9 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
                        
-                        if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)||
-                            (std::min(scoreAC, scoreBD) >= 2 && std::min(scoreAC,scoreBD) >= 3*std::max(scoreAD,scoreBC)) ){
+                        if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
+                            // ||
+                            // (std::min(scoreAC, scoreBD) >= 2 && std::min(scoreAC,scoreBD) >= 3*std::max(scoreAD,scoreBC)) ){
                             // (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 500 && len_c >= 500)){
 
                             // std::cout << "desired split found\n";
