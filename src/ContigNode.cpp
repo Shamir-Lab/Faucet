@@ -40,7 +40,7 @@ bool ContigNode::isInvertedRepeatNode(){
 }
 
 std::list<JuncResult> ContigNode::getPairCandidates(int index, int maxDist) {
-    std::cout << "43\n";
+    // std::cout << "43\n";
 
     std::unordered_set<kmer_type> seenKmers = {};
     std::vector<NodeQueueEntry> queue(100);
