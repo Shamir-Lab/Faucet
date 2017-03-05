@@ -213,7 +213,7 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, double insertSize, dou
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
 
     bool result = false;
-    
+
     if (deleteTipsAndClean()){
         result = true;
     }
@@ -240,6 +240,7 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
             result = true;
         }
     }
+
     return result;
 }
 
@@ -910,10 +911,8 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     
                     if(allDistinct(std::vector<Contig*>{contig, contig_a, contig_b, contig_c, contig_d})){
                        
-                        if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0)){
-                            // ||
-                            // (std::min(scoreAC, scoreBD) >= 2 && std::min(scoreAC,scoreBD) >= 3*std::max(scoreAD,scoreBC)) ){
-                            // (scoreAC >= 10 && std::max(scoreAD,scoreBC) == 0 && len_a >= 500 && len_c >= 500)){
+                        if ((std::min(scoreAC,scoreBD) > 0 && std::max(scoreAD,scoreBC) == 0) ||
+                            (std::min(scoreAC, scoreBD) >= 2 && std::min(scoreAC,scoreBD) >= 3*std::max(scoreAD,scoreBC)) ){
 
                             // std::cout << "desired split found\n";
                             if(allDistinct(std::vector<ContigNode*>{node,backNode,Nodea,Nodeb,Nodec,Noded}) ||
@@ -952,7 +951,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                                 (std::max(cov_a/cov_b, cov_b/cov_a) >= 1.5 || std::max(cov_c/cov_d, cov_d/cov_c) >= 1.5)
                                 ){
                                 // contig->getSeq().length() > insertSize
-                                // std::cout << "split found by coverage\n";
+                                std::cout << "split found by coverage\n";
                                 operationDone = true;
                             }
                         }    
