@@ -41,6 +41,7 @@ bool from_bloom = false;
 bool from_junctions = false;
 bool just_load = false;
 bool fastq = false;
+bool mercy = false;
 bool node_graph = false;
 bool paired_ends = false;
 bool no_cleaning = false;

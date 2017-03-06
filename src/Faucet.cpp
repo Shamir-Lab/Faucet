@@ -50,7 +50,7 @@ file_prefix.contigs, file_prefix.graph.
 void argumentError(){
     fprintf (stderr,"Usage:\n");
     fprintf (stderr,"./faucet -read_load_file <filename> -read_scan_file <filename> -size_kmer <k> -max_read_length <length> -estimated_kmers <num_kmers> -singletons <num_kmers> -file_prefix <prefix>");
-    fprintf(stderr, "\nOptional arguments: --fastq --high_cov -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
+    fprintf(stderr, "\nOptional arguments: --fastq --mercy --high_cov -max_spacer_dist <dist> -fp rate <rate> -j <int> --two_hash -bloom_file <filename> -junctions_file <filename> --paired_ends --no_cleaning\n");
 }
 
 
@@ -86,6 +86,8 @@ int handle_arguments(int argc, char *argv[]){
                 no_cleaning = true;            
         else if(0 == strcmp(argv[i] , "--fastq")) //input is fastq file
                 fastq = true;
+        else if(0 == strcmp(argv[i] , "--mercy")) //input is fastq file
+                mercy = true;            
         else if(0 == strcmp(argv[i] , "--high_cov")) //input is likely high coverage
                 high_cov = true;            
         else if(0 == strcmp(argv[i], "--node_graph")) //use node graph rather than contig graph
@@ -215,7 +217,7 @@ Bloom* getBloomFilterFromReads(){ //handles loading from reads
     bloo1 = bloo1->create_bloom_filter_optimal(estimated_kmers, p1);
     bloo2 = bloo2->create_bloom_filter_optimal(estimated_kmers, p1);
     // }
-    load_two_filters(bloo1, bloo2, read_load_file, fastq);
+    load_two_filters(bloo1, bloo2, read_load_file, fastq, mercy);
     delete(bloo1);
     return bloo2;
 }

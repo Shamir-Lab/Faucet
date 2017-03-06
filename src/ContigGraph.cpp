@@ -951,7 +951,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                                 (std::max(cov_a/cov_b, cov_b/cov_a) >= 1.5 || std::max(cov_c/cov_d, cov_d/cov_c) >= 1.5)
                                 ){
                                 // contig->getSeq().length() > insertSize
-                                std::cout << "split found by coverage\n";
+                                // std::cout << "split found by coverage\n";
                                 operationDone = true;
                             }
                         }    

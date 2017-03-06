@@ -242,7 +242,25 @@ Bloom* Bloom::create_bloom_filter_optimal(uint64_t estimated_items, float fpRate
     return bloo1;
 }
 
-void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fastq){
+bool isJunction(ReadKmer readKmer, Bloom* bloom, bool dir){
+  kmer_type real_ext = readKmer.getRealExtension();
+  //Check alternate extensions, and if the total valid extension count is greater than 1, return true. 
+  kmer_type real = readKmer.getKmer();
+
+  for(int nt=0; nt<4; nt++) {//for each extension
+    kmer_type test_ext = readKmer.doubleKmer.getExtension(nt, dir); //get possible extension
+    if(real_ext != test_ext){//if the alternate and real extensions are different
+      if(bloom->oldContains(get_canon(test_ext)))//if the branch checks out initially
+      { 
+        return true;
+      }
+    }
+  }
+
+  return false;  
+}
+
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fastq, bool mercy){
     ifstream solidReads;
     solidReads.open(reads_filename);
 
@@ -263,17 +281,52 @@ void load_two_filters(Bloom* bloo1, Bloom* bloo2, string reads_filename, bool fa
             read = readList.front();
             readList.pop_front();
             unambiguousReads++;
-            for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
-                canonKmer = kmer.getCanon();
-                hashA = bloo1->oldHash(canonKmer, 0);
-                hashB = bloo1->oldHash(canonKmer, 1);
-                if(bloo1->contains(hashA, hashB)){
-                    bloo2->add(hashA, hashB);
+            if (!mercy){
+                for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
+                    canonKmer = kmer.getCanon();
+                    hashA = bloo1->oldHash(canonKmer, 0);
+                    hashB = bloo1->oldHash(canonKmer, 1);
+                    if(bloo1->contains(hashA, hashB)){
+                        bloo2->add(hashA, hashB);
+                    }
+                    else{
+                        bloo1->add(hashA, hashB);
+                    }
                 }
-                else{
-                    bloo1->add(hashA, hashB);
+            } else{ // mercy kmers strategy - try to capture low coverage connecting k-mers
+                ReadKmer *last_kmer = nullptr;
+                std::list<std::pair<uint64_t, uint64_t>  > hash_vals = {};
+                for(ReadKmer kmer = ReadKmer(&read); kmer.getDistToEnd() >= 0 ; kmer.forward(), kmer.forward()){
+                    canonKmer = kmer.getCanon();
+                    hashA = bloo1->oldHash(canonKmer, 0);
+                    hashB = bloo1->oldHash(canonKmer, 1);
+                    if(bloo1->contains(hashA, hashB)){
+                        bloo2->add(hashA, hashB);
+                        last_kmer = &kmer;
+
+                        if(hash_vals.size()!=0) { // came from low to high 
+                            if (!isJunction(kmer, bloo1, BACKWARD)){
+                                for(auto val : hash_vals){
+                                    bloo2->add(val.first, val.second);
+                                }
+                            }
+                            hash_vals.clear();
+                        }                                                  
+                    }
+                    else{
+                        bloo1->add(hashA, hashB);
+                        if (last_kmer) {
+                            if (hash_vals.size()==0) { // came from high to low
+                                if(!isJunction(*last_kmer, bloo1, FORWARD)){
+                                    hash_vals.push_back(std::make_pair(hashA, hashB));
+                                }
+                            }else{
+                                hash_vals.push_back(std::make_pair(hashA, hashB));
+                            }
+                        }
+                    }
                 }
-            }    
+            }   
         }
         readsProcessed++;
         if ((readsProcessed%100000)==0){

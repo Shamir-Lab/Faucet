@@ -291,9 +291,10 @@ public:
     ~Bloom();
 };
 
-void load_two_filters(Bloom* bloo1, Bloom* bloo2, std::string reads_filename, bool fastq); //if fastq, use fastq. Else use fasta
+void load_two_filters(Bloom* bloo1, Bloom* bloo2, std::string reads_filename, bool fastq, bool mercy); //if fastq, use fastq. Else use fasta
 void load_single_filter(Bloom* bloo1, string reads_filename, bool fastq);
 double brents_fun(std::function<double (double)> f, double lower, double upper, double tol, unsigned int max_iter);
+bool isJunction(ReadKmer readKmer, Bloom* bloom, bool dir);
 
 #endif
 
