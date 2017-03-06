@@ -265,9 +265,15 @@ int main(int argc, char *argv[])
     Bloom* short_pair_filter;
     Bloom* long_pair_filter;
     if (!high_cov){
-        short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
-        if (paired_ends) long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, 0.01);
-        else long_pair_filter = nullptr;
+        if (mercy){ // mercy kmers leads to more junctions being formed --> double size of filters
+            short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, 0.01);
+            if (paired_ends) long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/5, 0.01);
+            else long_pair_filter = nullptr;    
+        }else{
+            short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/20, 0.01);
+            if (paired_ends) long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/10, 0.01);
+            else long_pair_filter = nullptr;
+        }
     }else {
         short_pair_filter = short_pair_filter->create_bloom_filter_optimal(estimated_kmers/2, 0.01);
         if (paired_ends) long_pair_filter = long_pair_filter->create_bloom_filter_optimal(estimated_kmers/2, 0.01);
