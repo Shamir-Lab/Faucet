@@ -322,7 +322,7 @@ std::pair <Contig*,Contig*> ContigGraph::getMinMaxForwardExtensions(ContigNode *
 
 bool ContigGraph::isTip(ContigNode* node, int index){
     Contig* contig = node->contigs[index];
-    if(contig->getSeq().length() < read_length && (!contig->otherEndNode(node) || contig->otherEndNode(node) == node) ){//} && isLowCovContig(contig)){
+    if(contig->getSeq().length() < read_length && (!contig->otherEndNode(node) || contig->otherEndNode(node) == node) ){
         return true;
     }
     return false;
@@ -575,7 +575,7 @@ int ContigGraph::deleteTips(){
                 }
             }
         }
-        if(node->contigs[4]){
+        if(node->contigs[4]){            
             if(isTip(node,4)){ // i = 4
                 contig = node->contigs[4];
                 cutPath(node,4);
@@ -643,9 +643,17 @@ int ContigGraph::removeChimericExtensions(int insertSize){
 
             if (!far_node || far_node == node){
                 ++it;
-            }else if ( P->getSeq().length() < 150 && 
+                continue;
+            }
+            if (far_node->indexOf(P)==4){
+                ++it;
+                continue;
+            }
+            std::pair <Contig *, Contig *> FarPair = getMinMaxForwardExtensions(far_node,"coverage");
+
+            if ( P->getSeq().length() < 150 && 
                         Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && 
-                        far_node->indexOf(P)!=4 && far_node->numPathsOut()>1
+                        far_node->numPathsOut()>1
                     ){         
 
                 kmer_type far_kmer = far_node->getKmer();     
