@@ -645,21 +645,21 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                 ++it;
                 continue;
             }
-            if (far_node->indexOf(P)==4){
+            if (far_node->indexOf(P)==4 || far_node->numPathsOut() < 2){
                 ++it;
                 continue;
             }
             std::pair <Contig *, Contig *> FarPair = getMinMaxForwardExtensions(far_node,"coverage");
+            Contig * P2 = FarPair.first;
+            Contig * Q2 = FarPair.second; 
 
-            if ( P->getSeq().length() < 150 && 
-                        Q->getAvgCoverage()/P->getAvgCoverage() >= 3 && 
-                        far_node->numPathsOut()>1
+            if ( P->getSeq().length() < 150 && Q->getAvgCoverage()/P->getAvgCoverage() >= 3 &&
+                 Q2->getAvgCoverage()/P2->getAvgCoverage() >= 3 && P==P2 && Q!=Q2
                     ){         
 
-                kmer_type far_kmer = far_node->getKmer();     
-                cutPath(node, node->indexOf(P));    
-                cutPath(far_node, far_node->indexOf(P));                                  
-                deleteContig(P);
+                cutPath(node, node->indexOf(P));   // only disconnect at one end - can be disentangled or removed as tip 
+                // cutPath(far_node, far_node->indexOf(P));                                  
+                // deleteContig(P);
 
                 if(isCollapsible(node)){
                     collapseNode(node, kmer);                                                
