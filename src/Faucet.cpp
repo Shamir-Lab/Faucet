@@ -313,7 +313,10 @@ int main(int argc, char *argv[])
     // contigGraph->printContigs(file_prefix + ".raw_contigs.fasta");
 
     if (no_cleaning){ return 0; }
-    while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter));
+    int iter_count = 0;
+    while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter) && iter_count < 50){
+        iter_count++;
+    }
 
     contigGraph->checkGraph();
     contigGraph->printContigs(file_prefix + ".cleaned_contigs.fasta");
