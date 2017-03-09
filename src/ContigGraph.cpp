@@ -669,9 +669,6 @@ int ContigGraph::removeChimericExtensions(int insertSize){
                     deleteContig(P);
                 }
 
-                // cutPath(far_node, far_node->indexOf(P));                                  
-                // deleteContig(P);
-
                 if(isCollapsible(node)){
                     collapseNode(node, kmer);                                                
                     it = nodeMap.erase(it);                           
@@ -911,7 +908,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     double cov_d = contig_d->getAvgCoverage();
 
                     // add 1 to always get at least a flanking junction
-                    int stepSize = (int) insertSize + 3*std;
+                    int stepSize = (int) insertSize + 2*std;
                     A = backNode->getPairCandidates(a, 2*std::min(len_a, stepSize));
                     B = backNode->getPairCandidates(b, 2*std::min(len_b, stepSize));
                     C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
@@ -1092,7 +1089,7 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                     double cov_d = contig_d->getAvgCoverage();
 
                     // add 1 to always get at least a flanking junction
-                    int stepSize = (int) insertSize + 3*std;
+                    int stepSize = (int) insertSize + 2*std;
                     A = backNode->getPairCandidates(a, 2*std::min(len_a, stepSize));
                     B = backNode->getPairCandidates(b, 2*std::min(len_b, stepSize));
                     C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
