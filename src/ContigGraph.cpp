@@ -169,26 +169,25 @@ bool ContigGraph::deleteTipsAndClean(){
     if(deleteTips() > 0){
         result = true;
     } 
-    if (validateNoneCollapsible()){
-        result = true; 
-    }
-    if (removeChimericExtensions(150) > 0){
-        result  = true;
-    }
-    if (validateNoneCollapsible()){
-        result = true; 
-    }
+    validateNoneCollapsible();
     return result;
 }
 
-bool ContigGraph::breakPathsAndClean(){
+bool ContigGraph::removeChimerasAndClean(){
+    bool result = false;
+    if (removeChimericExtensions(150) > 0){
+        result  = true;
+    }
+    validateNoneCollapsible();
+    return result;
+}
+
+bool ContigGraph::collapseBulgesAndClean(){
     bool result = false;
     if(collapseBulges(150) > 0){
         result = true;
     }
-    if (validateNoneCollapsible()){
-        result = true; 
-    }
+    validateNoneCollapsible();
     return result;
 }
 
@@ -198,27 +197,28 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, double insertSize, dou
     if(disentangleLoopPaths(pair_filter, insertSize, std) > 0){
         result = true;
     }
-    if (validateNoneCollapsible()){
-        result = true; 
-    }
+    validateNoneCollapsible();
+
     if(disentangleParallelPaths(pair_filter, insertSize, std) > 0){
         result = true;
     }
-    if (validateNoneCollapsible()){
-        result = true; 
-    }
+    validateNoneCollapsible();
+
     return result;
 }
 
 bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
 
-    bool result = false;
+    int vote_to_continue = 0;
 
     if (deleteTipsAndClean()){
-        result = true;
+        vote_to_continue++;
     }
-    if(breakPathsAndClean()){
-        result = true;
+    if (removeChimerasAndClean()){
+        vote_to_continue++;
+    }
+    if (collapseBulgesAndClean()){
+        vote_to_continue++;
     }
 
     Contig* longContig = getLongestContig();
@@ -227,7 +227,7 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
     double std = mean_std.second;
     std::cout << "short insert size set to " << insertSize << ", std set to " << std << std::endl;
     if(disentangleAndClean(short_pair_filter, insertSize, std)){
-        result = true;
+        vote_to_continue++;
     }
 
     if (long_pair_filter){ // skip in case not paired-end
@@ -237,11 +237,11 @@ bool ContigGraph::cleanGraph(Bloom* short_pair_filter, Bloom* long_pair_filter){
         std = mean_std.second;
         std::cout << "long insert size set to " << insertSize << ", std set to " << std << std::endl;
         if(disentangleAndClean(long_pair_filter, insertSize, std)){
-            result = true;
+            vote_to_continue++;
         }
     }
-
-    return result;
+    if (vote_to_continue > 1) return true;
+    else {return false;}
 }
 
 bool ContigGraph::checkGraph(){
@@ -394,7 +394,7 @@ int ContigGraph::deleteIsolatedContigs(){
         }
         else ++it;
     }
-    printf("Deleted %d isolated low mass contigs. %d nodes remain\n", numDeleted, isolated_contigs.size());
+    printf("Deleted %d isolated low mass contigs. %d nodes left\n", numDeleted, isolated_contigs.size());
     return numDeleted;
 }
  
@@ -425,7 +425,8 @@ bool ContigGraph::testAndCutIfDegenerate(ContigNode* node){
 
 
 int ContigGraph::destroyDegenerateNodes(){
-    printf("Destroying degenerate nodes. Starting with %d nodes.\n", nodeMap.size());
+    std::cout << "Starting with " << nodeMap.size() << " nodes, destroying degenerate nodes.\n";
+
     int numDegen = 0;
 
     //looks through all contigs adjacent to nodes
@@ -442,7 +443,8 @@ int ContigGraph::destroyDegenerateNodes(){
         }
     }
 
-    printf("Done destroying %d nodes.\n", numDegen);
+    printf("Destroyed %d nodes. %d nodes left\n", numDegen, nodeMap.size());
+
     return numDegen;
 }
 
@@ -558,7 +560,8 @@ std::list<Contig*> ContigGraph::getPathIfSimpleBulge(ContigNode* node, int max_d
 }
 
 int ContigGraph::deleteTips(){
-    printf("Deleting tips. Starting with %d nodes. \n", nodeMap.size());
+    std::cout << "Starting with " << nodeMap.size() << " nodes, deleting tips.\n";
+
     int numDeleted = 0;
     it = nodeMap.begin();
     while(it != nodeMap.end()){  
@@ -594,7 +597,7 @@ int ContigGraph::deleteTips(){
             ++it;
         }
     }
-    printf("Deleted %d tips. %d nodes remain\n", numDeleted, nodeMap.size());
+    printf("Deleted %d tips. %d nodes left\n", numDeleted, nodeMap.size());
     return numDeleted;
 }
 
@@ -624,7 +627,8 @@ bool ContigGraph::isCollapsible(ContigNode * node){
 }
 
 int ContigGraph::removeChimericExtensions(int insertSize){
-    printf("Removing chimeric extensions. Starting with %d nodes. \n", nodeMap.size());
+    std::cout << "Starting with " << nodeMap.size() << " nodes, removing chimeric extensions.\n";
+
     int numDeleted = 0; 
     std::unordered_set<kmer_type> seenKmers = {};
 
@@ -686,7 +690,8 @@ int ContigGraph::removeChimericExtensions(int insertSize){
 }
 
 int ContigGraph::validateNoneCollapsible(){
-    printf("Collapsing any remaining collapsible nodes. Starting with %d nodes. \n", nodeMap.size());
+    std::cout << "Starting with " << nodeMap.size() << " nodes, collapsing collapsible nodes.\n";
+
     int numDeleted = 0; 
     it = nodeMap.begin();
     while(it!=nodeMap.end()){
@@ -714,7 +719,8 @@ int ContigGraph::validateNoneCollapsible(){
 }
 
 int ContigGraph::collapseBulges(int max_dist){
-    printf("Collapsing simple bulges. Starting with %d nodes. \n", nodeMap.size());
+    std::cout << "Starting with " << nodeMap.size() << " nodes, collapsing bulges.\n";
+
     int numDeleted = 0;
     std::unordered_set<kmer_type> seenKmers = {};
 
@@ -823,7 +829,7 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
     if (insertSize <= 0 || std <= 0) return 0;
-    std::cout << "About to disentangle parallel paths.  Starting with " << nodeMap.size() << " nodes.\n";
+    std::cout << "Starting with " << nodeMap.size() << " nodes, disentangling parallel paths.\n";
 
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){
@@ -1003,7 +1009,7 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
     double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
     if (insertSize <= 0 || std <= 0) return 0;
-    std::cout << "About to disentangle loop paths.  Starting with " << nodeMap.size() << " nodes.\n";
+    std::cout << "Starting with " << nodeMap.size() << " nodes, disentangling loop paths.\n";
 
     //looks through all contigs adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ){

@@ -82,7 +82,8 @@ public:
     int validateNoneCollapsible();
     int collapseBulges(int max_dist);
     bool deleteTipsAndClean();
-    bool breakPathsAndClean();
+    bool removeChimerasAndClean();
+    bool collapseBulgesAndClean();
     bool disentangleAndClean(Bloom* pair_filter, double insertSize, double std);
     bool areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac);
     bool areDifferentialContigCoverages(ContigJuncList A, ContigJuncList B);
