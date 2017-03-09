@@ -656,12 +656,19 @@ int ContigGraph::removeChimericExtensions(int insertSize){
             std::pair <Contig *, Contig *> FarPair = getMinMaxForwardExtensions(far_node,"coverage");
             Contig * P2 = FarPair.first;
             Contig * Q2 = FarPair.second; 
+            double ratio1 = Q->getAvgCoverage()/P->getAvgCoverage();
+            double ratio2 = Q2->getAvgCoverage()/P2->getAvgCoverage();
+            if ( P->getSeq().length() < 150 &&  ratio1 >= 3 && P==P2){         
+                if (ratio1 > ratio2){
+                    cutPath(node, node->indexOf(P));   // only disconnect at one end - can be disentangled or removed as tip 
+                }else if(ratio2 > ratio1){
+                    cutPath(far_node, far_node->indexOf(P));   // only disconnect at one end - can be disentangled or removed as tip                     
+                }else{
+                    cutPath(node, node->indexOf(P));   // only disconnect at one end - can be disentangled or removed as tip 
+                    cutPath(far_node, far_node->indexOf(P));   // only disconnect at one end - can be disentangled or removed as tip                     
+                    deleteContig(P);
+                }
 
-            if ( P->getSeq().length() < 150 && Q->getAvgCoverage()/P->getAvgCoverage() >= 3 &&
-                 Q2->getAvgCoverage()/P2->getAvgCoverage() >= 3 && P==P2 && Q!=Q2
-                    ){         
-
-                cutPath(node, node->indexOf(P));   // only disconnect at one end - can be disentangled or removed as tip 
                 // cutPath(far_node, far_node->indexOf(P));                                  
                 // deleteContig(P);
 
