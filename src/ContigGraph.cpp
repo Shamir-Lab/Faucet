@@ -168,8 +168,8 @@ bool ContigGraph::deleteTipsAndClean(){
     bool result = false;
     if(deleteTips() > 0){
         result = true;
+        validateNoneCollapsible();
     } 
-    validateNoneCollapsible();
     return result;
 }
 
@@ -177,8 +177,8 @@ bool ContigGraph::removeChimerasAndClean(){
     bool result = false;
     if (removeChimericExtensions(150) > 0){
         result  = true;
+        validateNoneCollapsible();
     }
-    validateNoneCollapsible();
     return result;
 }
 
@@ -186,8 +186,8 @@ bool ContigGraph::collapseBulgesAndClean(){
     bool result = false;
     if(collapseBulges(150) > 0){
         result = true;
+        validateNoneCollapsible();
     }
-    validateNoneCollapsible();
     return result;
 }
 
@@ -196,13 +196,13 @@ bool ContigGraph::disentangleAndClean(Bloom* pair_filter, double insertSize, dou
 
     if(disentangleLoopPaths(pair_filter, insertSize, std) > 0){
         result = true;
+        validateNoneCollapsible();
     }
-    validateNoneCollapsible();
 
     if(disentangleParallelPaths(pair_filter, insertSize, std) > 0){
         result = true;
+        validateNoneCollapsible();
     }
-    validateNoneCollapsible();
 
     return result;
 }
@@ -1058,104 +1058,92 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
                 kmer_type back_kmer = backNode->getKmer();
-                // std::cout << "1091\n";
-                for (int orientation = 1; orientation < 5; orientation++){
-                    if (orientation % 2 == 1) {a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];}
-                    else {b = backNode->getIndicesOut()[0], a = backNode->getIndicesOut()[1];}
-                    if (orientation > 2){d = node->getIndicesOut()[0], c = node->getIndicesOut()[1];}
-                    else {c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];}
-                    
-                    Contig* contig_a = backNode->contigs[a]; 
-                    Contig* contig_b = backNode->contigs[b];
-                    Contig* contig_c = node->contigs[c];
-                    Contig* contig_d = node->contigs[d];
-
-                    std::list<JuncResult> A,B,C,D;
-
-                    ContigNode* Nodea = contig_a->otherEndNode(backNode);
-                    ContigNode* Nodeb = contig_b->otherEndNode(backNode);
-                    ContigNode* Nodec = contig_c->otherEndNode(node);
-                    ContigNode* Noded = contig_d->otherEndNode(node);             
-                    double scoreAC, scoreAD, scoreBC, scoreBD;
-
-                    int len_a = contig_a->getSeq().length();
-                    int len_b = contig_b->getSeq().length();
-                    int len_c = contig_c->getSeq().length();
-                    int len_d = contig_d->getSeq().length();
-
-                    double cov_a = contig_a->getAvgCoverage();
-                    double cov_b = contig_b->getAvgCoverage();
-                    double cov_c = contig_c->getAvgCoverage();
-                    double cov_d = contig_d->getAvgCoverage();
-
-                    // add 1 to always get at least a flanking junction
-                    int stepSize = (int) insertSize + 2*std;
-                    A = backNode->getPairCandidates(a, 2*std::min(len_a, stepSize));
-                    B = backNode->getPairCandidates(b, 2*std::min(len_b, stepSize));
-                    C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
-                    D = node->getPairCandidates(d, 2*std::min(len_d, stepSize));
                 
-                    scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
-                    scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
-                    scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
-                    scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
+                a = backNode->getIndicesOut()[0], b = backNode->getIndicesOut()[1];
+                c = node->getIndicesOut()[0], d = node->getIndicesOut()[1];
 
-                    if (Nodea==node && Nodec==backNode && Nodeb != node && Nodeb != backNode && Noded != node && Noded != backNode){
-                           
-                        // below, check either connected to surrounding genome (i.e., unlike a plasmid) or 
-                        // loop short enough not to have any junctions
-                        if((scoreAD>0 || scoreBC>0 || (A.size()==0 && C.size()==0 && len_a < read_length)) ){ 
+                Contig* contig_a = backNode->contigs[a]; 
+                Contig* contig_b = backNode->contigs[b];
+                Contig* contig_c = node->contigs[c];
+                Contig* contig_d = node->contigs[d];
 
-                            ContigJuncList origJuncs = contig->contigJuncs;   
-                            ContigJuncList newJuncs;                             
-                            double BC_weight = (cov_b*len_b + cov_c*len_c) / (len_b + len_c);
-                            double CD_weight = (cov_c*len_c + cov_d*len_d) / (len_c + len_d);
-                            double scale_factor_BC = BC_weight  / (BC_weight + CD_weight);
-                            double scale_factor_CD = 1 - scale_factor_BC; 
-                            newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BC);   
-                            contig->setContigJuncs(newJuncs);
-                            Contig* contigBRCRD = contig_b->concatenate(contig, contig_b->getSide(backNode), contig->getSide(backNode));
-                            contigBRCRD = contigBRCRD->concatenate(contig_c, contigBRCRD->getSide(node), contig_c->getSide(node));
-                            newJuncs = origJuncs.getScaledContigJuncs(scale_factor_CD);   
-                            contig->setContigJuncs(newJuncs);
-                            contigBRCRD = contigBRCRD->concatenate(contig, contigBRCRD->getSide(backNode), contig->getSide(backNode));
-                            contigBRCRD = contigBRCRD->concatenate(contig_d, contigBRCRD->getSide(node), contig_d->getSide(node));
-                            if(Nodeb){
-                                Nodeb->replaceContig(contig_b, contigBRCRD);
-                            }
-                            if(Noded){
-                                Noded->replaceContig(contig_d, contigBRCRD);
-                            }
-                            if(!Nodeb && !Noded){
-                                isolated_contigs.push_back(*contigBRCRD);
-                            }
-                            // std::cout << "split found for loop\n";
-                            operationDone = true;
-                        }      
-                    }
-                    if (operationDone){
-                        
-                        disentangled++;
-                        for (int i = 0; i< 4; i++){
-                            cutPath(backNode, i);
-                            cutPath(node, i);
-                        }
-                        
-                        it = nodeMap.erase(it);
-                        operationDone = false;
-                        break;
-                    }
-                    else{
-                        // std::cout << "985\n";
-                        if (orientation==4){ // made it through inner for without disentanglement
-                            ++it;
-                        }
-                    }
+                std::list<JuncResult> A,B,C,D;
+
+                ContigNode* Nodea = contig_a->otherEndNode(backNode);
+                ContigNode* Nodeb = contig_b->otherEndNode(backNode);
+                ContigNode* Nodec = contig_c->otherEndNode(node);
+                ContigNode* Noded = contig_d->otherEndNode(node);             
+                double scoreAC, scoreAD, scoreBC, scoreBD;
+
+                int len_a = contig_a->getSeq().length();
+                int len_b = contig_b->getSeq().length();
+                int len_c = contig_c->getSeq().length();
+                int len_d = contig_d->getSeq().length();
+
+                double cov_a = contig_a->getAvgCoverage();
+                double cov_b = contig_b->getAvgCoverage();
+                double cov_c = contig_c->getAvgCoverage();
+                double cov_d = contig_d->getAvgCoverage();
+
+                int stepSize = (int) insertSize + 2*std;
+                A = backNode->getPairCandidates(a, 2*std::min(len_a, stepSize));
+                B = backNode->getPairCandidates(b, 2*std::min(len_b, stepSize));
+                C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
+                D = node->getPairCandidates(d, 2*std::min(len_d, stepSize));
+            
+                scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
+                scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
+                scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
+                scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
+
+                if (Nodea==node && Nodec==backNode && Nodeb != node && Nodeb != backNode && Noded != node && Noded != backNode){
+                    // below, check either connected to surrounding genome (i.e., unlike a plasmid) or 
+                    // loop short enough not to have any junctions
+                    if((scoreAD>0 || scoreBC>0 || (A.size()==0 && C.size()==0 && len_a < read_length)) ){ 
+                        disentangleLoop(contig, backNode, node, a, b, c, d);
+                        operationDone = true;
+                    }      
+                }else if(Nodeb==node && Noded==backNode && Nodea != node && Nodea != backNode && Nodec != node && Nodec != backNode){
+                    if((scoreAD>0 || scoreBC>0 || (B.size()==0 && D.size()==0 && len_b < read_length)) ){ 
+                        disentangleLoop(contig, backNode, node, b, a, d, c);
+                        operationDone = true;
+                    } 
+                }else if(Nodea==node && Noded==backNode && Nodeb != node && Nodeb != backNode && Nodec != node && Nodec != backNode){
+                    if((scoreAC>0 || scoreBD>0 || (A.size()==0 && D.size()==0 && len_a < read_length)) ){ 
+                        disentangleLoop(contig, backNode, node, a, b, d, c);
+                        operationDone = true;
+                    } 
+                }else if(Nodeb==node && Nodec==backNode && Nodea != node && Nodea != backNode && Noded != node && Noded != backNode){
+                    if((scoreBD>0 || scoreAC>0 || (B.size()==0 && C.size()==0 && len_b < read_length)) ){ 
+                        disentangleLoop(contig, backNode, node, b, a, c, d);
+                        operationDone = true;
+                    } 
+                }else {
+                    ++it;
+                    continue;
                 }
+
+                if (operationDone){
+                    // std::cout << "split found for loop\n";
+                    disentangled++;
+                    for (int i = 0; i< 4; i++){
+                        cutPath(backNode, i);
+                        cutPath(node, i);
+                    }
+                    
+                    it = nodeMap.erase(it);
+                    operationDone = false;
+                    continue;
+                }else {
+                    ++it;
+                    continue;
+                }
+                 
             }
-            else{
-                ++it;
+            else{            
+                ++it;            
             }
+            
         }
         else{            
             ++it;            
@@ -1300,6 +1288,54 @@ void ContigGraph::disentanglePair(Contig* contig, ContigNode* backNode, ContigNo
     // return true;
 }
     
+void ContigGraph::disentangleLoop(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, 
+    int a, int b, int c, int d){
+    
+    Contig* contigA = backNode->contigs[a];
+    Contig* contigB = backNode->contigs[b];
+    Contig* contigC = forwardNode->contigs[c];
+    Contig* contigD = forwardNode->contigs[d];
+
+    ContigNode* nodeA = contigA->otherEndNode(backNode);
+    ContigNode* nodeB = contigB->otherEndNode(backNode);
+    ContigNode* nodeC = contigC->otherEndNode(forwardNode);
+    ContigNode* nodeD = contigD->otherEndNode(forwardNode);
+
+    double cov_a = contigA->getAvgCoverage();
+    double cov_b = contigB->getAvgCoverage();
+    double cov_c = contigC->getAvgCoverage();
+    double cov_d = contigD->getAvgCoverage();
+
+    int len_a = contigA->getSeq().length();
+    int len_b = contigB->getSeq().length();
+    int len_c = contigC->getSeq().length();
+    int len_d = contigD->getSeq().length();
+
+    ContigJuncList origJuncs = contig->contigJuncs;   
+    ContigJuncList newJuncs;                             
+    double BC_weight = (cov_b*len_b + cov_c*len_c) / (len_b + len_c);
+    double CD_weight = (cov_c*len_c + cov_d*len_d) / (len_c + len_d);
+    double scale_factor_BC = BC_weight  / (BC_weight + CD_weight);
+    double scale_factor_CD = 1 - scale_factor_BC; 
+    newJuncs = origJuncs.getScaledContigJuncs(scale_factor_BC);   
+    contig->setContigJuncs(newJuncs);
+    Contig* contigBRCRD = contigB->concatenate(contig, contigB->getSide(backNode), contig->getSide(backNode));
+    contigBRCRD = contigBRCRD->concatenate(contigC, contigBRCRD->getSide(forwardNode), contigC->getSide(forwardNode));
+    newJuncs = origJuncs.getScaledContigJuncs(scale_factor_CD);   
+    contig->setContigJuncs(newJuncs);
+    contigBRCRD = contigBRCRD->concatenate(contig, contigBRCRD->getSide(backNode), contig->getSide(backNode));
+    contigBRCRD = contigBRCRD->concatenate(contigD, contigBRCRD->getSide(forwardNode), contigD->getSide(forwardNode));
+    if(nodeB){
+        nodeB->replaceContig(contigB, contigBRCRD);
+    }
+    if(nodeD){
+        nodeD->replaceContig(contigD, contigBRCRD);
+    }
+    if(!nodeB && !nodeD){
+        isolated_contigs.push_back(*contigBRCRD);
+    }
+}
+
 int ContigGraph::collapseDummyNodes(){
    printf("Collapsing dummy nodes.\n");
     int numCollapsed = 0;

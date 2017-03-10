@@ -54,6 +54,8 @@ public:
     //Does not go ahead with the operation if degeneracies are detected
     //Returns true if it goes ahead with disentanglement
     void disentanglePair(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
+    void disentangleLoop(Contig* contig, ContigNode* backNode, ContigNode* forwardNode, int a, int b, int c, int d);
+
     void addIsolatedContig(Contig contig);
     bool isLowCovContig(Contig* contig);
     bool isLowMassContig(Contig* contig);

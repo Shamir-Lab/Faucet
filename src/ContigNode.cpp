@@ -401,50 +401,8 @@ std::list<Contig*> NodeQueueEntry::reconstructPathFromParents(std::vector<NodeQu
             currEntry = &(*it);
         }
     }
-
-
-    // path.push_front(node->contigs[index]);
-    // ContigNode * currNode;
-    // Contig * currContig;
-    // std::unordered_map<NodeQueueEntry, NodeQueueEntry>::iterator currentEntry = parents.find(*this);
-    // while(currentEntry != parents.end()){
-    //     currNode = currentEntry->second.node;
-    //     currContig = currNode->contigs[currentEntry->second.index];
-    //     path.push_front(currContig);
-    //     currentEntry = parents.find(currentEntry->second);
-    // }
     return path;
 }
 
 
-
-
-// void NodeQueueEntry::recordParents(std::unordered_map<NodeQueueEntry, NodeQueueEntry>& parents){
-//     Contig* contig = node->contigs[index];
-//     // if (node->contigs[index]){
-//     //     printf("no contig at this index!\n");
-//     // }
-//     int otherSide = 3 - contig->getSide(node,index);    
-//     ContigNode* nextNode = contig->getNode(otherSide);
-//     int nextIndex = contig->getIndex(otherSide);
-    
-
-
-//     if(nextNode){
-//         if(nextIndex != 4){
-//             if(nextNode->contigs[4]){
-//                 parents[NodeQueueEntry(nextNode, 4, startDist + contig->getTotalDistance())] = *this;                  
-//             }
-//         }
-//         else{
-//             for (int i = 0; i < 4; i++){
-//                 if(nextNode->contigs[i]){
-//                     parents[NodeQueueEntry(nextNode, i, startDist + contig->getTotalDistance())] = *this;
-                    
-//                 }
-//             }
-//         }
-//     }
-    
-// }
 
