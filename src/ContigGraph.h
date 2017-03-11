@@ -44,8 +44,10 @@ public:
     bool isCollapsible(ContigNode * node);
 
     //Gets number of supporting pairs given candidate list
-    //TODO: normalize by expected FP rate of filter
-    double getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate, int insertSize);
+    double getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, int insertSize);
+    // same as getScore, but stops at first positive query
+    bool areConnected(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, int insertSize);
+
     std::pair <Contig*,Contig*> getMinMaxForwardExtensions(ContigNode * node, std::string trait);
 
 

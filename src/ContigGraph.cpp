@@ -449,23 +449,20 @@ int ContigGraph::destroyDegenerateNodes(){
 }
 
 //returns a score based on how many pairs of kmers from the first and second lists are in the filter,
-//relative to the FP rate of the filter
-double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, double fpRate, int insertSize){
+double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, int insertSize){
     double score = 0;
-    int counter = 0;
     std::unordered_set<JuncPair> seenPairs = {};
     
-    //Looks for junction pairs from a single read, within readlength of the junction either way
     for(auto itL = leftCand.begin(); itL != leftCand.end() && itL->distance < insertSize; itL++){
         for(auto itR = rightCand.begin(); itR != rightCand.end()  && itR->distance < insertSize; itR++){
-            counter++;
             JuncPair pair = JuncPair(itL->kmer, itR->kmer);
             JuncPair rev_pair = JuncPair(itR->kmer, itL->kmer);
-            if(pair_filter->containsPair(pair) && seenPairs.find(pair)==seenPairs.end() 
-                && seenPairs.find(rev_pair)==seenPairs.end()){
-                //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
-                score += 1;
+            if(seenPairs.find(pair)==seenPairs.end()){
                 seenPairs.insert(pair);
+                seenPairs.insert(rev_pair);
+                if (pair_filter->containsPair(pair) || pair_filter->containsPair(rev_pair)){
+                    score += 1;    
+                }
             } 
         }
     }
@@ -473,6 +470,26 @@ double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResul
     
     return score; 
 }
+
+bool ContigGraph::areConnected(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, int insertSize){
+
+    std::unordered_set<JuncPair> seenPairs = {};
+    
+    for(auto itL = leftCand.begin(); itL != leftCand.end() && itL->distance < insertSize; itL++){
+        for(auto itR = rightCand.begin(); itR != rightCand.end()  && itR->distance < insertSize; itR++){
+            JuncPair pair = JuncPair(itL->kmer, itR->kmer);
+            JuncPair rev_pair = JuncPair(itR->kmer, itL->kmer);
+            if(seenPairs.find(pair)==seenPairs.end()){
+                seenPairs.insert(pair);
+                seenPairs.insert(rev_pair);
+                if (pair_filter->containsPair(pair) || pair_filter->containsPair(rev_pair)) return true;
+            } 
+        }
+    }
+    
+    return false; 
+}
+
 
 bool ContigGraph::isBubble(ContigNode* node){
     if (node->numPathsOut() == 2){ // TODO: generalize to more than 2
@@ -830,7 +847,6 @@ int ContigGraph::collapseBulges(int max_dist){
 int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize, double std){
     int disentangled = 0;
     bool operationDone = false;
-    double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
     if (insertSize <= 0 || std <= 0) return 0;
     std::cout << "Starting with " << nodeMap.size() << " nodes, disentangling parallel paths.\n";
@@ -914,10 +930,10 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
                     C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
                     D = node->getPairCandidates(d, 2*std::min(len_d, stepSize));
                 
-                    scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
-                    scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
-                    scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
-                    scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
+                    scoreAC = getScore(A,C, pair_filter, stepSize);
+                    scoreAD = getScore(A,D, pair_filter, stepSize);
+                    scoreBC = getScore(B,C, pair_filter, stepSize);
+                    scoreBD = getScore(B,D, pair_filter, stepSize);
 
 
                     // std::cout << contig << ", contig len " << contig->getSeq().length() << ", contig cov: " << contig->getAvgCoverage() << ", insert size is " << insertSize << "\n";
@@ -1010,7 +1026,6 @@ int ContigGraph::disentangleParallelPaths(Bloom* pair_filter, double insertSize,
 int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, double std){
     int disentangled = 0;
     bool operationDone = false;
-    double fpRate = pow(pair_filter->weight(), pair_filter->getNumHash());
 
     if (insertSize <= 0 || std <= 0) return 0;
     std::cout << "Starting with " << nodeMap.size() << " nodes, disentangling loop paths.\n";
@@ -1073,7 +1088,7 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                 ContigNode* Nodeb = contig_b->otherEndNode(backNode);
                 ContigNode* Nodec = contig_c->otherEndNode(node);
                 ContigNode* Noded = contig_d->otherEndNode(node);             
-                double scoreAC, scoreAD, scoreBC, scoreBD;
+                bool scoreAC, scoreAD, scoreBC, scoreBD;
 
                 int len_a = contig_a->getSeq().length();
                 int len_b = contig_b->getSeq().length();
@@ -1091,30 +1106,31 @@ int ContigGraph::disentangleLoopPaths(Bloom* pair_filter, double insertSize, dou
                 C = node->getPairCandidates(c, 2*std::min(len_c, stepSize));
                 D = node->getPairCandidates(d, 2*std::min(len_d, stepSize));
             
-                scoreAC = getScore(A,C, pair_filter, fpRate, stepSize);
-                scoreAD = getScore(A,D, pair_filter, fpRate, stepSize);
-                scoreBC = getScore(B,C, pair_filter, fpRate, stepSize);
-                scoreBD = getScore(B,D, pair_filter, fpRate, stepSize);
+                scoreAC = areConnected(A,C, pair_filter, stepSize);
+                scoreAD = areConnected(A,D, pair_filter, stepSize);
+                scoreBC = areConnected(B,C, pair_filter, stepSize);
+                scoreBD = areConnected(B,D, pair_filter, stepSize);
 
+                // check 4 possible orientations - loop on top or bottom, a->c,b->d or a->d,b->c
                 if (Nodea==node && Nodec==backNode && Nodeb != node && Nodeb != backNode && Noded != node && Noded != backNode){
                     // below, check either connected to surrounding genome (i.e., unlike a plasmid) or 
                     // loop short enough not to have any junctions
-                    if((scoreAD>0 || scoreBC>0 || (A.size()==0 && C.size()==0 && len_a < read_length)) ){ 
+                    if((scoreAD || scoreBC || (A.size()==0 && C.size()==0 && len_a < read_length)) ){ 
                         disentangleLoop(contig, backNode, node, a, b, c, d);
                         operationDone = true;
                     }      
                 }else if(Nodeb==node && Noded==backNode && Nodea != node && Nodea != backNode && Nodec != node && Nodec != backNode){
-                    if((scoreAD>0 || scoreBC>0 || (B.size()==0 && D.size()==0 && len_b < read_length)) ){ 
+                    if((scoreAD || scoreBC || (B.size()==0 && D.size()==0 && len_b < read_length)) ){ 
                         disentangleLoop(contig, backNode, node, b, a, d, c);
                         operationDone = true;
                     } 
                 }else if(Nodea==node && Noded==backNode && Nodeb != node && Nodeb != backNode && Nodec != node && Nodec != backNode){
-                    if((scoreAC>0 || scoreBD>0 || (A.size()==0 && D.size()==0 && len_a < read_length)) ){ 
+                    if((scoreAC || scoreBD || (A.size()==0 && D.size()==0 && len_a < read_length)) ){ 
                         disentangleLoop(contig, backNode, node, a, b, d, c);
                         operationDone = true;
                     } 
                 }else if(Nodeb==node && Nodec==backNode && Nodea != node && Nodea != backNode && Noded != node && Noded != backNode){
-                    if((scoreBD>0 || scoreAC>0 || (B.size()==0 && C.size()==0 && len_b < read_length)) ){ 
+                    if((scoreBD || scoreAC || (B.size()==0 && C.size()==0 && len_b < read_length)) ){ 
                         disentangleLoop(contig, backNode, node, b, a, c, d);
                         operationDone = true;
                     } 
