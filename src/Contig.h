@@ -24,6 +24,7 @@ private:
     std::vector<std::pair<Contig*, bool> > getNeighbors(bool forward);
 
 public:
+
     ~Contig();
     std::string getFastGName(bool RC);
     std::string getFastGHeader(bool RC);
@@ -33,7 +34,8 @@ public:
     ContigNode * node2_p; //adjacent node on side 2
     unsigned char ind1; //index on which it connects to the node, on side 1
     unsigned char ind2; //index on which it connects to the node, on side 2
-    
+    bool marked;
+
     //list of coverage and distance for interior junctions along this contig- since we can use for pair BF and coverage info
     ContigJuncList contigJuncs;
 
@@ -69,12 +71,16 @@ public:
     kmer_type getSideKmer(int side);    //either 1 or 2
     int getSide(ContigNode* node);
     int getSide(ContigNode* node, int index);
+    void setMark(bool value);
+    bool getMark();
     ContigNode* getNode(int side);
     int getIndex(int side);
     bool isIsolated();//return true if both sides point to null
     void setSide(int side, ContigNode* node);
     std::string getStringRep();
     Contig();
+    Contig( Contig * c);
+
 
 };
 

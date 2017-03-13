@@ -270,7 +270,7 @@ bool ContigGraph::checkGraph(){
             // std::cout << "node is " << print_kmer(node->getKmer()) << std::endl;         
             if(node->contigs[i]){
                 if(!node->contigs[i]->checkValidity()){
-                    // return false;
+                    return false;
                 }
             }
         }                
@@ -813,6 +813,8 @@ int ContigGraph::collapseBulges(int max_dist){
                 // std::cout <<  "updated juncs\n";
                 // contig->contigJuncs.printJuncValues();
             }
+            cutPath(node, node->indexOf(P));   
+            cutPath(far_node, far_node->indexOf(P));  
             deleteContig(P);
             numDeleted++;
             if(isCollapsible(node)){
@@ -1464,42 +1466,76 @@ void ContigGraph::addIsolatedContig(Contig contig){
 }
 
 void ContigGraph::printContigs(string fileName){
-    printf("Printing contigs from contig graph.\n");
+    std::cout << "Printing contigs from contig graph.\n";
     ofstream jFile;
     jFile.open(fileName);
     int lineNum = 1;
-    //printf("Printing contigs from contig graph of %d nodes.\n", nodeMap.size());
 
     //prints contigs that are adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
-        ContigNode* node = &it->second;
-        for(int i = 0; i < 5; i++){
+        // std::cout << "1474\n";
+        ContigNode* node = &it->second;                
+        for(int i = 0; i < 4; i++){ 
+            // std::cout << "1497\n";
             if(node->contigs[i]){
-                Contig* contig = node->contigs[i];
-                if(contig->getSide(node,i) == 1){
-                    //printf("Printing from node at index %d\n", i);
+                // std::cout << "1499\n";
+
+                if(node->contigs[i]->getMark()){ // extension already marked
+                    // std::cout << "1500\n";                            
+                    continue;  
+                } 
+
+                if (!node->contigs[4]->getMark()){
+                    // std::cout << "1506\n";
+                    Contig * back_copy = new Contig(node->contigs[4]);
+                    back_copy->setContigJuncs(node->contigs[4]->contigJuncs);
+                    Contig * cont_copy = new Contig(node->contigs[i]);
+                    cont_copy->setContigJuncs(node->contigs[i]->contigJuncs);
+                    
+                    if(back_copy->getSide(node) == 1){
+                        back_copy->reverse();
+                    }
+                    if(cont_copy->getSide(node) == 2){
+                        cont_copy->reverse();
+                    }
+                    Contig* out_tig = new Contig();                    
+                    out_tig->setContigJuncs(back_copy->contigJuncs.concatenate(cont_copy->contigJuncs));
+                    
                     jFile << ">Contig" << lineNum << "\n";
                     lineNum++;
-                    // std::cout << contig->seq << "\n";
-                    jFile << canon_contig(contig->getSeq() ) << "\n";
+                    jFile << canon_contig(out_tig->getSeq() ) << "\n";
+                    delete back_copy;
+                    delete cont_copy;
+                    delete out_tig;
+                }else{ // back already marked
+                    // std::cout << "1512\n";
+                    jFile << ">Contig" << lineNum << "\n";
+                    lineNum++;
+                    jFile << canon_contig(node->contigs[i]->getSeq() ) << "\n";
                 }
+
+                node->contigs[i]->setMark(true);                
+                if (node->contigs[4]->getSeq().length() >= 1000){
+                    node->contigs[4]->setMark(true);
+                }
+                // std::cout << "1522, mark is " << node->contigs[i]->getMark() << "\n";
             }
         }
+       
+        node->contigs[4]->setMark(true);
+        // std::cout << "1529, mark is " << node->contigs[4]->getMark() << "\n";
+
     }
 
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig contig = *it;
         if (contig.getSeq().length() >= 200){
-
             jFile << ">Contig" << lineNum << "\n";
             lineNum++;
-            //printf("Printing isolated contig.\n");
             jFile << canon_contig(contig.getSeq()) << "\n";
         }
     }
-
-    //printf("Done printing contigs from contig graph.\n");
     jFile.close();
     printf("Done printing contigs from contig graph.\n");
 }

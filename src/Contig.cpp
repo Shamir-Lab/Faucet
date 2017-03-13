@@ -274,6 +274,15 @@ void Contig::setSide(int side, ContigNode* node){
 	else printf("ERROR: tried to set side for side other than 1,2.\n");	
 }
 
+void Contig::setMark(bool value){
+	marked = value;
+}
+
+bool Contig::getMark(){
+	return marked;
+}
+
+
 bool Contig::isIsolated(){
 	return ((node1_p == nullptr) && (node2_p == nullptr));
 }
@@ -415,8 +424,19 @@ Contig::Contig(){
 	node2_p = nullptr;
 	ind1 = 5;
 	ind2 = 5;
+	marked = false;
 	contigJuncs = ContigJuncList();
 }
+
+Contig::Contig( Contig * c){
+	setSeq("");
+	node1_p = c->node1_p;
+	node2_p = c->node2_p;
+	ind1 = c->ind1;
+	ind2 = c->ind2;
+	marked = c->marked;
+	contigJuncs = c->contigJuncs;
+}   
 
 Contig::~Contig(){
 	node1_p = nullptr;
