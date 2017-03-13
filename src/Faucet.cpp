@@ -152,7 +152,7 @@ int handle_arguments(int argc, char *argv[]){
 
     std::cout << "Read scan file name: " << read_scan_file << "\n";
 
-    printf("k: %d: \n", sizeKmer);
+    printf("k: %d \n", sizeKmer);
 
     printf("Maximal read length: %d\n", read_length);
 
@@ -319,8 +319,8 @@ int main(int argc, char *argv[])
     }
 
     contigGraph->checkGraph();
+    contigGraph->printGraph(file_prefix + ".cleaned_graph_unitigs.fastg");
     contigGraph->printContigs(file_prefix + ".cleaned_contigs.fasta");
-    contigGraph->printGraph(file_prefix + ".cleaned_graph.fastg");
 
     printf("Program reached end. \n");
     return 0;

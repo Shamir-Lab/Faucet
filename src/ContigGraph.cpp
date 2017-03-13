@@ -1427,7 +1427,7 @@ void ContigGraph::collapseNode(ContigNode * node, kmer_type kmer){
 
 
 void ContigGraph::printGraph(string fileName){
-    printf("Printing graph from contig graph to fastg with iterator.\n");
+    printf("Printing unitig FASTG.\n");
     ofstream fastgFile;
     fastgFile.open(fileName);
 
@@ -1439,7 +1439,7 @@ void ContigGraph::printGraph(string fileName){
         printContigFastG(&fastgFile, contig);
         node_contig_count++;
     }
-    printf("printed %d node-connected contigs\n", node_contig_count);
+    printf("printed %d node-connected unitigs\n", node_contig_count);
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig* contig = &*it;
@@ -1451,7 +1451,7 @@ void ContigGraph::printGraph(string fileName){
     printf("printed %d isolated contigs\n", isolated_contigs.size());
     //printf("Done printing contigs from contig graph.\n");
     fastgFile.close();
-    printf("Done printing graph from contig graph iterator.\n");
+    printf("Done printing graph.\n");
 }
 
 void ContigGraph::printContigFastG(std::ostream* fastgFile, Contig * contig){
@@ -1466,7 +1466,7 @@ void ContigGraph::addIsolatedContig(Contig contig){
 }
 
 void ContigGraph::printContigs(string fileName){
-    std::cout << "Printing contigs from contig graph.\n";
+    std::cout << "Printing contigs FASTA.\n";
     ofstream jFile;
     jFile.open(fileName);
     int lineNum = 1;
@@ -1537,7 +1537,7 @@ void ContigGraph::printContigs(string fileName){
         }
     }
     jFile.close();
-    printf("Done printing contigs from contig graph.\n");
+    printf("Done printing contigs.\n");
 }
 
 ContigGraph::ContigGraph(){
