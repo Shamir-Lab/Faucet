@@ -308,13 +308,16 @@ int main(int argc, char *argv[])
     contigGraph->setReadLength(read_length);
     delete(bloom);
 
+
     // contigGraph->checkGraph();
     // contigGraph->printGraph(file_prefix + ".raw_graph.fastg");
     // contigGraph->printContigs(file_prefix + ".raw_contigs.fasta");
+    
 
     if (no_cleaning){ return 0; }
     int iter_count = 0;
     while(contigGraph->cleanGraph(short_pair_filter, long_pair_filter) && iter_count < 50){
+        std::cout << "================= cleaning graph, iteration " << iter_count+1 << " =================\n";
         iter_count++;
     }
 
