@@ -451,23 +451,15 @@ int ContigGraph::destroyDegenerateNodes(){
 //returns a score based on how many pairs of kmers from the first and second lists are in the filter,
 double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, int insertSize){
     double score = 0;
-    std::unordered_set<JuncPair> seenPairs = {};
-    
     for(auto itL = leftCand.begin(); itL != leftCand.end() && itL->distance < insertSize; itL++){
         for(auto itR = rightCand.begin(); itR != rightCand.end()  && itR->distance < insertSize; itR++){
             JuncPair pair = JuncPair(itL->kmer, itR->kmer);
-            JuncPair rev_pair = JuncPair(itR->kmer, itL->kmer);
-            if(seenPairs.find(pair)==seenPairs.end()){
-                seenPairs.insert(pair);
-                seenPairs.insert(rev_pair);
-                if (pair_filter->containsPair(pair) || pair_filter->containsPair(rev_pair)){
-                    score += 1;    
-                }
+            if(pair_filter->containsPair(pair)){
+                //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
+                score += 1;
             } 
         }
-    }
-
-    
+    } 
     return score; 
 }
 
@@ -1530,7 +1522,11 @@ void ContigGraph::printContigs(string fileName){
                     continue;  
                 } 
 
-                if (!node->contigs[4]->getMark()){
+                if(node->contigs[i]->otherEndNode(node) == node){ // to avoid inversions, don't append back to inverted repeats
+                    jFile << ">Contig" << lineNum << "\n";
+                    lineNum++;
+                    jFile << canon_contig(node->contigs[i]->getSeq() ) << "\n";
+                }else if (!node->contigs[4]->getMark()){
                     // std::cout << "1506\n";
                     Contig * back_copy = new Contig(node->contigs[4]);
                     back_copy->setContigJuncs(node->contigs[4]->contigJuncs);

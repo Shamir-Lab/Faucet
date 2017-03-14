@@ -125,25 +125,29 @@ double brents_fun(std::function<double (double)> f, double lower, double upper, 
 
 
 void Bloom::addPair(JuncPair pair){
-    bloom_elem elem1 = pair.kmer1;
-    bloom_elem elem2 = pair.kmer2;
+    bloom_elem elem1 = get_canon(pair.kmer1);
+    bloom_elem elem2 = get_canon(pair.kmer2);
     uint64_t hA,hB;
 
-    hA = oldHash(elem1, 0) + oldHash(elem2, 0);
-    hB = oldHash(elem1, 1) + oldHash(elem2, 1);
+    // hA = oldHash(elem1, 0) + oldHash(elem2, 0);
+    // hB = oldHash(elem1, 1) + oldHash(elem2, 1);
+    hA = oldHash(std::min(elem1,elem2), 0);
+    hB = oldHash(std::max(elem1,elem2), 1);
 
     //printf("Adding %lli, %lli\n", hA, hB);
     add(hA, hB);
 }
 
 int Bloom::containsPair(JuncPair pair){
-    bloom_elem elem1 = pair.kmer1;
-    bloom_elem elem2 = pair.kmer2;
+    bloom_elem elem1 = get_canon(pair.kmer1);
+    bloom_elem elem2 = get_canon(pair.kmer2);
     uint64_t hA,hB;
 
-    hA = oldHash(elem1, 0) + oldHash(elem2, 0);
-    hB = oldHash(elem1, 1) + oldHash(elem2, 1);
-
+    // hA = oldHash(elem1, 0) + oldHash(elem2, 0);
+    // hB = oldHash(elem1, 1) + oldHash(elem2, 1);
+    hA = oldHash(std::min(elem1,elem2), 0);
+    hB = oldHash(std::max(elem1,elem2), 1);
+    
     //printf("Checking %lli, %lli\n", hA, hB);
 
     return contains(hA, hB);
