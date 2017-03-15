@@ -1510,28 +1510,30 @@ void ContigGraph::printContigs(string fileName){
 
     //prints contigs that are adjacent to nodes
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
-        // std::cout << "1474\n";
-        ContigNode* node = &it->second;                
+        ContigNode* node = &it->second;
+        Contig * back = node->contigs[4];    
+        bool back_mark = false;            
         for(int i = 0; i < 4; i++){ 
-            // std::cout << "1497\n";
-            if(node->contigs[i]){
-                // std::cout << "1499\n";
+            Contig * contig = node->contigs[i];
+            if(contig){
 
-                if(node->contigs[i]->getMark()){ // extension already marked
-                    // std::cout << "1500\n";                            
+                if(contig->getMark()){ // extension already marked
                     continue;  
                 } 
 
-                if(node->contigs[i]->otherEndNode(node) == node){ // to avoid inversions, don't append back to inverted repeats
+                int thresh = 500;
+                if(contig->otherEndNode(node) == node){ // to avoid inversions, don't append back to inverted repeats
                     jFile << ">Contig" << lineNum << "\n";
                     lineNum++;
-                    jFile << canon_contig(node->contigs[i]->getSeq() ) << "\n";
-                }else if (!node->contigs[4]->getMark()){
-                    // std::cout << "1506\n";
-                    Contig * back_copy = new Contig(node->contigs[4]);
-                    back_copy->setContigJuncs(node->contigs[4]->contigJuncs);
-                    Contig * cont_copy = new Contig(node->contigs[i]);
-                    cont_copy->setContigJuncs(node->contigs[i]->contigJuncs);
+                    jFile << canon_contig(contig->getSeq() ) << "\n";
+                }else if (!back->getMark() && back->getSeq().length() < thresh 
+                    && contig->getSeq().length() < thresh && back->getSeq().length() + contig->getSeq().length() >= thresh){
+                    // concatenate back to contig without making changes
+                    // at their respective nodes
+                    Contig * back_copy = new Contig(back);
+                    back_copy->setContigJuncs(back->contigJuncs);
+                    Contig * cont_copy = new Contig(contig);
+                    cont_copy->setContigJuncs(contig->contigJuncs);
                     
                     if(back_copy->getSide(node) == 1){
                         back_copy->reverse();
@@ -1548,23 +1550,21 @@ void ContigGraph::printContigs(string fileName){
                     delete back_copy;
                     delete cont_copy;
                     delete out_tig;
+                    back_mark = true;
                 }else{ // back already marked
-                    // std::cout << "1512\n";
                     jFile << ">Contig" << lineNum << "\n";
                     lineNum++;
-                    jFile << canon_contig(node->contigs[i]->getSeq() ) << "\n";
+                    jFile << canon_contig(contig->getSeq() ) << "\n";
                 }
 
-                node->contigs[i]->setMark(true);                
-                if (node->contigs[4]->getSeq().length() >= 1000){
-                    node->contigs[4]->setMark(true);
-                }
-                // std::cout << "1522, mark is " << node->contigs[i]->getMark() << "\n";
+                contig->setMark(true);                
+                // if (back->getSeq().length() >= 1000){
+                //     back->setMark(true);
+                // }
             }
         }
-       
-        node->contigs[4]->setMark(true);
-        // std::cout << "1529, mark is " << node->contigs[4]->getMark() << "\n";
+        if (back_mark) back->setMark(true);
+        back_mark = false;
 
     }
 
