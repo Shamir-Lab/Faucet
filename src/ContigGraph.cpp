@@ -451,12 +451,15 @@ int ContigGraph::destroyDegenerateNodes(){
 //returns a score based on how many pairs of kmers from the first and second lists are in the filter,
 double ContigGraph::getScore(std::list<JuncResult> leftCand, std::list<JuncResult> rightCand, Bloom* pair_filter, int insertSize){
     double score = 0;
+    std::unordered_set<JuncPair> seenPairs = {};
+
     for(auto itL = leftCand.begin(); itL != leftCand.end() && itL->distance < insertSize; itL++){
         for(auto itR = rightCand.begin(); itR != rightCand.end()  && itR->distance < insertSize; itR++){
             JuncPair pair = JuncPair(itL->kmer, itR->kmer);
+            if(seenPairs.find(pair) != seenPairs.end()) return score;
             if(pair_filter->containsPair(pair)){
-                //std::cout << "Distance: " << itL->distance + itR->distance << "\n";
                 score += 1;
+                seenPairs.insert(pair);
             } 
         }
     } 
@@ -1526,31 +1529,38 @@ void ContigGraph::printContigs(string fileName){
                     jFile << ">Contig" << lineNum << "\n";
                     lineNum++;
                     jFile << canon_contig(contig->getSeq() ) << "\n";
-                }else if (!back->getMark() && back->getSeq().length() < thresh 
-                    && contig->getSeq().length() < thresh && back->getSeq().length() + contig->getSeq().length() >= thresh){
-                    // concatenate back to contig without making changes
-                    // at their respective nodes
-                    Contig * back_copy = new Contig(back);
-                    back_copy->setContigJuncs(back->contigJuncs);
-                    Contig * cont_copy = new Contig(contig);
-                    cont_copy->setContigJuncs(contig->contigJuncs);
-                    
-                    if(back_copy->getSide(node) == 1){
-                        back_copy->reverse();
+                }else if (!back->getMark() && back->otherEndNode(node)){
+                    if(back->otherEndNode(node)->indexOf(back)==4){
+                    // && back->getSeq().length() < thresh 
+                    // && contig->getSeq().length() < thresh && back->getSeq().length() + contig->getSeq().length() >= thresh){
+                        // concatenate back to contig without making changes
+                        // at their respective nodes
+                        Contig * back_copy = new Contig(back);
+                        back_copy->setContigJuncs(back->contigJuncs);
+                        Contig * cont_copy = new Contig(contig);
+                        cont_copy->setContigJuncs(contig->contigJuncs);
+                        
+                        if(back_copy->getSide(node) == 1){
+                            back_copy->reverse();
+                        }
+                        if(cont_copy->getSide(node) == 2){
+                            cont_copy->reverse();
+                        }
+                        Contig* out_tig = new Contig();                    
+                        out_tig->setContigJuncs(back_copy->contigJuncs.concatenate(cont_copy->contigJuncs));
+                        
+                        jFile << ">Contig" << lineNum << "\n";
+                        lineNum++;
+                        jFile << canon_contig(out_tig->getSeq() ) << "\n";
+                        delete back_copy;
+                        delete cont_copy;
+                        delete out_tig;
+                        back_mark = true;
+                    }else{ 
+                        jFile << ">Contig" << lineNum << "\n";
+                        lineNum++;
+                        jFile << canon_contig(contig->getSeq() ) << "\n";
                     }
-                    if(cont_copy->getSide(node) == 2){
-                        cont_copy->reverse();
-                    }
-                    Contig* out_tig = new Contig();                    
-                    out_tig->setContigJuncs(back_copy->contigJuncs.concatenate(cont_copy->contigJuncs));
-                    
-                    jFile << ">Contig" << lineNum << "\n";
-                    lineNum++;
-                    jFile << canon_contig(out_tig->getSeq() ) << "\n";
-                    delete back_copy;
-                    delete cont_copy;
-                    delete out_tig;
-                    back_mark = true;
                 }else{ // back already marked
                     jFile << ">Contig" << lineNum << "\n";
                     lineNum++;
