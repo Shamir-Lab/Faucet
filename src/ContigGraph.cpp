@@ -1483,7 +1483,7 @@ void ContigGraph::printGraph(string fileName){
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig* contig = &*it;
-        if (contig->getSeq().length() >= 200){
+        if (contig->getSeq().length() >= read_length){
            printContigFastG(&fastgFile, contig);
         }
 
@@ -1515,7 +1515,7 @@ void ContigGraph::printContigs(string fileName){
     for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
         ContigNode* node = &it->second;
         Contig * back = node->contigs[4];    
-        bool back_mark = false;            
+        // bool back_mark = false;            
         for(int i = 0; i < 4; i++){ 
             Contig * contig = node->contigs[i];
             if(contig){
@@ -1524,15 +1524,13 @@ void ContigGraph::printContigs(string fileName){
                     continue;  
                 } 
 
-                int thresh = 500;
                 if(contig->otherEndNode(node) == node){ // to avoid inversions, don't append back to inverted repeats
                     jFile << ">Contig" << lineNum << "\n";
                     lineNum++;
                     jFile << canon_contig(contig->getSeq() ) << "\n";
-                }else if (!back->getMark() && back->otherEndNode(node)){
-                    if(back->otherEndNode(node)->indexOf(back)==4){
-                    // && back->getSeq().length() < thresh 
-                    // && contig->getSeq().length() < thresh && back->getSeq().length() + contig->getSeq().length() >= thresh){
+                }else if (!back->getMark()){ 
+                    // && back->otherEndNode(node)){
+                    // if(back->otherEndNode(node)->indexOf(back)==4){
                         // concatenate back to contig without making changes
                         // at their respective nodes
                         Contig * back_copy = new Contig(back);
@@ -1555,12 +1553,12 @@ void ContigGraph::printContigs(string fileName){
                         delete back_copy;
                         delete cont_copy;
                         delete out_tig;
-                        back_mark = true;
-                    }else{ 
-                        jFile << ">Contig" << lineNum << "\n";
-                        lineNum++;
-                        jFile << canon_contig(contig->getSeq() ) << "\n";
-                    }
+                        // back_mark = true;
+                    // }else{ 
+                    //     jFile << ">Contig" << lineNum << "\n";
+                    //     lineNum++;
+                    //     jFile << canon_contig(contig->getSeq() ) << "\n";
+                    // }
                 }else{ // back already marked
                     jFile << ">Contig" << lineNum << "\n";
                     lineNum++;
@@ -1568,20 +1566,23 @@ void ContigGraph::printContigs(string fileName){
                 }
 
                 contig->setMark(true);                
-                // if (back->getSeq().length() >= 1000){
-                //     back->setMark(true);
-                // }
+                if (back->getSeq().length() >= 1000){
+                    // rationale: we wish to minimize duplications. Long contigs tend to be single copy, 
+                    // and short repeats have too much of their sequence length due to their overlaps
+                    back->setMark(true);
+                }
             }
         }
-        if (back_mark) back->setMark(true);
-        back_mark = false;
+        // if (back_mark) 
+        back->setMark(true);
+        // back_mark = false;
 
     }
 
     //prints isolated contigs
     for(auto it = isolated_contigs.begin(); it != isolated_contigs.end(); ++it){
         Contig contig = *it;
-        if (contig.getSeq().length() >= 200){
+        if (contig.getSeq().length() >= read_length){
             jFile << ">Contig" << lineNum << "\n";
             lineNum++;
             jFile << canon_contig(contig.getSeq()) << "\n";
