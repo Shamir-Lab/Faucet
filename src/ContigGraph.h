@@ -62,7 +62,7 @@ public:
     bool isLowCovContig(Contig* contig);
     bool isLowMassContig(Contig* contig);
     bool isTip(ContigNode* node, int i);
-    bool isBubble(ContigNode* node);
+    bool isBubbleNode(ContigNode* node);
     std::list<Contig*> getPathIfSimpleBulge(ContigNode* node, int max_dist);
 
     void deleteContig(Contig* contig);
@@ -70,7 +70,13 @@ public:
 
     bool checkGraph();
     void printContigFastG(std::ostream* fastgFile, Contig * contig);
-    void printContigs(string filename); //prints the contigs raw
+
+    // calls different sub-functions below to traverse graph and output contigs 
+    void printContigs(string filename); 
+    int printAndMarkBubbleContigs(string fileName);
+    int printUnmarkedUnitigs(string fileName, int numPrinted);
+
+
     void printGraph(string fileName); //prints graph : TBD print format- fastg?
     ContigGraph();
 
@@ -91,6 +97,8 @@ public:
     bool disentangleAndClean(Bloom* pair_filter, double insertSize, double std);
     bool areEquivalentContigCoverages(ContigJuncList A, ContigJuncList B, double frac);
     bool areDifferentialContigCoverages(ContigJuncList A, ContigJuncList B);
+    Contig * getNewConcatenatedContig(Contig * back, Contig * contig, ContigNode * node);
+
 
 private:
     int deleteTips();
