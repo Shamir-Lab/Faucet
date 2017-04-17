@@ -1533,6 +1533,7 @@ void ContigGraph::printContigs(string fileName){
     std::cout << "Printing contigs FASTA.\n";
     int lineNum = 0;
     lineNum = printAndMarkBubbleContigs(fileName);
+    // lineNum = printAndMarkTangles(fileName, lineNum);
     lineNum = printUnmarkedUnitigs(fileName, lineNum);
 
     std::cout << "Done printing " << lineNum << " contigs.\n";
@@ -1577,6 +1578,29 @@ int ContigGraph::printAndMarkBubbleContigs(string fileName){
     jFile.close();
     return lineNum;
 }
+
+// int ContigGraph::printAndMarkTangles(string fileName, int numPrinted){
+//     ofstream jFile; // // append at end of file
+//     jFile.open(fileName, std::ios::out);
+//     int lineNum = 0;
+
+//     //prints contigs that are adjacent to nodes
+//     for(auto it = nodeMap.begin(); it != nodeMap.end(); ++it){
+//         ContigNode* node = &it->second;
+//         Contig * back = node->contigs[4]; 
+//         if(node->numPathsOut()==2 && contig->node2_p && contig->node1_p){
+//             ContigNode* backNode = contig->otherEndNode(node);
+//             if (node != backNode && backNode->numPathsOut() == 2 && backNode->indexOf(contig) == 4 &&
+//                 !node->isInvertedRepeatNode() && !backNode->isInvertedRepeatNode()){
+//                 kmer_type back_kmer = backNode->getKmer();
+
+                
+
+//             }
+//         }
+//     }
+
+// }
 
 int ContigGraph::printUnmarkedUnitigs(string fileName, int numPrinted){
     ofstream jFile; // append at end of file
