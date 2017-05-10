@@ -7,13 +7,29 @@
 # Running Faucet (locally)
 Example usage:
 
-	./faucet -read_load_file interlaced_reads.fq -read_scan_file interlaced_reads.fq -size_kmer 31 -max_read_length 100 -estimated_kmers 1000000000 -singletons 200000000 -file_prefix faucet_outputs --fastq --paired_ends
+```bash
+./faucet -read_load_file interlaced_reads.fq \
+         -read_scan_file interlaced_reads.fq \
+		 -size_kmer 31 \
+		 -max_read_length 100 \
+		 -estimated_kmers 1000000000 \
+		 -singletons 200000000 \
+		 -file_prefix faucet_outputs \
+		 --fastq \
+		 --paired_ends
+```
 
 The above command takes as input the file interlaced_reads.fq (where entries alternate between mates 1 and 2 of a paired end library), and the input format is fastq. Faucet does not accept separate mate files, but can accept fasta format and files composed of read sequences alone.
 
 # Streaming from a remote source
 A demonstration streaming reads from a remote server is provided in the script src/stream_data_from_urls_list.sh
 
+You can run it with:
+```bash
+./stream_data_from_urls_list.sh out wget_urls 1596741569 12045222
+```
+where `wget_urls` is a file with URLs downloaded from ENA,
+`1596741569` is the estimated number of unique kmers (F0) and `12045222` if the estimated number of singleton kmers (f1).
 
 # Requirements
 Faucet was implemented in C++ 11, so requires a compiler that is not too ancient to support it, and has been tested only on Linux so far. 
