@@ -1,3 +1,5 @@
+You can download Faucet [here](https://github.com/Shamir-Lab/Faucet/releases/download/v0.5/Faucet-v0.5.zip) or clone it via the link below. In case you download the zip, unzip the file before following the instructions below (ignoring the 'git clone' line)
+
 # Getting Faucet
     git clone https://github.com/rozovr/Faucet.git
     cd Faucet/src
